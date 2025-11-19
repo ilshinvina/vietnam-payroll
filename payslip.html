@@ -436,6 +436,35 @@
             </div>
         </div>
 
+        <!-- 최종 정산 요약 -->
+        <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white;">
+            <div class="section-title" style="color: white; font-size: 1.2em;">📊 최종 정산</div>
+            <div class="info-row" style="border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 8px;">
+                <span class="info-label" style="color: rgba(255,255,255,0.9);">급여 상세 합계</span>
+                <span class="info-value" style="color: white;" id="finalBasicPayTotal">-</span>
+            </div>
+            <div class="info-row" style="border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 8px;">
+                <span class="info-label" style="color: rgba(255,255,255,0.9);">수당 합계</span>
+                <span class="info-value" style="color: white;" id="finalAllowanceTotal">-</span>
+            </div>
+            <div class="info-row" style="border-bottom: 2px solid white; padding-bottom: 12px; margin-bottom: 12px;">
+                <span class="info-label" style="color: white; font-weight: bold; font-size: 1.1em;">= 총 급여</span>
+                <span class="info-value" style="color: #ffd700; font-weight: bold; font-size: 1.2em;" id="finalTotalSalary">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label" style="color: rgba(255,255,255,0.9);">- 보험료 공제</span>
+                <span class="info-value" style="color: #ffcccc;" id="finalInsuranceDeduct">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label" style="color: rgba(255,255,255,0.9);">- 개인소득세</span>
+                <span class="info-value" style="color: #ffcccc;" id="finalTaxDeduct">-</span>
+            </div>
+            <div class="info-row" id="finalAdvanceRow" style="display: none;">
+                <span class="info-label" style="color: rgba(255,255,255,0.9);">- 선금</span>
+                <span class="info-value" style="color: #ffcccc;" id="finalAdvanceDeduct">-</span>
+            </div>
+        </div>
+
         <!-- 실수령액 -->
         <div class="total-section">
             <div class="net-salary-label">💰 실수령액</div>
@@ -464,15 +493,24 @@
 
         // URL에서 데이터 가져오기
         function loadPayslipData() {
+            // 1. embedded 데이터 확인 (HTML 파일로 저장된 경우)
+            if (typeof EMBEDDED_PAYSLIP_DATA !== 'undefined') {
+                console.log('===== 📱 급여명세서 페이지 로드 (Embedded Data) =====');
+                console.log('✅ 파일에 포함된 데이터 사용');
+                displayPayslip(EMBEDDED_PAYSLIP_DATA);
+                return;
+            }
+
+            // 2. URL 파라미터 확인 (일반적인 경우)
             const urlParams = new URLSearchParams(window.location.search);
             const data = urlParams.get('data');
 
-            console.log('===== 📱 급여명세서 페이지 로드 =====');
+            console.log('===== 📱 급여명세서 페이지 로드 (URL Parameter) =====');
             console.log('URL에서 data 파라미터 확인...');
 
             if (!data) {
                 console.error('❌ 급여 데이터가 없습니다!');
-                alert('급여 데이터가 없습니다!');
+                alert('급여 데이터가 없습니다!\n\n급여 입력 화면에서 "📱 모바일 급여명세서" 버튼을 눌러주세요.');
                 return;
             }
 
@@ -663,6 +701,21 @@
             const totalDeductionAmount = data.totalDeduction + data.incomeTax + (data.advancePayment || 0);
             document.getElementById('deductTotal').textContent = formatNumber(totalDeductionAmount) + ' đ';
 
+            // ===== 최종 정산 요약 =====
+            document.getElementById('finalBasicPayTotal').textContent = formatNumber(totalBasicPay) + ' đ';
+            document.getElementById('finalAllowanceTotal').textContent = formatNumber(totalAllowancesAmount) + ' đ';
+            document.getElementById('finalTotalSalary').textContent = formatNumber(data.totalSalary) + ' đ';
+            document.getElementById('finalInsuranceDeduct').textContent = formatNumber(data.totalDeduction) + ' đ';
+            document.getElementById('finalTaxDeduct').textContent = formatNumber(data.incomeTax) + ' đ';
+
+            // 선금 (있으면 표시)
+            if (data.advancePayment && data.advancePayment > 0) {
+                document.getElementById('finalAdvanceRow').style.display = 'flex';
+                document.getElementById('finalAdvanceDeduct').textContent = formatNumber(data.advancePayment) + ' đ';
+            } else {
+                document.getElementById('finalAdvanceRow').style.display = 'none';
+            }
+
             // 실수령액
             document.getElementById('netSalary').textContent = formatNumber(data.netSalary) + ' đ';
             document.getElementById('netSalaryText').textContent = numberToVietnamese(data.netSalary) + ' đồng';
@@ -724,6 +777,22 @@
                 buttonContainer.remove();
             }
 
+            // 데이터를 embedded 스크립트로 삽입
+            const embeddedScript = document.createElement('script');
+            embeddedScript.textContent = `
+// 급여명세서 데이터 (HTML 파일에 포함)
+const EMBEDDED_PAYSLIP_DATA = ${JSON.stringify(currentPayslipData, null, 2)};
+console.log('✅ Embedded 데이터 로드됨:', EMBEDDED_PAYSLIP_DATA);
+            `;
+
+            // head에 스크립트 삽입 (다른 스크립트보다 먼저 실행되도록)
+            const head = clonedDoc.querySelector('head');
+            if (head && head.firstChild) {
+                head.insertBefore(embeddedScript, head.firstChild);
+            } else if (head) {
+                head.appendChild(embeddedScript);
+            }
+
             // 완전한 HTML 문자열 생성
             const htmlContent = '<!DOCTYPE html>\n' + clonedDoc.outerHTML;
 
@@ -744,6 +813,7 @@
             URL.revokeObjectURL(link.href);
 
             console.log('✅ HTML 파일 저장 완료:', fileName);
+            alert('✅ HTML 파일이 저장되었습니다!\n\n파일을 열면 데이터가 자동으로 표시됩니다.');
         }
 
         // 페이지 로드 시 실행

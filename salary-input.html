@@ -404,6 +404,11 @@
                         <span class="result-label">일요일 수당 (200%)</span>
                         <span class="result-value" id="sundayPay">0 đ</span>
                     </div>
+                    <!-- 급여 상세 합계 -->
+                    <div class="result-item" style="border-top: 2px solid #667eea; padding-top: 15px; margin-top: 10px; background: #e8eaf6;">
+                        <span class="result-label" style="color: #667eea; font-weight: bold; font-size: 1.1em;">💰 급여 상세 합계</span>
+                        <span class="result-value" style="color: #667eea; font-size: 1.3em; font-weight: bold;" id="salaryDetailTotal">0 đ</span>
+                    </div>
                 </div>
 
                 <div class="result-box" style="background: #f1f8f4; border-left-color: #4caf50;">
@@ -479,6 +484,11 @@
                     <div class="result-item" id="specialAllowanceResultContainer" style="display: none; border-top: 2px solid #9c27b0; padding-top: 10px; margin-top: 10px;">
                         <span class="result-label" style="color: #9c27b0; font-weight: bold;">💎 특수수당</span>
                         <span class="result-value" style="color: #9c27b0; font-weight: bold;" id="specialAllowanceResult">0 đ</span>
+                    </div>
+                    <!-- 수당 합계 -->
+                    <div class="result-item" style="border-top: 2px solid #28a745; padding-top: 15px; margin-top: 10px; background: #d4edda;">
+                        <span class="result-label" style="color: #28a745; font-weight: bold; font-size: 1.1em;">💵 수당 합계</span>
+                        <span class="result-value" style="color: #28a745; font-size: 1.3em; font-weight: bold;" id="allowanceTotal">0 đ</span>
                     </div>
                 </div>
 
@@ -586,6 +596,35 @@
                         <span class="result-value" style="color: #ff9800; font-size: 1.2em; font-weight: bold;" id="advancePaymentResult">0 đ</span>
                     </div>
                     <div class="tip" style="color: #666; margin-top: 10px;">※ 실수령액에서 차감됩니다</div>
+                </div>
+
+                <!-- 최종 정산 요약 -->
+                <div class="result-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white;">
+                    <h3 style="color: white; margin-bottom: 20px; font-size: 1.3em;">📊 최종 정산</h3>
+                    <div class="result-item" style="border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 10px;">
+                        <span class="result-label" style="color: rgba(255,255,255,0.9);">급여 상세 합계</span>
+                        <span class="result-value" style="color: white;" id="finalSalaryDetail">0 đ</span>
+                    </div>
+                    <div class="result-item" style="border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 10px;">
+                        <span class="result-label" style="color: rgba(255,255,255,0.9);">수당 합계</span>
+                        <span class="result-value" style="color: white;" id="finalAllowanceTotal">0 đ</span>
+                    </div>
+                    <div class="result-item" style="border-bottom: 2px solid white; padding-bottom: 15px; margin-bottom: 15px;">
+                        <span class="result-label" style="color: white; font-weight: bold; font-size: 1.1em;">= 총 급여</span>
+                        <span class="result-value" style="color: #ffd700; font-size: 1.3em; font-weight: bold;" id="finalTotalSalary">0 đ</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label" style="color: rgba(255,255,255,0.9);">- 보험료 공제</span>
+                        <span class="result-value" style="color: #ffcccc;" id="finalDeduction">0 đ</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label" style="color: rgba(255,255,255,0.9);">- 개인소득세</span>
+                        <span class="result-value" style="color: #ffcccc;" id="finalIncomeTax">0 đ</span>
+                    </div>
+                    <div class="result-item" id="finalAdvancePaymentRow" style="display: none;">
+                        <span class="result-label" style="color: rgba(255,255,255,0.9);">- 선금</span>
+                        <span class="result-value" style="color: #ffcccc;" id="finalAdvancePayment">0 đ</span>
+                    </div>
                 </div>
 
                 <div class="highlight-box">
@@ -1955,6 +1994,31 @@
             document.getElementById('taxFreeSunday').textContent = formatNumber(taxFreeSunday) + ' đ';
             document.getElementById('totalTaxFree').textContent = formatNumber(totalTaxFree) + ' đ';
 
+            // ===== 중간 합계 계산 및 표시 =====
+            // 1. 급여 상세 합계 (정규+야근+야간+일요일)
+            const salaryDetailTotal = normalPay + overtimePay + nightPay + sundayPay;
+            document.getElementById('salaryDetailTotal').textContent = formatNumber(salaryDetailTotal) + ' đ';
+
+            // 2. 수당 합계 (식대+동적수당+특수수당)
+            const allowanceTotal = mealAllowance + dynamicAllowances + specialAllowance;
+            document.getElementById('allowanceTotal').textContent = formatNumber(allowanceTotal) + ' đ';
+
+            // 3. 최종 정산 요약 (실수령액 전 요약)
+            document.getElementById('finalSalaryDetail').textContent = formatNumber(salaryDetailTotal) + ' đ';
+            document.getElementById('finalAllowanceTotal').textContent = formatNumber(allowanceTotal) + ' đ';
+            document.getElementById('finalTotalSalary').textContent = formatNumber(totalSalary) + ' đ';
+            document.getElementById('finalDeduction').textContent = formatNumber(totalDeduction) + ' đ';
+            document.getElementById('finalIncomeTax').textContent = formatNumber(incomeTax) + ' đ';
+
+            // 선금 표시 (있을 경우만)
+            const finalAdvanceRow = document.getElementById('finalAdvancePaymentRow');
+            if (advancePayment > 0) {
+                finalAdvanceRow.style.display = '';
+                document.getElementById('finalAdvancePayment').textContent = formatNumber(advancePayment) + ' đ';
+            } else {
+                finalAdvanceRow.style.display = 'none';
+            }
+
             document.getElementById('totalSalary').textContent = formatNumber(totalSalary) + ' đ';
             document.getElementById('totalDeduction').textContent = formatNumber(totalDeduction) + ' đ';
             document.getElementById('netSalary').textContent = formatNumber(netSalary) + ' đ';
@@ -2114,9 +2178,12 @@
             const advancePayment = document.getElementById('advancePaymentEnabled')?.checked ?
                 (parseFloat(document.getElementById('advancePaymentAmount')?.value) || 0) : 0;
             
+            // 총 급여 (화면에서 가져오기)
+            const totalSalary = parseFloat(document.getElementById('totalSalary').textContent.replace(/[^\d]/g, '')) || 0;
+
             // 실수령액
             const netSalary = parseFloat(document.getElementById('netSalary').textContent.replace(/[^\d]/g, '')) || 0;
-            
+
             return {
                 companyName,
                 companyLogo,
@@ -2147,6 +2214,7 @@
                 excusedAbsentLunchCount,
                 allowances: dynamicAllowances,
                 specialAllowance,
+                totalSalary,  // 추가!
                 socialIns,
                 healthIns,
                 unemployIns,
@@ -2419,6 +2487,22 @@
             ];
             results.push(headerRow);
 
+            // 합계 누적 변수 초기화
+            let sumBasicSalary = 0;
+            let sumNormalPay = 0;
+            let sumOvertimePay = 0;
+            let sumNightPay = 0;
+            let sumSundayPay = 0;
+            let sumMealAllowance = 0;
+            let sumAllowances = new Array(enabledAllowances.length).fill(0);
+            let sumTotalSalary = 0;
+            let sumSocialIns = 0;
+            let sumHealthIns = 0;
+            let sumUnemployIns = 0;
+            let sumTotalDeduction = 0;
+            let sumIncomeTax = 0;
+            let sumNetSalary = 0;
+
             // 각 직원 계산
             for (const id in employees) {
                 const emp = employees[id];
@@ -2515,9 +2599,39 @@
                 ];
                 results.push(dataRow);
 
+                // 합계 누적
+                sumBasicSalary += emp.basicSalary;
+                sumNormalPay += normalPay;
+                sumOvertimePay += overtimePay;
+                sumNightPay += nightPay;
+                sumSundayPay += sundayPay;
+                sumMealAllowance += mealAllowance;
+                allowanceValues.forEach((val, idx) => {
+                    sumAllowances[idx] += val;
+                });
+                sumTotalSalary += totalSalary;
+                sumSocialIns += socialIns;
+                sumHealthIns += healthIns;
+                sumUnemployIns += unemployIns;
+                sumTotalDeduction += totalDeduction;
+                sumIncomeTax += incomeTax;
+                sumNetSalary += netSalary;
+
                 // 원래 직원으로 복귀
                 if (tempCurrent) loadEmployee(tempCurrent);
             }
+
+            // 합계 행 추가
+            const sumRow = [
+                '합계', Math.round(sumBasicSalary), '', '',
+                Math.round(sumNormalPay), Math.round(sumOvertimePay), Math.round(sumNightPay), Math.round(sumSundayPay),
+                Math.round(sumMealAllowance),
+                ...sumAllowances.map(v => Math.round(v)),
+                Math.round(sumTotalSalary), Math.round(sumSocialIns), Math.round(sumHealthIns), Math.round(sumUnemployIns),
+                Math.round(sumTotalDeduction), '', '', '',
+                Math.round(sumIncomeTax), Math.round(sumNetSalary)
+            ];
+            results.push(sumRow);
 
             const ws = XLSX.utils.aoa_to_sheet(results);
             XLSX.utils.book_append_sheet(wb, ws, '급여명세');
