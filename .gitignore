@@ -1,0 +1,26 @@
+# 백업 파일
+*.json.bak
+backup_*.json
+백업_*/
+
+# 엑셀 파일 (대용량)
+*.xlsx
+
+# 임시 파일
+nul
+*.tmp
+*.temp
+
+# 스크린샷
+SCREEN SHOT/
+
+# 테스트 파일
+tests/
+
+# IDE 설정
+.vscode/
+.idea/
+
+# OS 파일
+.DS_Store
+Thumbs.db

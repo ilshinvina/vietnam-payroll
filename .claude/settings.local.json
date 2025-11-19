@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python analyze_excel.py:*)",
+      "Bash(python check_insurance.py:*)",
+      "Bash(dir:*)",
+      "Bash(powershell -Command \"(Get-Content ''급여계산기v2.html'' | Measure-Object -Line).Lines\")",
+      "Bash(python:*)",
+      "Bash(powershell -Command \"(Get-Content ''index.html'' | Measure-Object -Line).Lines\")",
+      "Bash(powershell -Command \"(Get-Content ''salary-input.html'' | Measure-Object -Line).Lines\")",
+      "Bash(powershell -Command \"(Get-Content ''settings.html'' | Measure-Object -Line).Lines\")",
+      "Bash(powershell -Command:*)",
+      "Bash(findstr:*)",
+      "Bash(node -c \"D:\\xyz\\MONEY\\salary-input.html\")",
+      "Bash(nul)",
+      "Bash(copy \"D:\\xyz\\MONEY\\styles.css\" \"D:\\xyz\\MONEY TEST\\styles.css\")",
+      "Bash(copy \"D:\\xyz\\MONEY\\ui-calendar.js\" \"D:\\xyz\\MONEY TEST\\ui-calendar.js\")",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

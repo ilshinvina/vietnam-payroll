@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회사 프로필 설정 / Company Profile Setup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .btn-home {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-home:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .logo-upload {
+            margin-bottom: 30px;
+        }
+
+        .logo-preview {
+            width: 200px;
+            height: 200px;
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 15px 0;
+            background: #fafafa;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .logo-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-preview .placeholder {
+            color: #999;
+            text-align: center;
+            font-size: 3em;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .file-input-label:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .color-picker-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .color-picker-group input[type="color"] {
+            width: 80px;
+            height: 50px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 18px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #ddd;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #ccc;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .info-box h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .info-box p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .company-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .company-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .company-item:hover {
+            border-color: #667eea;
+        }
+
+        .company-item.active {
+            border-color: #4caf50;
+            background: #f1f8f4;
+        }
+
+        .company-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .company-logo-small {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .company-logo-small img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .company-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .btn-edit {
+            background: #2196f3;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-select {
+            background: #4caf50;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .company-item {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .company-actions {
+                width: 100%;
+                justify-content: stretch;
+            }
+
+            .btn-small {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="btn-home">🏠 홈으로</a>
+            <h1>🏢 회사 프로필 설정</h1>
+            <p>Company Profile Setup / Cài đặt hồ sơ công ty</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <h3>📌 안내</h3>
+                <p>
+                    • 각 회사별로 로고와 정보를 설정할 수 있습니다.<br>
+                    • 로고는 급여명세서 PDF와 모든 페이지 헤더에 표시됩니다.<br>
+                    • 일러스트 파일(.AI)은 먼저 PNG나 JPG로 변환해서 업로드하세요.<br>
+                    • 여러 회사를 관리할 수 있으며, 언제든 전환 가능합니다.
+                </p>
+            </div>
+
+            <!-- 기존 회사 목록 -->
+            <div id="companyListSection" style="display: none;">
+                <h2 style="color: #667eea; margin-bottom: 20px;">📋 등록된 회사 목록</h2>
+                <div class="company-list" id="companyList">
+                    <!-- JavaScript로 채워짐 -->
+                </div>
+            </div>
+
+            <!-- 회사 등록/수정 폼 -->
+            <h2 style="color: #667eea; margin-bottom: 20px;" id="formTitle">➕ 새 회사 등록</h2>
+
+            <form id="companyForm" onsubmit="saveCompany(event)">
+                <input type="hidden" id="companyId" value="">
+
+                <div class="form-group logo-upload">
+                    <label>🖼️ 회사 로고 (Logo / Logo công ty)</label>
+                    <div class="logo-preview" id="logoPreview">
+                        <div class="placeholder">🏢</div>
+                    </div>
+
+                    <!-- 로컬 파일 경로 입력 (권장) -->
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 0.95em; color: #4caf50;">
+                            📂 로컬 파일 경로 (권장 - 용량 절약)
+                        </label>
+                        <input type="text" id="logoPath" placeholder="예: assets/lgos/khanh-quynh-logo1.png"
+                               style="width: 100%; padding: 10px; border: 2px solid #4caf50; border-radius: 8px; font-size: 0.9em;"
+                               onchange="previewLocalLogo(event)">
+                        <small style="color: #666; display: block; margin-top: 5px;">
+                            💡 로고를 assets/lgos/ 폴더에 저장한 경우 파일 경로만 입력하세요 (localStorage 용량 절약)
+                        </small>
+                    </div>
+
+                    <!-- 또는 파일 업로드 -->
+                    <div style="text-align: center; margin: 15px 0; color: #999;">
+                        ━━━ 또는 ━━━
+                    </div>
+
+                    <div class="file-input-wrapper">
+                        <input type="file" id="logoInput" accept="image/png,image/jpeg,image/jpg,image/svg+xml" onchange="previewLogo(event)">
+                        <label for="logoInput" class="file-input-label">
+                            📁 파일 업로드 (PNG, JPG, SVG)
+                        </label>
+                    </div>
+                    <p style="color: #999; margin-top: 10px; font-size: 0.9em;">
+                        ⚠️ 업로드는 localStorage에 저장되어 용량 제한이 있습니다
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label>🏢 회사명 (Company Name / Tên công ty) *</label>
+                    <input type="text" id="companyName" placeholder="예: 칸쿠인 공장 / KHANH QUYNH Factory" required>
+                </div>
+
+                <div class="form-group">
+                    <label>🏢 베트남 회사명 (Vietnamese Name / Tên tiếng Việt)</label>
+                    <input type="text" id="companyNameVN" placeholder="예: CÔNG TY KHANH QUYNH">
+                </div>
+
+                <div class="form-group">
+                    <label>📍 주소 (Address / Địa chỉ)</label>
+                    <textarea id="companyAddress" placeholder="예: Củ Chi, Hồ Chí Minh City, Vietnam"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>📞 연락처 (Contact / Liên hệ)</label>
+                    <input type="text" id="companyContact" placeholder="예: +84 xxx xxx xxx">
+                </div>
+
+                <div class="form-group">
+                    <label>🎨 회사 색상 (Company Color / Màu công ty)</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="companyColor" value="#667eea">
+                        <span>페이지 테마 색상으로 사용됩니다</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>📝 비고 (Notes / Ghi chú)</label>
+                    <textarea id="companyNotes" placeholder="기타 정보를 입력하세요"></textarea>
+                </div>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">
+                        ✅ 저장하고 사용하기
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelEdit()">
+                        ❌ 취소
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let companies = {};
+        let currentCompanyId = null;
+        let currentLogoData = null;
+        let editingCompanyId = null;
+
+        // 초기화
+        function init() {
+            loadCompanies();
+            displayCompanyList();
+        }
+
+        // 회사 정보 불러오기
+        function loadCompanies() {
+            const stored = localStorage.getItem('companyProfiles');
+            if (stored) {
+                companies = JSON.parse(stored);
+            }
+
+            const currentId = localStorage.getItem('currentCompanyId');
+            if (currentId) {
+                currentCompanyId = currentId;
+            }
+        }
+
+        // 회사 목록 표시
+        function displayCompanyList() {
+            const listSection = document.getElementById('companyListSection');
+            const listDiv = document.getElementById('companyList');
+
+            if (Object.keys(companies).length === 0) {
+                listSection.style.display = 'none';
+                return;
+            }
+
+            listSection.style.display = 'block';
+            listDiv.innerHTML = '';
+
+            for (const id in companies) {
+                const company = companies[id];
+                const isActive = id === currentCompanyId;
+
+                const item = document.createElement('div');
+                item.className = 'company-item' + (isActive ? ' active' : '');
+                item.innerHTML = `
+                    <div class="company-info">
+                        <div class="company-logo-small">
+                            ${company.logo ? `<img src="${company.logo}" alt="${company.name}">` : '🏢'}
+                        </div>
+                        <div>
+                            <div style="font-weight: bold; font-size: 1.1em; color: #333;">${company.name}</div>
+                            <div style="color: #999; font-size: 0.9em;">${company.address || '주소 미등록'}</div>
+                            ${isActive ? '<div style="color: #4caf50; font-size: 0.9em; margin-top: 5px;">✓ 현재 사용 중</div>' : ''}
+                        </div>
+                    </div>
+                    <div class="company-actions">
+                        ${!isActive ? `<button class="btn-small btn-select" onclick="selectCompany('${id}')">사용하기</button>` : ''}
+                        <button class="btn-small btn-edit" onclick="editCompany('${id}')">수정</button>
+                        <button class="btn-small btn-delete" onclick="deleteCompany('${id}')">삭제</button>
+                    </div>
+                `;
+                listDiv.appendChild(item);
+            }
+        }
+
+        // 로컬 파일 경로 미리보기
+        function previewLocalLogo(event) {
+            const path = event.target.value.trim();
+            if (!path) return;
+
+            // 로컬 경로를 currentLogoData에 저장 (Base64가 아닌 경로 문자열)
+            currentLogoData = path;
+            const preview = document.getElementById('logoPreview');
+            preview.innerHTML = `<img src="${path}" alt="Logo" onerror="this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'color:red\\'>❌<br>파일을 찾을 수 없습니다</div>'">`;
+        }
+
+        // 로고 파일 업로드 미리보기
+        function previewLogo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 파일 크기 체크 (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('⚠️ 파일 크기가 너무 큽니다. 5MB 이하의 이미지를 선택하세요.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentLogoData = e.target.result;
+                const preview = document.getElementById('logoPreview');
+                preview.innerHTML = `<img src="${currentLogoData}" alt="Logo">`;
+
+                // 로컬 경로 필드 비우기
+                document.getElementById('logoPath').value = '';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 회사 저장
+        function saveCompany(event) {
+            event.preventDefault();
+
+            const companyName = document.getElementById('companyName').value.trim();
+            if (!companyName) {
+                alert('⚠️ 회사명을 입력하세요!');
+                return;
+            }
+
+            const id = editingCompanyId || 'company_' + Date.now();
+
+            const companyData = {
+                id: id,
+                name: companyName,
+                nameVN: document.getElementById('companyNameVN').value.trim(),
+                address: document.getElementById('companyAddress').value.trim(),
+                contact: document.getElementById('companyContact').value.trim(),
+                color: document.getElementById('companyColor').value,
+                notes: document.getElementById('companyNotes').value.trim(),
+                logo: currentLogoData || (companies[id] ? companies[id].logo : null),
+                createdAt: companies[id] ? companies[id].createdAt : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            companies[id] = companyData;
+            localStorage.setItem('companyProfiles', JSON.stringify(companies));
+
+            // 자동으로 이 회사를 현재 회사로 설정
+            currentCompanyId = id;
+            localStorage.setItem('currentCompanyId', id);
+
+            alert(`✅ ${companyName} 프로필이 저장되었습니다!\n\n이제 이 회사의 급여 시스템을 사용합니다.`);
+
+            // 메인 페이지로 이동
+            window.location.href = 'index.html';
+        }
+
+        // 회사 선택
+        function selectCompany(id) {
+            currentCompanyId = id;
+            localStorage.setItem('currentCompanyId', id);
+            alert(`✅ ${companies[id].name} (으)로 전환되었습니다!`);
+            displayCompanyList();
+        }
+
+        // 회사 수정
+        function editCompany(id) {
+            const company = companies[id];
+            editingCompanyId = id;
+
+            document.getElementById('formTitle').textContent = '✏️ 회사 정보 수정';
+            document.getElementById('companyId').value = id;
+            document.getElementById('companyName').value = company.name;
+            document.getElementById('companyNameVN').value = company.nameVN || '';
+            document.getElementById('companyAddress').value = company.address || '';
+            document.getElementById('companyContact').value = company.contact || '';
+            document.getElementById('companyColor').value = company.color || '#667eea';
+            document.getElementById('companyNotes').value = company.notes || '';
+
+            if (company.logo) {
+                currentLogoData = company.logo;
+                document.getElementById('logoPreview').innerHTML = `<img src="${company.logo}" alt="Logo">`;
+
+                // 로컬 경로인지 Base64인지 구분
+                if (!company.logo.startsWith('data:')) {
+                    // 로컬 파일 경로
+                    document.getElementById('logoPath').value = company.logo;
+                } else {
+                    // Base64 업로드
+                    document.getElementById('logoPath').value = '';
+                }
+            }
+
+            // 폼으로 스크롤
+            document.getElementById('companyForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 회사 삭제
+        function deleteCompany(id) {
+            const company = companies[id];
+
+            if (id === currentCompanyId) {
+                alert('⚠️ 현재 사용 중인 회사는 삭제할 수 없습니다!\n\n다른 회사로 전환한 후 삭제하세요.');
+                return;
+            }
+
+            if (confirm(`⚠️ ${company.name} 회사 프로필을 삭제하시겠습니까?\n\n회사 정보만 삭제되며, 급여 데이터는 유지됩니다.`)) {
+                delete companies[id];
+                localStorage.setItem('companyProfiles', JSON.stringify(companies));
+                displayCompanyList();
+                alert('✅ 삭제되었습니다!');
+            }
+        }
+
+        // 수정 취소
+        function cancelEdit() {
+            editingCompanyId = null;
+            currentLogoData = null;
+            document.getElementById('formTitle').textContent = '➕ 새 회사 등록';
+            document.getElementById('companyForm').reset();
+            document.getElementById('logoPreview').innerHTML = '<div class="placeholder">🏢</div>';
+            document.getElementById('logoPath').value = '';
+        }
+
+        // 기본 회사 프로필 생성
+        function createDefaultCompany() {
+            // 이미 회사가 있으면 생성하지 않음
+            if (Object.keys(companies).length > 0) {
+                return;
+            }
+
+            // KHANH QUYNH 기본 회사 프로필 생성
+            const defaultId = 'company_khanh_quynh';
+            const defaultCompany = {
+                id: defaultId,
+                name: 'KHANH QUYNH Factory',
+                nameVN: 'CÔNG TY KHÁNH QUỲNH',
+                address: 'Củ Chi, Hồ Chí Minh City, Vietnam',
+                contact: '+84 xxx xxx xxx',
+                color: '#667eea',
+                logo: 'assets/lgos/khanh-quynh-logo1.png', // 로컬 파일 경로
+                notes: '기본 회사 프로필 (자동 생성)',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            companies[defaultId] = defaultCompany;
+            localStorage.setItem('companyProfiles', JSON.stringify(companies));
+
+            // 현재 회사로 설정
+            currentCompanyId = defaultId;
+            localStorage.setItem('currentCompanyId', defaultId);
+
+            console.log('✅ KHANH QUYNH 기본 회사 프로필이 생성되었습니다.');
+        }
+
+        // 페이지 로드 시 초기화
+        window.onload = function() {
+            init();
+            createDefaultCompany();
+        };
+    </script>
+</body>
+</html>

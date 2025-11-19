@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Selection / Chọn ngôn ngữ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 60px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .subtitle {
+            font-size: 1.3em;
+            color: #666;
+            margin-bottom: 50px;
+        }
+
+        .language-buttons {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .lang-btn {
+            background: white;
+            border: 3px solid #ddd;
+            padding: 40px 50px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            min-width: 200px;
+        }
+
+        .lang-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .lang-btn .flag {
+            font-size: 5em;
+        }
+
+        .lang-btn .name {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .lang-btn .desc {
+            font-size: 1em;
+            color: #999;
+        }
+
+        .lang-btn.korean:hover {
+            background: linear-gradient(135deg, #fff0f0 0%, #ffe0e0 100%);
+            border-color: #dc3545;
+        }
+
+        .lang-btn.vietnamese:hover {
+            background: linear-gradient(135deg, #fff9e6 0%, #ffedd0 100%);
+            border-color: #ffc107;
+        }
+
+        .footer {
+            margin-top: 50px;
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 30px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .subtitle {
+                font-size: 1.1em;
+            }
+
+            .language-buttons {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .lang-btn {
+                width: 100%;
+                padding: 30px;
+            }
+
+            .lang-btn .flag {
+                font-size: 4em;
+            }
+
+            .lang-btn .name {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="assets/lgos/khanh-quynh-logo1.png" alt="Company Logo" style="max-width: 280px; max-height: 280px;">
+        </div>
+        <h1 style="font-size: 2.8em; font-weight: 800; letter-spacing: 1px;">PAYROLL MANAGEMENT SYSTEM</h1>
+        <p class="subtitle" style="font-size: 1.4em; font-weight: 600; color: #555;">Hệ thống quản lý lương</p>
+
+        <div class="language-buttons">
+            <a href="index.html" class="lang-btn korean">
+                <div class="flag">🇰🇷</div>
+                <div class="name">한국어</div>
+                <div class="desc">Korean Version</div>
+            </a>
+
+            <a href="index_vn.html" class="lang-btn vietnamese">
+                <div class="flag">🇻🇳</div>
+                <div class="name">Tiếng Việt</div>
+                <div class="desc">Vietnamese Version</div>
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>KHANH QUYNH Salary Management System v2.0</p>
+            <p style="margin-top: 5px;">Developed for Cu Chi Factory</p>
+        </div>
+    </div>
+</body>
+</html>
