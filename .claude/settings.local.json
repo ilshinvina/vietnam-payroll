@@ -16,7 +16,8 @@
       "Bash(copy \"D:\\xyz\\MONEY\\styles.css\" \"D:\\xyz\\MONEY TEST\\styles.css\")",
       "Bash(copy \"D:\\xyz\\MONEY\\ui-calendar.js\" \"D:\\xyz\\MONEY TEST\\ui-calendar.js\")",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
