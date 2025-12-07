@@ -90,6 +90,31 @@ function generateCalendar() {
         if (absents.has(dateKey)) dayEl.classList.add('absent', 'selected');
         if (annualLeaveDays.has(dateKey)) dayEl.classList.add('annual-leave', 'selected');
 
+        // 해/달 아이콘 토글 (좌측 상단)
+        if (dayOfWeek !== 0) { // 일요일 제외
+            const dayIcon = document.createElement('div');
+            dayIcon.className = 'day-icon';
+            dayIcon.id = `icon-${dateKey}`;
+            dayIcon.dataset.day = day; // day 값 저장
+            
+            // 야간 데이터가 있으면 달 아이콘, 없으면 해 아이콘
+            if (nightData[dateKey] && nightData[dateKey] > 0) {
+                dayIcon.textContent = '🌙';
+                dayIcon.dataset.mode = 'night';
+            } else {
+                dayIcon.textContent = '🌞';
+                dayIcon.dataset.mode = 'day';
+            }
+            
+            dayIcon.title = '클릭하여 해/달 전환';
+            dayIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const clickedDay = parseInt(e.currentTarget.dataset.day);
+                toggleDayIcon(clickedDay);
+            });
+            dayEl.appendChild(dayIcon);
+        }
+
         // 날짜 숫자
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number day-number-clickable';
@@ -110,6 +135,12 @@ function generateCalendar() {
         // 야근/특근 시간 표시
         const overtimeInfo = createOvertimeElement(day, dateKey, dayOfWeek);
         dayEl.appendChild(overtimeInfo);
+
+        // 야간 시간 표시 (일요일 제외)
+        if (dayOfWeek !== 0) {
+            const nightInfo = createNightElement(day, dateKey);
+            dayEl.appendChild(nightInfo);
+        }
 
         // 배경 클릭시 상태 토글
         dayEl.addEventListener('click', () => toggleDay(day, dayEl));
@@ -209,6 +240,34 @@ function createOvertimeElement(day, dateKey, dayOfWeek) {
     return overtimeInfo;
 }
 
+// 야간근무 요소 생성
+function createNightElement(day, dateKey) {
+    const nightInfo = document.createElement('div');
+    nightInfo.className = 'night-info';
+    nightInfo.id = `night-${dateKey}`;
+    nightInfo.title = '좌클릭: +0.5시간 | 우클릭: -0.5시간';
+
+    if (nightData[dateKey]) {
+        nightInfo.textContent = `🌙 ${nightData[dateKey]}h`;
+        nightInfo.classList.add('has-data');
+    } else {
+        nightInfo.textContent = '+ 야간';
+    }
+
+    nightInfo.addEventListener('click', (e) => {
+        e.stopPropagation();
+        incrementNight(day, 0.5);
+    });
+
+    nightInfo.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        incrementNight(day, -0.5);
+    });
+
+    return nightInfo;
+}
+
 // 정규 근무시간 증감
 function incrementNormalHours(day, amount) {
     const dateKey = `${selectedYear}-${selectedMonth}-${day}`;
@@ -302,6 +361,33 @@ function incrementSunday(day, amount) {
     calculate();
 }
 
+// 야간시간 증감
+function incrementNight(day, amount) {
+    const dateKey = `${selectedYear}-${selectedMonth}-${day}`;
+    const currentValue = nightData[dateKey] || 0;
+    const newValue = Math.max(0, currentValue + amount);
+
+    if (newValue > 0) {
+        nightData[dateKey] = newValue;
+    } else {
+        delete nightData[dateKey];
+    }
+
+    const nightInfo = document.getElementById(`night-${dateKey}`);
+    if (nightInfo) {
+        if (newValue > 0) {
+            nightInfo.textContent = `🌙 ${newValue}h`;
+            nightInfo.classList.add('has-data');
+        } else {
+            nightInfo.textContent = '+ 야간';
+            nightInfo.classList.remove('has-data');
+        }
+    }
+
+    updateStats();
+    calculate();
+}
+
 // 야근시간 직접 입력
 function inputOvertimeHours(day, element) {
     const dateKey = `${selectedYear}-${selectedMonth}-${day}`;
@@ -365,6 +451,36 @@ function toggleDay(day, element) {
     }
 
     updateStats();
+}
+
+// 해/달 아이콘 토글
+function toggleDayIcon(day) {
+    const dateKey = `${selectedYear}-${selectedMonth}-${day}`;
+    const iconElement = document.getElementById(`icon-${dateKey}`);
+    
+    if (!iconElement) {
+        console.error(`Icon not found for ${dateKey}`);
+        return;
+    }
+    
+    if (iconElement.dataset.mode === 'day') {
+        // 해 → 달로 전환 (야간 모드)
+        // 야간근무 데이터 추가 (기본 8시간)
+        if (!nightData[dateKey] || nightData[dateKey] === 0) {
+            nightData[dateKey] = 8;
+        }
+    } else {
+        // 달 → 해로 전환 (주간 모드)
+        // 야간근무 데이터 삭제
+        delete nightData[dateKey];
+    }
+    
+    // 달력 재생성하여 야간근무 버튼 표시 업데이트
+    generateCalendar();
+    
+    // 통계 및 급여 계산 업데이트
+    updateStats();
+    calculate();
 }
 
 // 공휴일 프리셋 적용

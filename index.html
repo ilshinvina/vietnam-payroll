@@ -274,6 +274,40 @@
             }
         }
 
+        /* 프린트 스타일 */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printArea, #printArea * {
+                visibility: visible;
+            }
+            #printArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            #printArea table {
+                width: 100%;
+                font-size: 10px;
+                border-collapse: collapse;
+            }
+            #printArea th, #printArea td {
+                padding: 6px 4px;
+                border: 1px solid #333;
+            }
+            #printArea th {
+                background: #667eea !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+
         /* 모달 스타일 */
         .modal {
             display: none;
@@ -451,6 +485,9 @@
             <button class="btn btn-primary" onclick="goToSalaryInput()">
                 💰 급여 등록하기
             </button>
+            <button class="btn btn-secondary" onclick="window.location.href='attendance.html'" style="background: #27ae60;">
+                📅 출퇴근 관리
+            </button>
             <button class="btn btn-settings" onclick="window.location.href='settings.html'">
                 ⚙️ 설정
             </button>
@@ -459,7 +496,7 @@
 
     <!-- 급여 대장 모달 -->
     <div id="payrollModal" class="modal">
-        <div class="modal-content" style="max-width: 95%; width: 1400px;">
+        <div class="modal-content" style="max-width: 98%; width: 1800px;">
             <div class="modal-header">
                 <h2>📊 급여 대장 (Payroll Summary)</h2>
                 <button class="modal-close" onclick="closePayrollModal()">✕</button>
@@ -487,6 +524,7 @@
                             <option value="12">12월</option>
                         </select>
                         <button onclick="refreshModalPayrollTable()" style="padding: 10px 20px; background: #2196f3; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🔄 새로고침</button>
+                        <button onclick="printPayrollTable()" style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🖨️ 프린트</button>
                     </div>
                 </div>
 
@@ -499,8 +537,10 @@
                                 <th style="padding: 15px; text-align: left; border: 1px solid #ddd;">직원명</th>
                                 <th style="padding: 15px; text-align: center; border: 1px solid #ddd;">근무일</th>
                                 <th style="padding: 15px; text-align: center; border: 1px solid #ddd;">정규시간</th>
+                                <th style="padding: 15px; text-align: center; border: 1px solid #ddd;">잔업시간</th>
                                 <th style="padding: 15px; text-align: right; border: 1px solid #ddd;">기본급</th>
                                 <th style="padding: 15px; text-align: right; border: 1px solid #ddd;">수당</th>
+                                <th style="padding: 15px; text-align: right; border: 1px solid #ddd;">잔업수당</th>
                                 <th style="padding: 15px; text-align: right; border: 1px solid #ddd;">특수수당</th>
                                 <th style="padding: 15px; text-align: right; border: 1px solid #ddd;">총급여</th>
                                 <th style="padding: 15px; text-align: right; border: 1px solid #ddd;">보험료</th>
@@ -511,16 +551,14 @@
                         </thead>
                         <tbody id="modalPayrollTableBody">
                             <tr>
-                                <td colspan="12" style="padding: 40px; text-align: center; color: #999;">
+                                <td colspan="14" style="padding: 40px; text-align: center; color: #999;">
                                     데이터를 불러오는 중...
                                 </td>
                             </tr>
                         </tbody>
                         <tfoot>
                             <tr style="background: #f8f9fa; font-weight: bold; font-size: 1.1em;">
-                                <td colspan="2" style="padding: 15px; border: 1px solid #ddd; text-align: center;">합계</td>
-                                <td id="modalTotalWorkDays" style="padding: 15px; border: 1px solid #ddd; text-align: center;">-</td>
-                                <td id="modalTotalWorkHours" style="padding: 15px; border: 1px solid #ddd; text-align: center;">-</td>
+                                <td colspan="6" style="padding: 15px; border: 1px solid #ddd; text-align: center;">합계</td>
                                 <td id="modalTotalBasicSalary" style="padding: 15px; border: 1px solid #ddd; text-align: right;">-</td>
                                 <td id="modalTotalAllowances" style="padding: 15px; border: 1px solid #ddd; text-align: right;">-</td>
                                 <td id="modalTotalSpecialAllowance" style="padding: 15px; border: 1px solid #ddd; text-align: right; color: #9c27b0;">-</td>

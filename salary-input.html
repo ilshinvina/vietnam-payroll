@@ -160,6 +160,11 @@
                         <select id="employeeSelect" style="width: 100%; padding: 14px 16px; border-radius: 10px; border: 2px solid #e0e0e0; font-size: 1.1em; background: #fafafa; transition: all 0.3s;">
                             <option value="">-- 직원 선택 --</option>
                         </select>
+                        <!-- 보험 미가입자 표시 -->
+                        <div id="insuranceExemptBadge" style="display: none; margin-top: 10px; padding: 12px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 8px; border-left: 4px solid #2196f3;">
+                            <span style="color: #1976d2; font-weight: bold; font-size: 1em;">🏥 사회보험 미가입자</span>
+                            <p style="margin: 5px 0 0 0; color: #0277bd; font-size: 0.9em;">보험료(BHXH, BHYT, BHTN, 노조비)가 공제되지 않습니다</p>
+                        </div>
                     </div>
                 </div>
 
@@ -169,6 +174,18 @@
                     <p style="color: #666; margin-bottom: 15px; font-size: 0.95em;">
                         💡 직원 등록은 <a href="settings.html" style="color: #667eea; font-weight: bold;">⚙️ 설정 페이지</a>에서 하세요!
                     </p>
+
+                    <!-- DAILY-REPORT 연동 -->
+                    <div style="margin-bottom: 15px; padding: 15px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border-radius: 10px;">
+                        <h4 style="color: white; margin-bottom: 10px; font-size: 1.1em;">📋 출근기록 불러오기</h4>
+                        <input type="file" id="dailyReportExcelUpload" accept=".xlsx, .xls" onchange="importFromDailyReport(event)" style="display: none;">
+                        <button onclick="document.getElementById('dailyReportExcelUpload').click()" class="modern-btn" style="width: 100%; padding: 12px; background: white; color: #11998e; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1em; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            📥 DAILY-REPORT 엑셀 불러오기
+                        </button>
+                        <p style="color: white; margin-top: 8px; font-size: 0.85em; margin-bottom: 0; opacity: 0.9;">
+                            일일보고서 프로그램에서 내보낸 엑셀 파일을 불러와 야근/특근 시간을 자동 입력합니다
+                        </p>
+                    </div>
 
                     <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                         <button onclick="printCurrentEmployeePDF()" class="modern-btn" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(233, 30, 99, 0.3); font-size: 1.05em;">
@@ -217,12 +234,12 @@
 
                 <div class="input-group">
                     <label>기본급 (동/월)</label>
-                    <input type="number" id="basicSalary" value="6980000" placeholder="6,980,000">
+                    <input type="text" id="basicSalary" value="6,980,000" placeholder="6,980,000" oninput="formatMoneyInput(this); calculate();" onfocus="selectAllOnFocus(this)">
                 </div>
 
                 <div class="input-group">
                     <label>일일 식대 (동/일)</label>
-                    <input type="number" id="dailyMeal" value="25000" placeholder="25,000">
+                    <input type="text" id="dailyMeal" value="25,000" placeholder="25,000" oninput="formatMoneyInput(this); calculate();" onfocus="selectAllOnFocus(this)">
                     <div class="tip">※ 실근무일 × 일일식대로 자동 계산</div>
                 </div>
 
@@ -287,8 +304,16 @@
                             <span class="stat-label" style="color: #e91e63;">⏰ 총 야근</span>
                             <span class="stat-value" style="color: #e91e63;" id="totalOvertimeDisplay">0h</span>
                         </div>
+                        <div class="stat-item" id="nightStatRow" style="border-left-color: #8e44ad; display: none;">
+                            <span class="stat-label" style="color: #8e44ad;">🌙 총 야간</span>
+                            <span class="stat-value" style="color: #8e44ad;" id="totalNightDisplay">0h</span>
+                        </div>
+                        <div class="stat-item" id="nightOTStatRow" style="border-left-color: #c2185b; display: none;">
+                            <span class="stat-label" style="color: #c2185b;">🌙⏰ 야간OT</span>
+                            <span class="stat-value" style="color: #c2185b;" id="totalNightOTDisplay">0h</span>
+                        </div>
                         <div class="stat-item" style="border-left-color: #e53935;">
-                            <span class="stat-label" style="color: #e53935;">🌞 총 특근</span>
+                            <span class="stat-label" style="color: #e53935;">🔥 총 특근</span>
                             <span class="stat-value" style="color: #e53935;" id="totalSundayDisplay">0h</span>
                         </div>
                         <div class="stat-item" style="background: #fff3e0; border-left-color: #ff9800;">
@@ -337,6 +362,7 @@
                 <!-- 숨겨진 필드: 달력에서 자동 계산되어 채워짐 -->
                 <input type="hidden" id="overtimeHours" value="0">
                 <input type="hidden" id="nightHours" value="0">
+                <input type="hidden" id="nightOTHours" value="0">
                 <input type="hidden" id="sundayHours" value="0">
                 <input type="hidden" id="totalAllowancesHidden" value="0">
 
@@ -354,7 +380,7 @@
                             💎 특수수당 (Phụ cấp đặc biệt)
                         </label>
                     </div>
-                    <input type="number" id="specialAllowanceAmount" value="0" min="0" step="100000" placeholder="0" disabled style="background: #f5f5f5;" oninput="calculate()">
+                    <input type="text" id="specialAllowanceAmount" value="0" placeholder="0" disabled style="background: #f5f5f5;" oninput="formatMoneyInput(this); calculate();" onfocus="selectAllOnFocus(this)">
                     <div class="tip">※ 체크 시 입력한 금액이 총급여에 추가됩니다 (과세 처리)</div>
                 </div>
 
@@ -366,7 +392,7 @@
                             💰 선금 차감 (Ứng lương)
                         </label>
                     </div>
-                    <input type="number" id="advancePaymentAmount" value="0" min="0" step="100000" placeholder="0" disabled style="background: #f5f5f5;" oninput="calculate()">
+                    <input type="text" id="advancePaymentAmount" value="0" placeholder="0" disabled style="background: #f5f5f5;" oninput="formatMoneyInput(this); calculate();" onfocus="selectAllOnFocus(this)">
                     <div class="tip">※ 체크 시 입력한 금액이 실수령액에서 차감됩니다</div>
                 </div>
 
@@ -399,6 +425,10 @@
                     <div class="result-item">
                         <span class="result-label">야간 수당 (130%)</span>
                         <span class="result-value" id="nightPay">0 đ</span>
+                    </div>
+                    <div class="result-item" id="nightOTPayRow" style="display: none;">
+                        <span class="result-label">야간+OT 수당 (200%)</span>
+                        <span class="result-value" id="nightOTPay" style="color: #c2185b;">0 đ</span>
                     </div>
                     <div class="result-item">
                         <span class="result-label">일요일 수당 (200%)</span>
@@ -492,7 +522,7 @@
                     </div>
                 </div>
 
-                <div class="result-box">
+                <div class="result-box" id="companyInsuranceBox">
                     <h3 style="color: #2196f3; margin-bottom: 15px;">🏢 회사 부담금 (참고용)</h3>
                     <div class="result-item">
                         <span class="result-label">BHXH | 사회보험 (17.5%)</span>
@@ -512,7 +542,16 @@
                     </div>
                 </div>
 
-                <div class="result-box">
+                <!-- 보험 미가입자 표시 (숨김 기본값) -->
+                <div class="result-box" id="insuranceExemptBox" style="display: none; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-left: 5px solid #2196f3;">
+                    <h3 style="color: #1976d2; margin-bottom: 15px;">🏥 사회보험 미가입</h3>
+                    <div style="padding: 15px; background: white; border-radius: 8px;">
+                        <p style="margin: 0; color: #0277bd; font-size: 1.1em; font-weight: bold;">이 직원은 사회보험 미가입자입니다</p>
+                        <p style="margin: 10px 0 0 0; color: #555; font-size: 0.95em;">BHXH, BHYT, BHTN, 노조비가 공제되지 않습니다</p>
+                    </div>
+                </div>
+
+                <div class="result-box" id="employeeInsuranceBox">
                     <h3 style="color: #f57c00; margin-bottom: 15px;">🏥 근로자 공제 (10.5%)</h3>
                     <div class="result-item">
                         <span class="result-label">BHXH | 사회보험 (8%)</span>
@@ -532,7 +571,7 @@
                     </div>
                 </div>
 
-                <div class="result-box">
+                <div class="result-box" id="incomeTaxBox">
                     <h3 style="color: #e91e63; margin-bottom: 15px;">🧾 개인소득세 (TNCN)</h3>
                     <div class="result-item">
                         <span class="result-label">과세 대상 소득</span>
@@ -560,7 +599,7 @@
                     </div>
                 </div>
 
-                <div class="result-box" style="background: #e8f5e9; border-left-color: #4caf50;">
+                <div class="result-box" id="taxFreeBox" style="background: #e8f5e9; border-left-color: #4caf50;">
                     <h3 style="color: #4caf50; margin-bottom: 15px;">🎁 비과세 내역</h3>
                     <div class="result-item">
                         <span class="result-label">💚 식대 (100% 비과세)</span>
@@ -613,11 +652,11 @@
                         <span class="result-label" style="color: white; font-weight: bold; font-size: 1.1em;">= 총 급여</span>
                         <span class="result-value" style="color: #ffd700; font-size: 1.3em; font-weight: bold;" id="finalTotalSalary">0 đ</span>
                     </div>
-                    <div class="result-item">
+                    <div class="result-item" id="finalDeductionRow">
                         <span class="result-label" style="color: rgba(255,255,255,0.9);">- 보험료 공제</span>
                         <span class="result-value" style="color: #ffcccc;" id="finalDeduction">0 đ</span>
                     </div>
-                    <div class="result-item">
+                    <div class="result-item" id="finalIncomeTaxRow">
                         <span class="result-label" style="color: rgba(255,255,255,0.9);">- 개인소득세</span>
                         <span class="result-value" style="color: #ffcccc;" id="finalIncomeTax">0 đ</span>
                     </div>
@@ -654,7 +693,8 @@
                     <br><small style="color: #666;">※ 수당 추가/수정/삭제는 "회사 설정" 페이지에서 관리</small>
                 </div>
                 <div class="formula-item" style="background: #e3f2fd; border-left: 3px solid #2196f3;">
-                    <strong>시간당 급여</strong> = 기본급 ÷ 208시간
+                    <strong>시간당 급여</strong> = 기본급 ÷ (해당 월 근무일수 × 8시간)
+                    <br><small style="color: #666;">※ 근무일수 = 총일수 - 일요일 - 공휴일 (매월 자동 계산)</small>
                 </div>
             </div>
         </div>
@@ -687,6 +727,30 @@
                 normalized[newKey] = dateObj[key];
             });
             return normalized;
+        }
+
+        // 금액 입력 포맷팅 (쉼표 구분)
+        function formatMoneyInput(input) {
+            // 숫자만 추출
+            let value = input.value.replace(/[^\d]/g, '');
+            if (value === '') value = '0';
+
+            // 숫자로 변환 후 포맷팅
+            const num = parseInt(value, 10);
+            input.value = formatNumber(num);
+        }
+
+        // 포맷된 금액에서 숫자 추출
+        function parseMoneyInput(value) {
+            if (!value) return 0;
+            // 쉼표, 점, 공백 모두 제거
+            const cleaned = value.toString().replace(/[,.\s]/g, '');
+            return parseInt(cleaned, 10) || 0;
+        }
+
+        // 포커스 시 전체 선택
+        function selectAllOnFocus(input) {
+            setTimeout(() => input.select(), 50);
         }
 
         // 특수수당 체크박스 토글
@@ -726,13 +790,25 @@
         let selectedYear = 2025;
         let selectedMonth = 11;
         let holidays = new Set();
-        let excusedAbsents = new Set(); // 사유 있는 결근 (휴가, 병가 등)
+        let excusedAbsents = new Set(); // 사유 있는 결근
         let absents = new Set();        // 무단 결근
         let annualLeaveDays = new Set(); // 연차 사용일
+        let specialLeaveDays = new Set(); // 경조사/특별휴가
+        let sickLeaveDays = new Set(); // 병가
+        let annualLeaveMemos = {}; // 연차 메모 (특수 사유)
         let overtimeData = {}; // 야근시간
         let nightData = {};     // 야간시간
+        let nightOTData = {};   // 야간+OT (200%)
         let sundayData = {};    // 일요일 특근
         let normalHoursData = {}; // 정규 근무시간 (기본 8시간)
+        let nightShiftDays = new Set(); // 야간조 날짜 (예: "2024-12-05" = 해당일 야간조)
+
+        // 날짜가 야간조인지 확인 (전역 함수)
+        function isNightShiftDay(day) {
+            const dateKey = makeDateKey(selectedYear, selectedMonth, day);
+            const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
+            return nightShiftDays.has(dateKey) || nightShiftDays.has(dateKeyOld);
+        }
 
         // 직원 관리
         let employees = {}; // {id: {name, basicSalary, dependents, dailyMeal, ...}}
@@ -837,8 +913,19 @@
         function generateCalendar() {
             const calendar = document.getElementById('calendar');
             const title = document.getElementById('calendarTitle');
-            
+
             title.textContent = `${selectedYear}년 ${selectedMonth}월`;
+
+            // 야간 설정에 따라 통계 행 표시/숨기기
+            const nightStatRow = document.getElementById('nightStatRow');
+            const nightOTStatRow = document.getElementById('nightOTStatRow');
+            const nightEnabled = window.companySettings && window.companySettings.nightShiftEnabled;
+            if (nightStatRow) {
+                nightStatRow.style.display = nightEnabled ? '' : 'none';
+            }
+            if (nightOTStatRow) {
+                nightOTStatRow.style.display = nightEnabled ? '' : 'none';
+            }
             
             const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
             const firstDay = new Date(selectedYear, selectedMonth - 1, 1).getDay();
@@ -859,7 +946,7 @@
                 const empty = document.createElement('div');
                 calendar.appendChild(empty);
             }
-            
+
             // 날짜
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayEl = document.createElement('div');
@@ -888,6 +975,50 @@
                 }
                 if (annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld)) {
                     dayEl.classList.add('annual-leave', 'selected');
+
+                    // 연차 메모가 있으면 표시
+                    const memo = annualLeaveMemos[dateKey] || annualLeaveMemos[dateKeyOld];
+                    if (memo) {
+                        const memoIndicator = document.createElement('div');
+                        memoIndicator.className = 'annual-leave-memo';
+                        memoIndicator.textContent = `📝 ${memo}`;
+                        memoIndicator.title = memo;
+                        memoIndicator.style.cssText = 'font-size: 0.7em; background: #fff3e0; color: #e65100; padding: 2px 4px; border-radius: 3px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;';
+                        dayEl.appendChild(memoIndicator);
+                    }
+                }
+                if (specialLeaveDays.has(dateKey) || specialLeaveDays.has(dateKeyOld)) {
+                    dayEl.classList.add('special-leave', 'selected');
+                }
+                if (sickLeaveDays.has(dateKey) || sickLeaveDays.has(dateKeyOld)) {
+                    dayEl.classList.add('sick-leave', 'selected');
+                }
+
+                // 야간조 토글 (일요일 제외, 야간 설정 활성화 시만)
+                if (dayOfWeek !== 0 && window.companySettings && window.companySettings.nightShiftEnabled) {
+                    const isNightShift = nightShiftDays.has(dateKey) || nightShiftDays.has(dateKeyOld);
+                    const shiftToggle = document.createElement('div');
+                    shiftToggle.className = 'shift-toggle';
+                    shiftToggle.id = `shift-${dateKey}`;
+                    shiftToggle.style.cssText = `
+                        position: absolute;
+                        top: 2px;
+                        left: 2px;
+                        font-size: 12px;
+                        cursor: pointer;
+                        z-index: 10;
+                        padding: 2px;
+                        border-radius: 3px;
+                        background: ${isNightShift ? '#4a148c' : '#1565c0'};
+                    `;
+                    shiftToggle.textContent = isNightShift ? '🌙' : '☀️';
+                    shiftToggle.title = isNightShift ? '야간조 (클릭: 주간조로 변경)' : '주간조 (클릭: 야간조로 변경)';
+                    shiftToggle.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleDayShift(day);
+                    });
+                    dayEl.appendChild(shiftToggle);
+                    dayEl.style.position = 'relative';
                 }
 
                 // 날짜 숫자 (클릭시 야근시간 입력)
@@ -954,7 +1085,7 @@
                     // 일요일 특근
                     const sundayHours = sundayData[dateKey] || sundayData[dateKeyOld];
                     if (sundayHours) {
-                        overtimeInfo.textContent = `🌞 ${sundayHours}h`;
+                        overtimeInfo.textContent = `🔥 ${sundayHours}h`;
                         overtimeInfo.classList.add('has-data', 'sunday-work');
                     } else {
                         overtimeInfo.textContent = '+ 특근(200%)';
@@ -974,7 +1105,7 @@
                         incrementSunday(day, -0.5);
                     });
                 } else {
-                    // 평일/토요일 야근
+                    // 평일/토요일 야근 (야간조 날에는 숨김)
                     const overtimeHours = overtimeData[dateKey] || overtimeData[dateKeyOld];
                     if (overtimeHours) {
                         overtimeInfo.textContent = `⏰ ${overtimeHours}h`;
@@ -995,9 +1126,50 @@
                         e.stopPropagation();
                         incrementOvertime(day, -0.5);
                     });
+
+                    // 야간조 날에는 숨기기
+                    if (isNightShiftDay(day)) {
+                        overtimeInfo.style.display = 'none';
+                    }
                 }
 
                 dayEl.appendChild(overtimeInfo);
+
+                // 야간+OT 표시 (야간 설정 활성화 시 생성, 주간조 날에는 숨김)
+                // 주간조: 8h + 야근만
+                // 야간조: 8h + 야간OT만
+                if (dayOfWeek !== 0 && window.companySettings && window.companySettings.nightShiftEnabled) {
+                    const nightOTInfo = document.createElement('div');
+                    nightOTInfo.className = 'night-ot-info';
+                    nightOTInfo.id = `nightot-${dateKey}`;
+                    nightOTInfo.title = '야간+OT (200%) | 좌클릭: +0.5시간 | 우클릭: -0.5시간';
+
+                    const nightOTHours = nightOTData[dateKey] || nightOTData[dateKeyOld];
+                    if (nightOTHours) {
+                        nightOTInfo.textContent = `🌙⏰ ${nightOTHours}h`;
+                        nightOTInfo.classList.add('has-data');
+                    } else {
+                        nightOTInfo.textContent = '+ 야간OT';
+                    }
+
+                    nightOTInfo.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        incrementNightOT(day, 0.5);
+                    });
+
+                    nightOTInfo.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        incrementNightOT(day, -0.5);
+                    });
+
+                    // 주간조 날에는 숨기기
+                    if (!isNightShiftDay(day)) {
+                        nightOTInfo.style.display = 'none';
+                    }
+
+                    dayEl.appendChild(nightOTInfo);
+                }
 
                 // 배경 클릭시 공휴일/결근 토글
                 dayEl.addEventListener('click', () => toggleDay(day, dayEl, 1));  // 왼쪽 클릭: 정방향
@@ -1062,6 +1234,15 @@
             const dateKey = makeDateKey(selectedYear, selectedMonth, day);
             const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
 
+            // 연차/공휴일/결근일 체크
+            if (annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld) ||
+                holidays.has(dateKey) || holidays.has(dateKeyOld) ||
+                absents.has(dateKey) || absents.has(dateKeyOld) ||
+                excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld)) {
+                alert('⚠️ 연차/공휴일/결근일에는 야근을 입력할 수 없습니다.');
+                return;
+            }
+
             // 구버전 키의 값도 확인
             const currentValue = overtimeData[dateKey] || overtimeData[dateKeyOld] || 0;
             const newValue = Math.max(0, currentValue + amount);
@@ -1098,6 +1279,15 @@
             const dateKey = makeDateKey(selectedYear, selectedMonth, day);
             const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
 
+            // 연차/공휴일/결근일 체크
+            if (annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld) ||
+                holidays.has(dateKey) || holidays.has(dateKeyOld) ||
+                absents.has(dateKey) || absents.has(dateKeyOld) ||
+                excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld)) {
+                alert('⚠️ 연차/공휴일/결근일에는 특근을 입력할 수 없습니다.');
+                return;
+            }
+
             // 구버전 키의 값도 확인
             const currentValue = sundayData[dateKey] || sundayData[dateKeyOld] || 0;
             const newValue = Math.max(0, currentValue + amount);
@@ -1117,7 +1307,7 @@
             const overtimeInfo = document.getElementById(`overtime-${dateKey}`);
             if (overtimeInfo) {
                 if (newValue > 0) {
-                    overtimeInfo.textContent = `🌞 ${newValue}h`;
+                    overtimeInfo.textContent = `🔥 ${newValue}h`;
                     overtimeInfo.classList.add('has-data');
                     overtimeInfo.style.background = '#e53935';
                     overtimeInfo.style.borderColor = '#c62828';
@@ -1135,38 +1325,177 @@
             calculate();
         }
 
-        // 야근시간 직접 입력
-        function inputOvertimeHours(day, element) {
+        // 날짜별 주간조/야간조 전환
+        function toggleDayShift(day) {
+            console.log(`🔄 toggleDayShift 호출됨: day=${day}`);
+            const dateKey = makeDateKey(selectedYear, selectedMonth, day);
+            const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
+            console.log(`   dateKey=${dateKey}, nightShiftDays 포함=${nightShiftDays.has(dateKey)}`);
+
+            // 구버전 키 삭제
+            if (nightShiftDays.has(dateKeyOld)) {
+                nightShiftDays.delete(dateKeyOld);
+                console.log(`   구버전 키 삭제: ${dateKeyOld}`);
+            }
+
+            if (nightShiftDays.has(dateKey)) {
+                nightShiftDays.delete(dateKey);
+                console.log(`☀️ ${selectedMonth}/${day}: 주간조로 변경`);
+            } else {
+                nightShiftDays.add(dateKey);
+                console.log(`🌙 ${selectedMonth}/${day}: 야간조로 변경`);
+            }
+            console.log(`   변경 후 nightShiftDays:`, [...nightShiftDays]);
+
+            // 토글 아이콘 업데이트
+            const isNightShift = nightShiftDays.has(dateKey);
+            const shiftToggle = document.getElementById(`shift-${dateKey}`);
+            if (shiftToggle) {
+                shiftToggle.textContent = isNightShift ? '🌙' : '☀️';
+                shiftToggle.style.background = isNightShift ? '#4a148c' : '#1565c0';
+                shiftToggle.title = isNightShift ? '야간조 (클릭: 주간조로 변경)' : '주간조 (클릭: 야간조로 변경)';
+            }
+
+            // 야근/야간OT 버튼 표시/숨기기
+            const overtimeInfo = document.getElementById(`overtime-${dateKey}`);
+            const nightOTInfo = document.getElementById(`nightot-${dateKey}`);
+
+            if (isNightShift) {
+                // 야간조: 야근 숨기고 야간OT 표시
+                if (overtimeInfo) overtimeInfo.style.display = 'none';
+                if (nightOTInfo) nightOTInfo.style.display = '';
+            } else {
+                // 주간조: 야근 표시하고 야간OT 숨기기
+                if (overtimeInfo) overtimeInfo.style.display = '';
+                if (nightOTInfo) nightOTInfo.style.display = 'none';
+            }
+
+            updateStats();
+            calculate();
+
+            // 직원 데이터 저장
+            if (currentEmployeeId) {
+                saveCurrentEmployee();
+            }
+        }
+
+        // 야간시간 증가/감소
+        function incrementNight(day, amount) {
             const dateKey = makeDateKey(selectedYear, selectedMonth, day);
             const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
 
             // 구버전 키의 값도 확인
-            const currentValue = overtimeData[dateKey] || overtimeData[dateKeyOld] || 0;
+            const currentValue = nightData[dateKey] || nightData[dateKeyOld] || 0;
+            const newValue = Math.max(0, currentValue + amount);
 
-            const input = prompt(`📅 ${selectedMonth}월 ${day}일 야근시간 입력\n\n야근시간 (시간):`, currentValue);
+            // 구버전 키 삭제
+            if (dateKeyOld !== dateKey && nightData[dateKeyOld]) {
+                delete nightData[dateKeyOld];
+            }
+
+            if (newValue > 0) {
+                nightData[dateKey] = newValue;
+            } else {
+                delete nightData[dateKey];
+            }
+
+            // UI 업데이트
+            const nightInfo = document.getElementById(`night-${dateKey}`);
+            if (nightInfo) {
+                if (newValue > 0) {
+                    nightInfo.textContent = `🌙 ${newValue}h`;
+                    nightInfo.classList.add('has-data');
+                } else {
+                    nightInfo.textContent = '+ 야간';
+                    nightInfo.classList.remove('has-data');
+                }
+            }
+
+            updateStats();
+            calculate();
+        }
+
+        // 야간+OT 시간 증가/감소 (200%)
+        function incrementNightOT(day, amount) {
+            const dateKey = makeDateKey(selectedYear, selectedMonth, day);
+            const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
+
+            const currentValue = nightOTData[dateKey] || nightOTData[dateKeyOld] || 0;
+            const newValue = Math.max(0, currentValue + amount);
+
+            if (dateKeyOld !== dateKey && nightOTData[dateKeyOld]) {
+                delete nightOTData[dateKeyOld];
+            }
+
+            if (newValue > 0) {
+                nightOTData[dateKey] = newValue;
+            } else {
+                delete nightOTData[dateKey];
+            }
+
+            const nightOTInfo = document.getElementById(`nightot-${dateKey}`);
+            if (nightOTInfo) {
+                if (newValue > 0) {
+                    nightOTInfo.textContent = `🌙⏰ ${newValue}h`;
+                    nightOTInfo.classList.add('has-data');
+                } else {
+                    nightOTInfo.textContent = '+ 야간OT';
+                    nightOTInfo.classList.remove('has-data');
+                }
+            }
+
+            updateStats();
+            calculate();
+        }
+
+        // 야근시간 직접 입력
+        function inputOvertimeHours(day, element) {
+            const dateKey = makeDateKey(selectedYear, selectedMonth, day);
+            const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
+            const date = new Date(selectedYear, selectedMonth - 1, day);
+            const dayOfWeek = date.getDay();
+            const isSunday = (dayOfWeek === 0);
+
+            // 연차/공휴일/결근일 체크
+            if (annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld) ||
+                holidays.has(dateKey) || holidays.has(dateKeyOld) ||
+                absents.has(dateKey) || absents.has(dateKeyOld) ||
+                excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld)) {
+                alert('⚠️ 연차/공휴일/결근일에는 야근을 입력할 수 없습니다.');
+                return;
+            }
+
+            // 일요일이면 sundayData, 평일이면 overtimeData 사용
+            const targetData = isSunday ? sundayData : overtimeData;
+            const labelText = isSunday ? '일요특근' : '야근';
+
+            // 구버전 키의 값도 확인
+            const currentValue = targetData[dateKey] || targetData[dateKeyOld] || 0;
+
+            const input = prompt(`📅 ${selectedMonth}월 ${day}일 ${labelText}시간 입력\n\n${labelText}시간 (시간):`, currentValue);
 
             if (input !== null) {
                 const hours = parseFloat(input);
                 if (!isNaN(hours) && hours >= 0) {
                     // 구버전 키 삭제
-                    if (dateKeyOld !== dateKey && overtimeData[dateKeyOld]) {
-                        delete overtimeData[dateKeyOld];
+                    if (dateKeyOld !== dateKey && targetData[dateKeyOld]) {
+                        delete targetData[dateKeyOld];
                     }
 
                     if (hours > 0) {
-                        overtimeData[dateKey] = hours;
+                        targetData[dateKey] = hours;
                     } else {
-                        delete overtimeData[dateKey];
+                        delete targetData[dateKey];
                     }
 
                     // UI 업데이트
                     const overtimeInfo = document.getElementById(`overtime-${dateKey}`);
                     if (overtimeInfo) {
                         if (hours > 0) {
-                            overtimeInfo.textContent = `⏰ ${hours}h`;
+                            overtimeInfo.textContent = isSunday ? `🔥 ${hours}h` : `⏰ ${hours}h`;
                             overtimeInfo.classList.add('has-data');
                         } else {
-                            overtimeInfo.textContent = '+ 야근';
+                            overtimeInfo.textContent = isSunday ? '+ 특근' : '+ 야근';
                             overtimeInfo.classList.remove('has-data');
                         }
                     }
@@ -1191,11 +1520,101 @@
                 if (holidays.has(dateKeyOld)) { holidays.delete(dateKeyOld); holidays.add(dateKey); }
                 if (excusedAbsents.has(dateKeyOld)) { excusedAbsents.delete(dateKeyOld); excusedAbsents.add(dateKey); }
                 if (absents.has(dateKeyOld)) { absents.delete(dateKeyOld); absents.add(dateKey); }
-                if (annualLeaveDays.has(dateKeyOld)) { annualLeaveDays.delete(dateKeyOld); annualLeaveDays.add(dateKey); }
+                if (annualLeaveDays.has(dateKeyOld)) {
+                    annualLeaveDays.delete(dateKeyOld);
+                    annualLeaveDays.add(dateKey);
+                    // 메모도 새 키로 이동
+                    if (annualLeaveMemos[dateKeyOld]) {
+                        annualLeaveMemos[dateKey] = annualLeaveMemos[dateKeyOld];
+                        delete annualLeaveMemos[dateKeyOld];
+                    }
+                }
+            }
+
+            // 헬퍼 함수: 해당 날짜에 잔업 데이터가 있는지 확인
+            function hasOvertimeData(key, keyOld) {
+                return (overtimeData[key] || overtimeData[keyOld] ||
+                        nightData[key] || nightData[keyOld] ||
+                        sundayData[key] || sundayData[keyOld]);
+            }
+
+            // 헬퍼 함수: 잔업 데이터 요약 문자열
+            function getOvertimeDataSummary(key, keyOld) {
+                const parts = [];
+                const ot = overtimeData[key] || overtimeData[keyOld];
+                const nt = nightData[key] || nightData[keyOld];
+                const sd = sundayData[key] || sundayData[keyOld];
+                if (ot) parts.push(`야근 ${ot}h`);
+                if (nt) parts.push(`야간 ${nt}h`);
+                if (sd) parts.push(`특근 ${sd}h`);
+                return parts.join(', ');
+            }
+
+            // 헬퍼 함수: 해당 날짜의 잔업 데이터 삭제
+            function clearOvertimeDataForDate(key, keyOld) {
+                delete overtimeData[key];
+                delete overtimeData[keyOld];
+                delete nightData[key];
+                delete nightData[keyOld];
+                delete sundayData[key];
+                delete sundayData[keyOld];
+                delete normalHoursData[key];
+                delete normalHoursData[keyOld];
+            }
+
+            // 헬퍼 함수: 연차 사용 가능 여부 체크
+            function canUseAnnualLeave(dateKey) {
+                if (!currentEmployeeId || !employees[currentEmployeeId]) return false;
+                const emp = employees[currentEmployeeId];
+
+                // 보험 미가입자는 연차 없음
+                if (emp.insuranceExempt) {
+                    alert('⚠️ 사회보험 미가입자는 연차를 사용할 수 없습니다.');
+                    return false;
+                }
+
+                const annualLeaveTotal = emp.annualLeavePerYear || 12;
+                const annualLeaveAdjustment = emp.annualLeaveAdjustment || 0;
+
+                // 현재 연도의 전체 연차 사용일 카운트
+                let totalAnnualLeaveUsed = 0;
+                annualLeaveDays.forEach(key => {
+                    if (key.startsWith(selectedYear + '-')) {
+                        totalAnnualLeaveUsed++;
+                    }
+                });
+
+                const annualLeaveAvailable = annualLeaveTotal + annualLeaveAdjustment - totalAnnualLeaveUsed;
+
+                if (annualLeaveAvailable <= 0) {
+                    // 연차 초과 - 확인 후 허용 (특수 케이스: 경조사 등)
+                    const confirmMsg = `⚠️ 연차를 모두 사용했습니다!\n\n` +
+                        `연간 연차: ${annualLeaveTotal}일\n` +
+                        `조정: ${annualLeaveAdjustment >= 0 ? '+' : ''}${annualLeaveAdjustment}일\n` +
+                        `사용: ${totalAnnualLeaveUsed}일\n` +
+                        `잔여: 0일\n\n` +
+                        `📝 특수 사유(경조사 등)로 추가하시겠습니까?`;
+
+                    if (!confirm(confirmMsg)) {
+                        return false;
+                    }
+
+                    // 메모 입력 받기
+                    const memo = prompt('📝 사유를 입력하세요 (예: 부모님 상, 결혼 등):');
+                    if (memo && memo.trim()) {
+                        // 연차 메모 저장
+                        if (!annualLeaveMemos) {
+                            window.annualLeaveMemos = {};
+                        }
+                        annualLeaveMemos[dateKey] = memo.trim();
+                    }
+                }
+
+                return true;
             }
 
             if (direction === 1) {
-                // 정방향: 근무일 -> 공휴일 -> 사유결근 -> 무단결근 -> 연차 -> 근무일 순환
+                // 정방향: 근무일 -> 공휴일 -> 사유결근 -> 무단결근 -> 연차 -> 경조사 -> 병가 -> 근무일
                 if (holidays.has(dateKey)) {
                     // 공휴일 -> 사유결근
                     holidays.delete(dateKey);
@@ -1209,31 +1628,64 @@
                     element.classList.remove('excused-absent', 'selected');
                     element.classList.add('absent', 'selected');
                 } else if (absents.has(dateKey)) {
-                    // 무단결근 -> 연차
+                    // 무단결근 -> 연차 (연차 잔여일수 체크)
+                    if (!canUseAnnualLeave(dateKey)) {
+                        return;  // 연차 사용 불가
+                    }
                     absents.delete(dateKey);
                     annualLeaveDays.add(dateKey);
                     element.classList.remove('absent', 'selected');
                     element.classList.add('annual-leave', 'selected');
                 } else if (annualLeaveDays.has(dateKey)) {
-                    // 연차 -> 근무일 (원래 상태로)
+                    // 연차 -> 경조사
                     annualLeaveDays.delete(dateKey);
+                    delete annualLeaveMemos[dateKey];
+                    delete annualLeaveMemos[dateKeyOld];
+                    specialLeaveDays.add(dateKey);
                     element.classList.remove('annual-leave', 'selected');
-
-                    // 라벨 제거
-                    const label = element.querySelector('.day-label');
-                    if (label) {
-                        label.remove();
-                    }
+                    element.classList.add('special-leave', 'selected');
+                } else if (specialLeaveDays.has(dateKey)) {
+                    // 경조사 -> 병가
+                    specialLeaveDays.delete(dateKey);
+                    sickLeaveDays.add(dateKey);
+                    element.classList.remove('special-leave', 'selected');
+                    element.classList.add('sick-leave', 'selected');
+                } else if (sickLeaveDays.has(dateKey)) {
+                    // 병가 -> 근무일 (원래 상태로)
+                    sickLeaveDays.delete(dateKey);
+                    generateCalendar();  // 달력 갱신하여 야근 버튼 복원
                 } else {
                     // 근무일 -> 공휴일
+                    if (hasOvertimeData(dateKey, dateKeyOld)) {
+                        const summary = getOvertimeDataSummary(dateKey, dateKeyOld);
+                        if (!confirm(`⚠️ 이 날에 [${summary}] 데이터가 있습니다.\n\n공휴일로 변경하면 삭제됩니다. 계속하시겠습니까?`)) {
+                            return;  // 취소
+                        }
+                    }
                     holidays.add(dateKey);
                     element.classList.add('holiday', 'selected');
+                    clearOvertimeDataForDate(dateKey, dateKeyOld);
+                    generateCalendar();  // 달력 갱신
                 }
             } else {
-                // 역방향: 근무일 -> 연차 -> 무단결근 -> 사유결근 -> 공휴일 -> 근무일 순환
-                if (annualLeaveDays.has(dateKey)) {
+                // 역방향: 근무일 -> 병가 -> 경조사 -> 연차 -> 무단결근 -> 사유결근 -> 공휴일 -> 근무일
+                if (sickLeaveDays.has(dateKey)) {
+                    // 병가 -> 경조사
+                    sickLeaveDays.delete(dateKey);
+                    specialLeaveDays.add(dateKey);
+                    element.classList.remove('sick-leave', 'selected');
+                    element.classList.add('special-leave', 'selected');
+                } else if (specialLeaveDays.has(dateKey)) {
+                    // 경조사 -> 연차
+                    specialLeaveDays.delete(dateKey);
+                    annualLeaveDays.add(dateKey);
+                    element.classList.remove('special-leave', 'selected');
+                    element.classList.add('annual-leave', 'selected');
+                } else if (annualLeaveDays.has(dateKey)) {
                     // 연차 -> 무단결근
                     annualLeaveDays.delete(dateKey);
+                    delete annualLeaveMemos[dateKey];
+                    delete annualLeaveMemos[dateKeyOld];
                     absents.add(dateKey);
                     element.classList.remove('annual-leave', 'selected');
                     element.classList.add('absent', 'selected');
@@ -1252,17 +1704,19 @@
                 } else if (holidays.has(dateKey)) {
                     // 공휴일 -> 근무일 (원래 상태로)
                     holidays.delete(dateKey);
-                    element.classList.remove('holiday', 'selected');
-
-                    // 라벨 제거
-                    const label = element.querySelector('.day-label');
-                    if (label) {
-                        label.remove();
-                    }
+                    generateCalendar();  // 달력 갱신하여 야근 버튼 복원
                 } else {
-                    // 근무일 -> 연차
-                    annualLeaveDays.add(dateKey);
-                    element.classList.add('annual-leave', 'selected');
+                    // 근무일 -> 병가
+                    if (hasOvertimeData(dateKey, dateKeyOld)) {
+                        const summary = getOvertimeDataSummary(dateKey, dateKeyOld);
+                        if (!confirm(`⚠️ 이 날에 [${summary}] 데이터가 있습니다.\n\n병가로 변경하면 삭제됩니다. 계속하시겠습니까?`)) {
+                            return;  // 취소
+                        }
+                    }
+                    sickLeaveDays.add(dateKey);
+                    element.classList.add('sick-leave', 'selected');
+                    clearOvertimeDataForDate(dateKey, dateKeyOld);
+                    generateCalendar();  // 달력 갱신
                 }
             }
 
@@ -1347,13 +1801,24 @@
             // 실 근무일 = 평일 - 공휴일 - 모든 결근 - 연차 (일요일 특근은 실근무일에 포함 안함)
             const workDays = weekdays - holidayCount - totalAbsentCount - annualLeaveCount;
 
+            // isNightShiftDay() 는 전역 함수로 정의됨 (802줄 근처)
+
+            // 야간조 시간 분배 설정값 가져오기
+            const nightNormalHoursSetting = (window.companySettings && window.companySettings.nightNormalHours) || 4.5;
+            const nightNightHoursSetting = (window.companySettings && window.companySettings.nightNightHours) || 3.5;
+
             // 실제 정규 근무시간 계산 (각 날짜의 실제 시간 합산)
+            // 야간조 날짜: 정규시간을 100%/130%로 분배
             let normalHours = 0;
+            let autoNightHours = 0;  // 야간조 130% 시간 (자동 계산)
+            let autoNightOTHours = 0;  // 야간조 야근시간 → 야간OT 200%로 변환
+
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(selectedYear, selectedMonth - 1, day);
                 const dayOfWeek = date.getDay();
                 const dateKey = makeDateKey(selectedYear, selectedMonth, day);
                 const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
+                const isNightDay = isNightShiftDay(day);
 
                 // 제외할 날:
                 // - 일요일
@@ -1378,10 +1843,24 @@
                 }
 
                 // 정상 근무 또는 연차
-                if (annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld)) {
-                    normalHours += 8;  // 연차 = 8시간 유급 인정!
+                const dayNormalHours = annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld)
+                    ? 8  // 연차 = 8시간 유급 인정!
+                    : (normalHoursData[dateKey] || normalHoursData[dateKeyOld] || 8);
+
+                if (isNightDay) {
+                    // 야간조 날짜: 순차 방식으로 분배
+                    // 100% 시간(17:30~22:00) 먼저 채우고, 나머지가 130%(22:00~02:30)
+                    if (dayNormalHours <= nightNormalHoursSetting) {
+                        // 조기퇴근: 100% 시간만 채움 (22시 이전 퇴근)
+                        normalHours += dayNormalHours;
+                    } else {
+                        // 정상 또는 초과: 100% 먼저 채우고 나머지는 130%
+                        normalHours += nightNormalHoursSetting;  // 100% 부분 (4.5시간)
+                        autoNightHours += dayNormalHours - nightNormalHoursSetting;  // 130% 부분
+                    }
                 } else {
-                    normalHours += (normalHoursData[dateKey] || normalHoursData[dateKeyOld] || 8);  // 정상 근무
+                    // 주간조: 일반 정규시간 (100%)
+                    normalHours += dayNormalHours;
                 }
             }
 
@@ -1395,15 +1874,34 @@
             const excusedAbsenceLunchMinHours = (window.companySettings && window.companySettings.excusedAbsenceLunchMinHours) || 0;
 
             // 식대 세부 계산
-            let weekdayLunchCount = 0;  // 평일 점심
-            let weekdayDinnerCount = 0;  // 평일 저녁 (야근)
+            let weekdayLunchCount = 0;  // 평일 점심 (주간조)
+            let weekdayDinnerCount = 0;  // 평일 저녁 (야근 or 야간조)
             let sundayLunchMealCount = 0;  // 일요일 점심
             let sundayDinnerMealCount = 0;  // 일요일 저녁
             let annualLeaveLunchCount = 0;  // 연차 점심
             let excusedAbsentLunchCount = 0;  // 사유결근 점심
 
-            // 1. 평일 점심 (실 근무일)
-            weekdayLunchCount = workDays;
+            // 야간조 근무일 수 계산 (점심 대신 저녁 지급용)
+            let nightShiftWorkDays = 0;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(selectedYear, selectedMonth - 1, day);
+                const dayOfWeek = date.getDay();
+                const dateKey = makeDateKey(selectedYear, selectedMonth, day);
+                const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
+
+                if (dayOfWeek !== 0 && isNightShiftDay(day)) {
+                    // 야간조 날짜: 연차/공휴일/결근일 제외
+                    const isExcluded = annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld) ||
+                                       holidays.has(dateKey) || holidays.has(dateKeyOld) ||
+                                       absents.has(dateKey) || absents.has(dateKeyOld);
+                    if (!isExcluded) {
+                        nightShiftWorkDays++;
+                    }
+                }
+            }
+
+            // 1. 평일 점심 (주간조 근무일만 - 야간조 제외)
+            weekdayLunchCount = workDays - nightShiftWorkDays;
 
             // 2. 연차 시 점심 (설정에 따라)
             if (annualLeaveLunchMeal) {
@@ -1425,7 +1923,7 @@
                 }
             }
 
-            // 4. 평일 저녁 (야근 조건)
+            // 4. 평일 저녁 (야간조: 자동 지급 / 주간조: OT 조건)
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(selectedYear, selectedMonth - 1, day);
                 const dayOfWeek = date.getDay();
@@ -1433,9 +1931,22 @@
                 const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
 
                 if (dayOfWeek !== 0) {  // 일요일 제외
-                    const overtime = overtimeData[dateKey] || overtimeData[dateKeyOld] || 0;
-                    if (overtime >= weekdayDinnerHours) {
-                        weekdayDinnerCount++;
+                    // 연차/공휴일/결근일은 저녁식대 제외
+                    const isExcluded = annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld) ||
+                                       holidays.has(dateKey) || holidays.has(dateKeyOld) ||
+                                       absents.has(dateKey) || absents.has(dateKeyOld) ||
+                                       excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld);
+                    if (!isExcluded) {
+                        if (isNightShiftDay(day)) {
+                            // 야간조: 저녁 식대 자동 지급 (OT 상관없이)
+                            weekdayDinnerCount++;
+                        } else {
+                            // 주간조: OT 조건 충족 시만 저녁 식대
+                            const overtime = overtimeData[dateKey] || overtimeData[dateKeyOld] || 0;
+                            if (overtime >= weekdayDinnerHours) {
+                                weekdayDinnerCount++;
+                            }
+                        }
                     }
                 }
             }
@@ -1448,13 +1959,20 @@
                 const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
 
                 if (dayOfWeek === 0) {  // 일요일만
-                    const totalHours = sundayData[dateKey] || sundayData[dateKeyOld] || 0;
-                    if (totalHours >= sundayLunchHours) {
-                        sundayLunchMealCount++;
-                    }
-                    // 6. 일요일 저녁 (총 근무 조건)
-                    if (totalHours >= sundayDinnerHours) {
-                        sundayDinnerMealCount++;
+                    // 연차/공휴일/결근일은 식대 제외
+                    const isExcluded = annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld) ||
+                                       holidays.has(dateKey) || holidays.has(dateKeyOld) ||
+                                       absents.has(dateKey) || absents.has(dateKeyOld) ||
+                                       excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld);
+                    if (!isExcluded) {
+                        const totalHours = sundayData[dateKey] || sundayData[dateKeyOld] || 0;
+                        if (totalHours >= sundayLunchHours) {
+                            sundayLunchMealCount++;
+                        }
+                        // 6. 일요일 저녁 (총 근무 조건)
+                        if (totalHours >= sundayDinnerHours) {
+                            sundayDinnerMealCount++;
+                        }
                     }
                 }
             }
@@ -1534,19 +2052,55 @@
                 if (allowance.id === 'allowance_risk') riskAllowance = currentAllowanceDetails[allowance.id] || 0;
             });
 
-            // 총 야근시간 계산
+            // 총 야근시간 계산 (연차/공휴일/결근일 제외)
+            // 야간조 주간이면 야근 → 야간OT로 자동 변환
             let totalOvertime = 0;
             Object.keys(overtimeData).forEach(key => {
                 if (isSelectedMonth(key)) {
-                    totalOvertime += overtimeData[key];
+                    // 연차/공휴일/결근일은 제외
+                    if (!annualLeaveDays.has(key) && !holidays.has(key) && !absents.has(key) && !excusedAbsents.has(key)) {
+                        // 날짜에서 day 추출
+                        const parts = key.split('-');
+                        const day = parseInt(parts[2]);
+                        if (isNightShiftDay(day)) {
+                            // 야간조 주간: 야근 → 야간OT로
+                            autoNightOTHours += overtimeData[key];
+                        } else {
+                            // 주간조: 일반 야근
+                            totalOvertime += overtimeData[key];
+                        }
+                    }
                 }
             });
 
-            // 총 일요일 특근시간 계산
+            // 총 일요일 특근시간 계산 (연차/공휴일/결근일 제외)
             let totalSunday = 0;
             Object.keys(sundayData).forEach(key => {
                 if (isSelectedMonth(key)) {
-                    totalSunday += sundayData[key];
+                    // 연차/공휴일/결근일은 제외
+                    if (!annualLeaveDays.has(key) && !holidays.has(key) && !absents.has(key) && !excusedAbsents.has(key)) {
+                        totalSunday += sundayData[key];
+                    }
+                }
+            });
+
+            // 총 야간 시간 계산 (130%) - 수동 입력 + 야간조 정규시간
+            let totalNight = autoNightHours;  // 야간조 주간의 정규시간
+            Object.keys(nightData).forEach(key => {
+                if (isSelectedMonth(key)) {
+                    if (!annualLeaveDays.has(key) && !holidays.has(key) && !absents.has(key) && !excusedAbsents.has(key)) {
+                        totalNight += nightData[key];
+                    }
+                }
+            });
+
+            // 총 야간+OT 시간 계산 (200%) - 수동 입력 + 야간조 야근시간
+            let totalNightOT = autoNightOTHours;  // 야간조 주간의 야근시간
+            Object.keys(nightOTData).forEach(key => {
+                if (isSelectedMonth(key)) {
+                    if (!annualLeaveDays.has(key) && !holidays.has(key) && !absents.has(key) && !excusedAbsents.has(key)) {
+                        totalNightOT += nightOTData[key];
+                    }
                 }
             });
 
@@ -1561,6 +2115,8 @@
             document.getElementById('normalHours').textContent = normalHours + 'h';
             document.getElementById('totalOvertimeDisplay').textContent = totalOvertime + 'h';
             document.getElementById('totalSundayDisplay').textContent = totalSunday + 'h';
+            document.getElementById('totalNightDisplay').textContent = totalNight + 'h';
+            document.getElementById('totalNightOTDisplay').textContent = totalNightOT + 'h';
             document.getElementById('autoMeal').textContent = formatNumber(mealAllowance) + 'đ';
 
             // 총 식사 수 계산
@@ -1656,16 +2212,20 @@
                 const annualLeaveTotal = emp.annualLeavePerYear || 12;
                 const annualLeaveAdjustment = emp.annualLeaveAdjustment || 0; // 조정값 (+ 이월 또는 - 선사용)
 
-                // 현재 연도의 전체 연차 사용일 카운트
+                // 현재 연도의 전체 연차 사용일 카운트 (leaveData 기반)
+                // annual(연차) + sick(병가) = 연차에서 차감
+                // special(경조사/특별휴가) = 별도 (연차 차감 안 함)
                 let totalAnnualLeaveUsed = 0;
-                annualLeaveDays.forEach(dateKey => {
-                    const parts = dateKey.split('-');
-                    if (parts.length >= 1 && parseInt(parts[0]) === selectedYear) {
-                        totalAnnualLeaveUsed++;
-                    }
-                });
+                if (emp.leaveData) {
+                    Object.entries(emp.leaveData).forEach(([dateKey, leaveType]) => {
+                        if ((leaveType === 'annual' || leaveType === 'sick') && dateKey.startsWith(selectedYear + '-')) {
+                            totalAnnualLeaveUsed++;
+                        }
+                    });
+                }
 
-                const annualLeaveAvailable = Math.max(0, annualLeaveTotal + annualLeaveAdjustment - totalAnnualLeaveUsed); // 사용가능 연차
+                // 사용가능 연차 (음수 허용)
+                const annualLeaveAvailable = annualLeaveTotal + annualLeaveAdjustment - totalAnnualLeaveUsed;
 
                 document.getElementById('annualLeaveTotal').textContent = annualLeaveTotal + '일';
 
@@ -1676,7 +2236,33 @@
                 document.getElementById('annualLeavePreUsed').style.color = adjustmentColor;
 
                 document.getElementById('annualLeaveThisMonth').textContent = annualLeaveCount + '일';
-                document.getElementById('annualLeaveRemaining').textContent = annualLeaveAvailable + '일';
+
+                // 연차 잔여 표시 (음수면 경고)
+                const remainingEl = document.getElementById('annualLeaveRemaining');
+                if (annualLeaveAvailable < 0) {
+                    remainingEl.textContent = `${annualLeaveAvailable}일 ⚠️`;
+                    remainingEl.style.color = '#f44336';
+                    remainingEl.style.fontWeight = 'bold';
+
+                    // 초과 사유 표시
+                    const leaveReasons = emp.leaveReasons || {};
+                    const reasonsForYear = Object.entries(leaveReasons)
+                        .filter(([dateKey]) => dateKey.startsWith(selectedYear + '-'))
+                        .map(([dateKey, reason]) => `${dateKey}: ${reason}`)
+                        .join('\n');
+
+                    if (reasonsForYear && !remainingEl.dataset.warned) {
+                        remainingEl.dataset.warned = 'true';
+                        setTimeout(() => {
+                            alert(`⚠️ 연차 초과 사용 (${Math.abs(annualLeaveAvailable)}일)\n\n[사유]\n${reasonsForYear}`);
+                        }, 500);
+                    }
+                } else {
+                    remainingEl.textContent = annualLeaveAvailable + '일';
+                    remainingEl.style.color = '#4caf50';
+                    remainingEl.style.fontWeight = 'bold';
+                    delete remainingEl.dataset.warned;
+                }
             }
 
             // 야근시간 자동 입력
@@ -1684,6 +2270,12 @@
 
             // 일요일 특근시간 자동 입력
             document.getElementById('sundayHours').value = totalSunday;
+
+            // 야간 시간 자동 입력
+            document.getElementById('nightHours').value = totalNight;
+
+            // 야간+OT 시간 자동 입력
+            document.getElementById('nightOTHours').value = totalNightOT;
 
             // 동적 수당 총액 저장 (식대 제외)
             document.getElementById('totalAllowancesHidden').value = totalAllowances;
@@ -1700,7 +2292,7 @@
             }
 
             const employeeName = document.getElementById('employeeName').value || '직원';
-            const basicSalary = parseFloat(document.getElementById('basicSalary').value) || 0;
+            const basicSalary = parseMoneyInput(document.getElementById('basicSalary').value);
             const overtimeHours = parseFloat(document.getElementById('overtimeHours').value) || 0;
             const nightHours = parseFloat(document.getElementById('nightHours').value) || 0;
             const sundayHours = parseFloat(document.getElementById('sundayHours').value) || 0;
@@ -1710,13 +2302,20 @@
             const normalHours = parseFloat(normalHoursText.replace('h', '')) || 0;
             const absentCount = absents.size;
 
-            // 시간당 급여
-            const hourlyRate = basicSalary / 208;
+            // 시간당 급여 (월별 근무일수 기준)
+            const weekdaysText = document.getElementById('weekdays').textContent;
+            const weekdays = parseFloat(weekdaysText.replace('일', '')) || 26;
+            const monthlyHours = weekdays * 8;
+            const hourlyRate = monthlyHours > 0 ? basicSalary / monthlyHours : 0;
+
+            // 야간+OT 시간 가져오기
+            const nightOTHours = parseFloat(document.getElementById('nightOTHours')?.value) || 0;
 
             // 급여 계산
             const normalPay = hourlyRate * normalHours;
             const overtimePay = hourlyRate * overtimeHours * 1.5;
             const nightPay = hourlyRate * nightHours * 1.3;
+            const nightOTPay = hourlyRate * nightOTHours * 2.0;  // 야간+OT 200%
             const sundayPay = hourlyRate * sundayHours * 2.0;
 
             // 자동 수당 (통계에서 계산된 값 사용)
@@ -1757,10 +2356,10 @@
             // 특수수당 가져오기
             const specialAllowanceEnabled = document.getElementById('specialAllowanceEnabled')?.checked || false;
             const specialAllowance = specialAllowanceEnabled ?
-                (parseFloat(document.getElementById('specialAllowanceAmount')?.value) || 0) : 0;
+                parseMoneyInput(document.getElementById('specialAllowanceAmount')?.value) : 0;
 
             // 총 급여 (동적 수당 시스템 + 특수수당)
-            const totalSalary = normalPay + overtimePay + nightPay + sundayPay +
+            const totalSalary = normalPay + overtimePay + nightPay + nightOTPay + sundayPay +
                               mealAllowance + dynamicAllowances + specialAllowance;
 
             // 회사 부담금 (기본급 기준) - 참고용
@@ -1769,40 +2368,49 @@
             const companyUnemployIns = basicSalary * 0.01;
             const totalCompanyIns = companySocialIns + companyHealthIns + companyUnemployIns;
 
-            // 근로자 보험료 (기본급 기준)
-            const socialIns = basicSalary * 0.08;
-            const healthIns = basicSalary * 0.015;
-            const unemployIns = basicSalary * 0.01;
+            // 보험 미가입자 확인
+            const isInsuranceExempt = currentEmployeeId && employees[currentEmployeeId]
+                ? (employees[currentEmployeeId].insuranceExempt || false)
+                : false;
 
-            // 총 공제 (10.5%)
+            // 근로자 보험료 (기본급 기준) - 보험 미가입자는 0원
+            const socialIns = isInsuranceExempt ? 0 : basicSalary * 0.08;
+            const healthIns = isInsuranceExempt ? 0 : basicSalary * 0.015;
+            const unemployIns = isInsuranceExempt ? 0 : basicSalary * 0.01;
+
+            // 총 공제 (10.5%) - 보험 미가입자는 0원
             const totalDeduction = socialIns + healthIns + unemployIns;
 
-            // 개인소득세 계산
+            // 개인소득세 계산 (보험 미가입자는 소득세도 면제)
             const dependents = parseInt(document.getElementById('dependents').value) || 0;
+            let incomeTax = 0;
 
+            // 변수 초기화 (보험 미가입자도 표시용으로 필요)
+            const selfDeduction = 11000000; // 본인
+            const dependentDeduction = dependents * 4400000; // 부양가족
+            const totalFamilyDeduction = selfDeduction + dependentDeduction;
+            let taxableIncome = 0;
+            let taxBase = 0;
+
+            if (!isInsuranceExempt) {
             // 과세 대상 소득 계산 (베트남 세법)
             // - 식대: 100% 비과세
             // - 야근 수당: 1/3 비과세, 2/3만 과세
             // - 일요일 특근: 1/2 비과세, 1/2만 과세
-            const taxableIncome = normalPay                           // 정규급여: 전액 과세
+            taxableIncome = normalPay                           // 정규급여: 전액 과세
                                 + (overtimePay * 2/3)           // 야근: 2/3만 과세
                                 + nightPay                       // 야간: 전액 과세
+                                + nightOTPay                     // 야간+OT: 전액 과세
                                 + (sundayPay * 1/2)             // 특근: 1/2만 과세
                                 + dynamicAllowances              // 모든 수당: 전액 과세
                                 + specialAllowance               // 특수수당: 전액 과세
                                 // 식대(mealAllowance)는 제외: 비과세
                                 - totalDeduction;                // 보험료 공제
 
-            // 가족 공제
-            const selfDeduction = 11000000; // 본인
-            const dependentDeduction = dependents * 4400000; // 부양가족
-            const totalFamilyDeduction = selfDeduction + dependentDeduction;
-
             // 과세 표준 = 과세 대상 소득 - 가족 공제
-            let taxBase = Math.max(0, taxableIncome - totalFamilyDeduction);
+            taxBase = Math.max(0, taxableIncome - totalFamilyDeduction);
 
             // 누진세율 계산
-            let incomeTax = 0;
             if (taxBase > 0) {
                 // Bậc 1: 0 - 5,000,000 (5%)
                 if (taxBase > 0) {
@@ -1845,11 +2453,12 @@
                     incomeTax += taxBase * 0.35;
                 }
             }
+            } // end if (!isInsuranceExempt)
 
             // 선금 가져오기
             const advancePaymentEnabled = document.getElementById('advancePaymentEnabled')?.checked || false;
             const advancePayment = advancePaymentEnabled ?
-                (parseFloat(document.getElementById('advancePaymentAmount')?.value) || 0) : 0;
+                parseMoneyInput(document.getElementById('advancePaymentAmount')?.value) : 0;
 
             // 실수령액 = 총 급여 - 보험료 - 개인소득세 - 선금
             const netSalary = totalSalary - totalDeduction - incomeTax - advancePayment;
@@ -1860,6 +2469,10 @@
             document.getElementById('normalPay').textContent = formatNumber(normalPay) + ' đ';
             document.getElementById('overtimePay').textContent = formatNumber(overtimePay) + ' đ';
             document.getElementById('nightPay').textContent = formatNumber(nightPay) + ' đ';
+            // 야간+OT 표시 (야간 근무 설정 활성화 시)
+            document.getElementById('nightOTPay').textContent = formatNumber(nightOTPay) + ' đ';
+            document.getElementById('nightOTPayRow').style.display =
+                (window.companySettings && window.companySettings.nightShiftEnabled) ? '' : 'none';
             document.getElementById('sundayPay').textContent = formatNumber(sundayPay) + ' đ';
             document.getElementById('mealDisplay').textContent = formatNumber(mealAllowance) + ' đ';
 
@@ -1995,8 +2608,8 @@
             document.getElementById('totalTaxFree').textContent = formatNumber(totalTaxFree) + ' đ';
 
             // ===== 중간 합계 계산 및 표시 =====
-            // 1. 급여 상세 합계 (정규+야근+야간+일요일)
-            const salaryDetailTotal = normalPay + overtimePay + nightPay + sundayPay;
+            // 1. 급여 상세 합계 (정규+야근+야간+야간OT+일요일)
+            const salaryDetailTotal = normalPay + overtimePay + nightPay + nightOTPay + sundayPay;
             document.getElementById('salaryDetailTotal').textContent = formatNumber(salaryDetailTotal) + ' đ';
 
             // 2. 수당 합계 (식대+동적수당+특수수당)
@@ -2019,14 +2632,62 @@
                 finalAdvanceRow.style.display = 'none';
             }
 
+            // 보험 미가입자 확인 및 UI 업데이트 (isInsuranceExempt는 위에서 이미 선언됨)
+
+            const companyInsuranceBox = document.getElementById('companyInsuranceBox');
+            const employeeInsuranceBox = document.getElementById('employeeInsuranceBox');
+            const insuranceExemptBox = document.getElementById('insuranceExemptBox');
+            const taxFreeBox = document.getElementById('taxFreeBox');
+            const incomeTaxBox = document.getElementById('incomeTaxBox');
+            const finalDeductionRow = document.getElementById('finalDeductionRow');
+            const finalIncomeTaxRow = document.getElementById('finalIncomeTaxRow');
+
+            if (isInsuranceExempt) {
+                // 보험 미가입자: 보험료/소득세 섹션 숨기고, 미가입 표시 보이기
+                if (companyInsuranceBox) companyInsuranceBox.style.display = 'none';
+                if (employeeInsuranceBox) employeeInsuranceBox.style.display = 'none';
+                if (insuranceExemptBox) insuranceExemptBox.style.display = 'block';
+                if (taxFreeBox) taxFreeBox.style.display = 'none';  // 비과세 내역 숨김
+                if (incomeTaxBox) incomeTaxBox.style.display = 'none';  // 개인소득세 섹션 숨김
+                if (finalDeductionRow) finalDeductionRow.style.display = 'none';  // 최종 정산 보험료 숨김
+                if (finalIncomeTaxRow) finalIncomeTaxRow.style.display = 'none';  // 최종 정산 소득세 숨김
+            } else {
+                // 보험 가입자: 보험료/소득세 섹션 보이고, 미가입 표시 숨기기
+                if (companyInsuranceBox) companyInsuranceBox.style.display = 'block';
+                if (employeeInsuranceBox) employeeInsuranceBox.style.display = 'block';
+                if (insuranceExemptBox) insuranceExemptBox.style.display = 'none';
+                if (taxFreeBox) taxFreeBox.style.display = 'block';  // 비과세 내역 보이기
+                if (incomeTaxBox) incomeTaxBox.style.display = 'block';  // 개인소득세 섹션 보이기
+                if (finalDeductionRow) finalDeductionRow.style.display = '';  // 최종 정산 보험료 보이기
+                if (finalIncomeTaxRow) finalIncomeTaxRow.style.display = '';  // 최종 정산 소득세 보이기
+            }
+
             document.getElementById('totalSalary').textContent = formatNumber(totalSalary) + ' đ';
             document.getElementById('totalDeduction').textContent = formatNumber(totalDeduction) + ' đ';
             document.getElementById('netSalary').textContent = formatNumber(netSalary) + ' đ';
         }
 
-        // 숫자 포맷팅
+        // 숫자 포맷팅 (회사 설정에 따라)
         function formatNumber(num) {
-            return new Intl.NumberFormat('vi-VN').format(Math.round(num));
+            const rounded = Math.round(num);
+
+            // 현재 회사 설정 가져오기
+            const currentCompanyId = localStorage.getItem('currentCompanyId');
+            const companyProfiles = JSON.parse(localStorage.getItem('companyProfiles') || '{}');
+            const company = companyProfiles[currentCompanyId] || {};
+
+            const numberFormat = company.numberFormat || 'comma';
+
+            let locale;
+            if (numberFormat === 'comma') {
+                locale = 'en-US';  // 1,234,567
+            } else if (numberFormat === 'dot') {
+                locale = 'de-DE';  // 1.234.567
+            } else {
+                locale = 'fr-FR';  // 1 234 567
+            }
+
+            return new Intl.NumberFormat(locale).format(rounded);
         }
 
         // 📱 모바일 급여명세서 열기 (완전히 새로 작성)
@@ -2118,7 +2779,7 @@
             
             // 직원 정보
             const employeeName = document.getElementById('employeeName').value || '직원';
-            const basicSalary = parseFloat(document.getElementById('basicSalary').value) || 0;
+            const basicSalary = parseMoneyInput(document.getElementById('basicSalary').value);
             const dependents = parseInt(document.getElementById('dependents').value) || 0;
             
             // 근무 통계
@@ -2127,12 +2788,17 @@
             const normalHours = parseFloat(document.getElementById('normalHours').textContent.replace(/[^\d.]/g, '')) || 0;
             const overtimeHours = parseFloat(document.getElementById('overtimeHours').value) || 0;
             const nightHours = parseFloat(document.getElementById('nightHours').value) || 0;
+            const nightOTHours = parseFloat(document.getElementById('nightOTHours').value) || 0;
             const sundayHours = parseFloat(document.getElementById('sundayHours').value) || 0;
-            
+
+            // 야간 설정 여부
+            const nightShiftEnabled = (settings && settings.nightShiftEnabled) || false;
+
             // 급여
             const normalPay = parseFloat(document.getElementById('normalPay').textContent.replace(/[^\d]/g, '')) || 0;
             const overtimePay = parseFloat(document.getElementById('overtimePay').textContent.replace(/[^\d]/g, '')) || 0;
             const nightPay = parseFloat(document.getElementById('nightPay').textContent.replace(/[^\d]/g, '')) || 0;
+            const nightOTPay = parseFloat(document.getElementById('nightOTPay').textContent.replace(/[^\d]/g, '')) || 0;
             const sundayPay = parseFloat(document.getElementById('sundayPay').textContent.replace(/[^\d]/g, '')) || 0;
             
             // 식대
@@ -2164,19 +2830,19 @@
             });
             
             // 특수수당
-            const specialAllowance = document.getElementById('specialAllowanceEnabled')?.checked ? 
-                (parseFloat(document.getElementById('specialAllowanceAmount')?.value) || 0) : 0;
-            
+            const specialAllowance = document.getElementById('specialAllowanceEnabled')?.checked ?
+                parseMoneyInput(document.getElementById('specialAllowanceAmount')?.value) : 0;
+
             // 공제
             const socialIns = parseFloat(document.getElementById('socialIns').textContent.replace(/[^\d]/g, '')) || 0;
             const healthIns = parseFloat(document.getElementById('healthIns').textContent.replace(/[^\d]/g, '')) || 0;
             const unemployIns = parseFloat(document.getElementById('unemployIns').textContent.replace(/[^\d]/g, '')) || 0;
             const totalDeduction = parseFloat(document.getElementById('totalDeduction').textContent.replace(/[^\d]/g, '')) || 0;
             const incomeTax = parseFloat(document.getElementById('incomeTax').textContent.replace(/[^\d]/g, '')) || 0;
-            
+
             // 선금
             const advancePayment = document.getElementById('advancePaymentEnabled')?.checked ?
-                (parseFloat(document.getElementById('advancePaymentAmount')?.value) || 0) : 0;
+                parseMoneyInput(document.getElementById('advancePaymentAmount')?.value) : 0;
             
             // 총 급여 (화면에서 가져오기)
             const totalSalary = parseFloat(document.getElementById('totalSalary').textContent.replace(/[^\d]/g, '')) || 0;
@@ -2197,10 +2863,13 @@
                 normalHours,
                 overtimeHours,
                 nightHours,
+                nightOTHours,
                 sundayHours,
+                nightShiftEnabled,
                 normalPay,
                 overtimePay,
                 nightPay,
+                nightOTPay,
                 sundayPay,
                 mealAllowance,
                 totalMealCount,
@@ -2303,7 +2972,8 @@
                 const emp = employees[id];
                 const option = document.createElement('option');
                 option.value = id;
-                option.textContent = emp.name;
+                // 코드가 있으면 [KQ-001] 형태로 표시
+                option.textContent = emp.employeeCode ? `[${emp.employeeCode}] ${emp.name}` : emp.name;
                 if (id === currentEmployeeId) option.selected = true;
                 select.appendChild(option);
             }
@@ -2329,19 +2999,45 @@
                 select.value = id;
             }
 
-            // 기본 정보
-            document.getElementById('employeeName').value = emp.name;
-            document.getElementById('basicSalary').value = emp.basicSalary;
+            // 기본 정보 (코드가 있으면 함께 표시)
+            const nameDisplay = emp.employeeCode ? `[${emp.employeeCode}] ${emp.name}` : emp.name;
+            document.getElementById('employeeName').value = nameDisplay;
+            document.getElementById('basicSalary').value = formatNumber(emp.basicSalary || 0);
             document.getElementById('dependents').value = emp.dependents || 0;
-            document.getElementById('dailyMeal').value = emp.dailyMeal || 25000;
+            document.getElementById('dailyMeal').value = formatNumber(emp.dailyMeal || 25000);
 
             // 달력 데이터 (날짜 형식 정규화)
             holidays = new Set(normalizeDateSet(emp.holidays || []));
             excusedAbsents = new Set(normalizeDateSet(emp.excusedAbsents || []));
             absents = new Set(normalizeDateSet(emp.absents || []));
             annualLeaveDays = new Set(normalizeDateSet(emp.annualLeaveDays || []));
+            annualLeaveMemos = emp.annualLeaveMemos || {};
+
+            // 경조사/병가 데이터 로드
+            specialLeaveDays = new Set(normalizeDateSet(emp.specialLeaveDays || []));
+            sickLeaveDays = new Set(normalizeDateSet(emp.sickLeaveDays || []));
+
+            // 출퇴근 관리(leaveData)에서 연차/휴가 데이터 동기화
+            if (emp.leaveData) {
+                Object.entries(emp.leaveData).forEach(([dateKey, leaveType]) => {
+                    const normalizedKey = normalizeDateKey(dateKey);
+                    if (leaveType === 'annual') {
+                        annualLeaveDays.add(normalizedKey);
+                    } else if (leaveType === 'special') {
+                        specialLeaveDays.add(normalizedKey);
+                    } else if (leaveType === 'sick') {
+                        sickLeaveDays.add(normalizedKey);
+                    } else if (leaveType === 'excused') {
+                        excusedAbsents.add(normalizedKey);
+                    } else if (leaveType === 'absent') {
+                        absents.add(normalizedKey);
+                    }
+                });
+            }
             overtimeData = normalizeDateObject(emp.overtimeData || {});
             nightData = normalizeDateObject(emp.nightData || {});
+            nightOTData = normalizeDateObject(emp.nightOTData || {});
+            nightShiftDays = new Set(emp.nightShiftDays || []);
             sundayData = normalizeDateObject(emp.sundayData || {});
             normalHoursData = normalizeDateObject(emp.normalHoursData || {});
 
@@ -2359,7 +3055,7 @@
             const specialAllowanceInput = document.getElementById('specialAllowanceAmount');
             if (specialAllowanceCheckbox && specialAllowanceInput) {
                 specialAllowanceCheckbox.checked = emp.specialAllowanceEnabled || false;
-                specialAllowanceInput.value = emp.specialAllowanceAmount || 0;
+                specialAllowanceInput.value = formatNumber(emp.specialAllowanceAmount || 0);
                 if (specialAllowanceCheckbox.checked) {
                     specialAllowanceInput.disabled = false;
                     specialAllowanceInput.style.background = 'white';
@@ -2374,13 +3070,23 @@
             const advancePaymentInput = document.getElementById('advancePaymentAmount');
             if (advancePaymentCheckbox && advancePaymentInput) {
                 advancePaymentCheckbox.checked = emp.advancePaymentEnabled || false;
-                advancePaymentInput.value = emp.advancePaymentAmount || 0;
+                advancePaymentInput.value = formatNumber(emp.advancePaymentAmount || 0);
                 if (advancePaymentCheckbox.checked) {
                     advancePaymentInput.disabled = false;
                     advancePaymentInput.style.background = 'white';
                 } else {
                     advancePaymentInput.disabled = true;
                     advancePaymentInput.style.background = '#f5f5f5';
+                }
+            }
+
+            // 보험 미가입자 표시
+            const insuranceExemptBadge = document.getElementById('insuranceExemptBadge');
+            if (insuranceExemptBadge) {
+                if (emp.insuranceExempt) {
+                    insuranceExemptBadge.style.display = 'block';
+                } else {
+                    insuranceExemptBadge.style.display = 'none';
                 }
             }
 
@@ -2407,22 +3113,36 @@
             employees[currentEmployeeId] = {
                 ...emp, // 기존 데이터 유지 (hireDate, annualLeavePerYear, annualLeaveUsed 등)
                 name: document.getElementById('employeeName').value,
-                basicSalary: parseFloat(document.getElementById('basicSalary').value) || 0,
+                basicSalary: parseMoneyInput(document.getElementById('basicSalary').value),
                 dependents: parseInt(document.getElementById('dependents').value) || 0,
-                dailyMeal: parseFloat(document.getElementById('dailyMeal').value) || 25000,
+                dailyMeal: parseMoneyInput(document.getElementById('dailyMeal').value) || 25000,
                 holidays: Array.from(holidays),
                 excusedAbsents: Array.from(excusedAbsents),
                 absents: Array.from(absents),
                 annualLeaveDays: Array.from(annualLeaveDays),
+                specialLeaveDays: Array.from(specialLeaveDays),
+                sickLeaveDays: Array.from(sickLeaveDays),
+                annualLeaveMemos: annualLeaveMemos,
                 overtimeData: overtimeData,
                 nightData: nightData,
+                nightOTData: nightOTData,
+                nightShiftDays: Array.from(nightShiftDays),
                 sundayData: sundayData,
                 normalHoursData: filteredNormalHours,
                 specialAllowanceEnabled: document.getElementById('specialAllowanceEnabled')?.checked || false,
-                specialAllowanceAmount: parseFloat(document.getElementById('specialAllowanceAmount')?.value) || 0,
+                specialAllowanceAmount: parseMoneyInput(document.getElementById('specialAllowanceAmount')?.value),
                 advancePaymentEnabled: document.getElementById('advancePaymentEnabled')?.checked || false,
-                advancePaymentAmount: parseFloat(document.getElementById('advancePaymentAmount')?.value) || 0
+                advancePaymentAmount: parseMoneyInput(document.getElementById('advancePaymentAmount')?.value)
             };
+
+            // 출퇴근 관리 연동: leaveData 업데이트
+            const leaveData = employees[currentEmployeeId].leaveData || {};
+            annualLeaveDays.forEach(key => { leaveData[key] = 'annual'; });
+            specialLeaveDays.forEach(key => { leaveData[key] = 'special'; });
+            sickLeaveDays.forEach(key => { leaveData[key] = 'sick'; });
+            excusedAbsents.forEach(key => { leaveData[key] = 'excused'; });
+            absents.forEach(key => { leaveData[key] = 'absent'; });
+            employees[currentEmployeeId].leaveData = leaveData;
 
             saveEmployeesToStorage();
         }
@@ -2430,16 +3150,16 @@
         // 폼 초기화
         function clearForm() {
             document.getElementById('employeeName').value = '';
-            document.getElementById('basicSalary').value = 6980000;
+            document.getElementById('basicSalary').value = formatNumber(6980000);
             document.getElementById('dependents').value = 0;
-            document.getElementById('dailyMeal').value = 25000;
+            document.getElementById('dailyMeal').value = formatNumber(25000);
 
             // 특수수당/선금 초기화
             const specialAllowanceCheckbox = document.getElementById('specialAllowanceEnabled');
             const specialAllowanceInput = document.getElementById('specialAllowanceAmount');
             if (specialAllowanceCheckbox && specialAllowanceInput) {
                 specialAllowanceCheckbox.checked = false;
-                specialAllowanceInput.value = 0;
+                specialAllowanceInput.value = formatNumber(0);
                 specialAllowanceInput.disabled = true;
                 specialAllowanceInput.style.background = '#f5f5f5';
             }
@@ -2448,7 +3168,7 @@
             const advancePaymentInput = document.getElementById('advancePaymentAmount');
             if (advancePaymentCheckbox && advancePaymentInput) {
                 advancePaymentCheckbox.checked = false;
-                advancePaymentInput.value = 0;
+                advancePaymentInput.value = formatNumber(0);
                 advancePaymentInput.disabled = true;
                 advancePaymentInput.style.background = '#f5f5f5';
             }
@@ -2458,6 +3178,8 @@
             absents = new Set();
             overtimeData = {};
             nightData = {};
+            nightOTData = {};
+            nightShiftDays = new Set();
             sundayData = {};
             normalHoursData = {};
             generateCalendar();
@@ -2511,8 +3233,11 @@
                 const tempCurrent = currentEmployeeId;
                 loadEmployee(id);
 
-                // 계산 결과 가져오기
-                const hourlyRate = emp.basicSalary / 208;
+                // 계산 결과 가져오기 (월별 근무일수 기준)
+                const weekdaysText = document.getElementById('weekdays').textContent;
+                const weekdays = parseFloat(weekdaysText.replace('일', '')) || 26;
+                const monthlyHours = weekdays * 8;
+                const hourlyRate = monthlyHours > 0 ? emp.basicSalary / monthlyHours : 0;
                 const normalHoursText = document.getElementById('normalHours').textContent;
                 const normalHours = parseFloat(normalHoursText.replace('h', '')) || 0;
                 const normalPay = hourlyRate * normalHours;
@@ -2694,6 +3419,7 @@
 
             const overtimeData = {};
             const nightData = {};
+            const nightOTData = {};
             const sundayData = {};
             const normalHoursData = {};
 
@@ -2706,6 +3432,12 @@
             Object.keys(emp.nightData || {}).forEach(key => {
                 if (isTargetMonth(key)) {
                     nightData[key] = emp.nightData[key];
+                }
+            });
+
+            Object.keys(emp.nightOTData || {}).forEach(key => {
+                if (isTargetMonth(key)) {
+                    nightOTData[key] = emp.nightOTData[key];
                 }
             });
 
@@ -2784,17 +3516,26 @@
 
             let totalOvertime = 0;
             Object.keys(overtimeData).forEach(key => {
-                totalOvertime += overtimeData[key];
+                // 연차/공휴일/결근일 제외
+                if (!annualLeaveDays.has(key) && !holidays.has(key) && !absents.has(key) && !excusedAbsents.has(key)) {
+                    totalOvertime += overtimeData[key];
+                }
             });
 
             let totalNight = 0;
             Object.keys(nightData).forEach(key => {
-                totalNight += nightData[key];
+                // 연차/공휴일/결근일 제외
+                if (!annualLeaveDays.has(key) && !holidays.has(key) && !absents.has(key) && !excusedAbsents.has(key)) {
+                    totalNight += nightData[key];
+                }
             });
 
             let totalSunday = 0;
             Object.keys(sundayData).forEach(key => {
-                totalSunday += sundayData[key];
+                // 연차/공휴일/결근일 제외
+                if (!annualLeaveDays.has(key) && !holidays.has(key) && !absents.has(key) && !excusedAbsents.has(key)) {
+                    totalSunday += sundayData[key];
+                }
             });
 
             const overtimePay = Math.round(hourlyRate * totalOvertime * 1.5);
@@ -2854,18 +3595,22 @@
 
             const totalAllowances = mealAllowance + dynamicAllowancesTotal;
 
-            // 총 급여
-            const totalSalary = normalPay + overtimePay + nightPay + sundayPay + totalAllowances;
+            // 특수수당 가져오기
+            const specialAllowance = emp.specialAllowanceEnabled ? (emp.specialAllowanceAmount || 0) : 0;
 
-            // 보험료 공제
-            const socialIns = Math.round(basicSalary * 0.08);
-            const healthIns = Math.round(basicSalary * 0.015);
-            const unemployIns = Math.round(basicSalary * 0.01);
+            // 총 급여 (특수수당 포함)
+            const totalSalary = normalPay + overtimePay + nightPay + sundayPay + totalAllowances + specialAllowance;
+
+            // 보험료 공제 (보험 미가입자는 0원)
+            const isInsuranceExempt = emp.insuranceExempt || false;
+            const socialIns = isInsuranceExempt ? 0 : Math.round(basicSalary * 0.08);
+            const healthIns = isInsuranceExempt ? 0 : Math.round(basicSalary * 0.015);
+            const unemployIns = isInsuranceExempt ? 0 : Math.round(basicSalary * 0.01);
             const totalDeduction = socialIns + healthIns + unemployIns;
 
             // 소득세 계산
             const taxableIncome = normalPay + (overtimePay * 2/3) + nightPay + (sundayPay * 1/2)
-                                 + dynamicAllowancesTotal - totalDeduction;
+                                 + dynamicAllowancesTotal + specialAllowance - totalDeduction;
 
             const selfDeduction = 11000000;
             const dependentDeduction = dependents * 4400000;
@@ -2911,17 +3656,26 @@
                 }
             }
 
-            // 실수령액
-            const netSalary = totalSalary - totalDeduction - incomeTax;
+            // 선금 가져오기
+            const advancePayment = emp.advancePaymentEnabled ? (emp.advancePaymentAmount || 0) : 0;
+
+            // 실수령액 (선금 차감)
+            const netSalary = totalSalary - totalDeduction - incomeTax - advancePayment;
 
             return {
+                employeeId: employeeId,
+                name: emp.name,
                 workDays: workDays,
                 normalHours: normalHours,
+                overtimeHours: totalOvertime + totalSunday,  // 잔업 + 일요특근 합계
+                overtimePay: overtimePay + nightPay + sundayPay,  // 잔업수당 합계 (야근+야간+일요특근)
                 basicPay: normalPay,
                 allowances: totalAllowances,
+                specialAllowance: specialAllowance,
                 totalSalary: totalSalary,
                 deductions: totalDeduction,
                 incomeTax: Math.round(incomeTax),
+                advancePayment: advancePayment,
                 netSalary: netSalary
             };
         }
@@ -2963,14 +3717,21 @@
             // Object 타입 데이터 필터링
             const newOvertimeData = {};
             const newNightData = {};
+            const newNightOTData = {};
             const newSundayData = {};
             const newNormalHoursData = {};
+
+            // 야간조 날짜 필터링 (현재 월 제외)
+            const newNightShiftDays = Array.from(nightShiftDays).filter(key => isNotCurrentMonth(key));
 
             Object.keys(overtimeData).forEach(key => {
                 if (isNotCurrentMonth(key)) newOvertimeData[key] = overtimeData[key];
             });
             Object.keys(nightData).forEach(key => {
                 if (isNotCurrentMonth(key)) newNightData[key] = nightData[key];
+            });
+            Object.keys(nightOTData).forEach(key => {
+                if (isNotCurrentMonth(key)) newNightOTData[key] = nightOTData[key];
             });
             Object.keys(sundayData).forEach(key => {
                 if (isNotCurrentMonth(key)) newSundayData[key] = sundayData[key];
@@ -2986,6 +3747,8 @@
             annualLeaveDays = new Set(newAnnualLeaveDays);
             overtimeData = newOvertimeData;
             nightData = newNightData;
+            nightOTData = newNightOTData;
+            nightShiftDays = new Set(newNightShiftDays);
             sundayData = newSundayData;
             normalHoursData = newNormalHoursData;
 
@@ -2996,8 +3759,13 @@
                 excusedAbsents: Array.from(excusedAbsents),
                 absents: Array.from(absents),
                 annualLeaveDays: Array.from(annualLeaveDays),
+                specialLeaveDays: Array.from(specialLeaveDays),
+                sickLeaveDays: Array.from(sickLeaveDays),
+                annualLeaveMemos: annualLeaveMemos,
                 overtimeData: overtimeData,
                 nightData: nightData,
+                nightOTData: nightOTData,
+                nightShiftDays: Array.from(nightShiftDays),
                 sundayData: sundayData,
                 normalHoursData: normalHoursData
             };
@@ -3359,8 +4127,11 @@
                 return;
             }
 
-            // 계산 결과 가져오기
-            const hourlyRate = emp.basicSalary / 208;
+            // 계산 결과 가져오기 (월별 근무일수 기준)
+            const weekdaysText = document.getElementById('weekdays').textContent;
+            const weekdays = parseFloat(weekdaysText.replace('일', '')) || 26;
+            const monthlyHours = weekdays * 8;
+            const hourlyRate = monthlyHours > 0 ? emp.basicSalary / monthlyHours : 0;
             const normalHoursText = document.getElementById('normalHours').textContent;
             const normalHours = parseFloat(normalHoursText.replace('h', '')) || 0;
             const normalPay = hourlyRate * normalHours;
@@ -3694,8 +4465,11 @@
                 return;
             }
 
-            // 계산 결과 가져오기
-            const hourlyRate = emp.basicSalary / 208;
+            // 계산 결과 가져오기 (월별 근무일수 기준)
+            const weekdaysText = document.getElementById('weekdays').textContent;
+            const weekdays = parseFloat(weekdaysText.replace('일', '')) || 26;
+            const monthlyHours = weekdays * 8;
+            const hourlyRate = monthlyHours > 0 ? emp.basicSalary / monthlyHours : 0;
             const normalHoursText = document.getElementById('normalHours').textContent;
             const normalHours = parseFloat(normalHoursText.replace('h', '')) || 0;
             const normalPay = hourlyRate * normalHours;
@@ -3964,5 +4738,6 @@
 
     <!-- JavaScript 모듈 로드 (순서 중요!) -->
     <!-- data-manager.js는 settings.html에서만 사용 (변수 충돌 방지) -->
+    <script src="import-from-daily-report.js"></script>
 </body>
 </html>

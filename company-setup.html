@@ -438,6 +438,35 @@
                     </div>
                 </div>
 
+                <!-- 통화 및 숫자 형식 설정 -->
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 12px; margin-bottom: 30px; border: 2px solid #e0e0e0;">
+                    <h3 style="color: #667eea; margin-bottom: 20px;">💰 통화 및 숫자 형식 설정</h3>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>💵 통화 기호 (Currency Symbol)</label>
+                        <select id="currencyFormat" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;" onchange="updateFormatPreview()">
+                            <option value="VND">🇻🇳 VND - đ (베트남 동)</option>
+                            <option value="KRW">🇰🇷 KRW - ₩ (한국 원)</option>
+                            <option value="USD">🇺🇸 USD - $ (미국 달러)</option>
+                            <option value="NONE">없음 (숫자만)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>🔢 숫자 구분자 형식 (Number Format)</label>
+                        <select id="numberFormat" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;" onchange="updateFormatPreview()">
+                            <option value="comma">쉼표 (,) - 예: 1,234,567</option>
+                            <option value="dot">점 (.) - 예: 1.234.567</option>
+                            <option value="space">공백 ( ) - 예: 1 234 567</option>
+                        </select>
+                    </div>
+
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50;">
+                        <strong style="color: #2e7d32;">미리보기:</strong>
+                        <span id="formatPreview" style="font-size: 1.3em; font-weight: bold; color: #333; margin-left: 10px;">1,234,567 đ</span>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>📝 비고 (Notes / Ghi chú)</label>
                     <textarea id="companyNotes" placeholder="기타 정보를 입력하세요"></textarea>
@@ -573,6 +602,8 @@
                 address: document.getElementById('companyAddress').value.trim(),
                 contact: document.getElementById('companyContact').value.trim(),
                 color: document.getElementById('companyColor').value,
+                currencyFormat: document.getElementById('currencyFormat').value,
+                numberFormat: document.getElementById('numberFormat').value,
                 notes: document.getElementById('companyNotes').value.trim(),
                 logo: currentLogoData || (companies[id] ? companies[id].logo : null),
                 createdAt: companies[id] ? companies[id].createdAt : new Date().toISOString(),
@@ -612,7 +643,10 @@
             document.getElementById('companyAddress').value = company.address || '';
             document.getElementById('companyContact').value = company.contact || '';
             document.getElementById('companyColor').value = company.color || '#667eea';
+            document.getElementById('currencyFormat').value = company.currencyFormat || 'VND';
+            document.getElementById('numberFormat').value = company.numberFormat || 'comma';
             document.getElementById('companyNotes').value = company.notes || '';
+            updateFormatPreview();
 
             if (company.logo) {
                 currentLogoData = company.logo;
@@ -657,6 +691,47 @@
             document.getElementById('companyForm').reset();
             document.getElementById('logoPreview').innerHTML = '<div class="placeholder">🏢</div>';
             document.getElementById('logoPath').value = '';
+            updateFormatPreview();
+        }
+
+        // 숫자 포맷 미리보기 업데이트
+        function updateFormatPreview() {
+            const currency = document.getElementById('currencyFormat').value;
+            const numberFmt = document.getElementById('numberFormat').value;
+            const testNumber = 1234567;
+
+            let formattedNumber;
+            if (numberFmt === 'comma') {
+                formattedNumber = testNumber.toLocaleString('en-US');
+            } else if (numberFmt === 'dot') {
+                formattedNumber = testNumber.toLocaleString('de-DE');
+            } else {
+                formattedNumber = testNumber.toLocaleString('fr-FR');
+            }
+
+            let currencySymbol = '';
+            let suffix = false;
+            if (currency === 'VND') {
+                currencySymbol = 'đ';
+                suffix = true;
+            } else if (currency === 'KRW') {
+                currencySymbol = '₩';
+                suffix = false;
+            } else if (currency === 'USD') {
+                currencySymbol = '$';
+                suffix = false;
+            }
+
+            let preview;
+            if (suffix) {
+                preview = formattedNumber + ' ' + currencySymbol;
+            } else if (currencySymbol) {
+                preview = currencySymbol + formattedNumber;
+            } else {
+                preview = formattedNumber;
+            }
+
+            document.getElementById('formatPreview').textContent = preview;
         }
 
         // 기본 회사 프로필 생성
@@ -675,6 +750,8 @@
                 address: 'Củ Chi, Hồ Chí Minh City, Vietnam',
                 contact: '+84 xxx xxx xxx',
                 color: '#667eea',
+                currencyFormat: 'VND',
+                numberFormat: 'comma',
                 logo: 'assets/lgos/khanh-quynh-logo1.png', // 로컬 파일 경로
                 notes: '기본 회사 프로필 (자동 생성)',
                 createdAt: new Date().toISOString(),

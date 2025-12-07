@@ -3,9 +3,27 @@
 // 현재 관리 연도
 let currentSettingsYear = new Date().getFullYear();
 
-// 숫자 포맷팅
+// 숫자 포맷팅 (회사 설정에 따라)
 function formatNumber(num) {
-    return new Intl.NumberFormat('vi-VN').format(Math.round(num));
+    const rounded = Math.round(num);
+
+    // 현재 회사 설정 가져오기
+    const currentCompanyId = localStorage.getItem('currentCompanyId');
+    const companyProfiles = JSON.parse(localStorage.getItem('companyProfiles') || '{}');
+    const company = companyProfiles[currentCompanyId] || {};
+
+    const numberFormat = company.numberFormat || 'comma';
+
+    let locale;
+    if (numberFormat === 'comma') {
+        locale = 'en-US';  // 1,234,567
+    } else if (numberFormat === 'dot') {
+        locale = 'de-DE';  // 1.234.567
+    } else {
+        locale = 'fr-FR';  // 1 234 567
+    }
+
+    return new Intl.NumberFormat(locale).format(rounded);
 }
 
 // 초기화
@@ -53,7 +71,7 @@ function loadSettingsForYear(year) {
             lunchMeal: 25000,
             dinnerMeal: 25000,
             weekdayLunchAuto: true,
-            weekdayDinnerHours: 3,
+            weekdayDinnerHours: 4,
             sundayLunchHours: 4,
             sundayDinnerHours: 12,
             annualLeaveLunchMeal: false,
@@ -81,7 +99,7 @@ function loadSettingsForYear(year) {
         companySettings.weekdayLunchAuto = true;
     }
     if (companySettings.weekdayDinnerHours === undefined) {
-        companySettings.weekdayDinnerHours = 3;
+        companySettings.weekdayDinnerHours = 4;
     }
     if (companySettings.sundayLunchHours === undefined) {
         companySettings.sundayLunchHours = 4;
@@ -240,9 +258,26 @@ function updatePayrollInfo() {
     document.getElementById('info-sunday-dinner-meal').textContent = formatNumber(companySettings.dinnerMeal || 25000);
 
     // 식대 지급 조건 시간
-    document.getElementById('info-dinner-hours').textContent = companySettings.weekdayDinnerHours || 3;
+    document.getElementById('info-dinner-hours').textContent = companySettings.weekdayDinnerHours || 4;
     document.getElementById('info-sunday-lunch-hours').textContent = companySettings.sundayLunchHours || 4;
     document.getElementById('info-sunday-dinner-hours').textContent = companySettings.sundayDinnerHours || 12;
+
+    // 식대 시간 표시
+    const lunchTimeStart = companySettings.lunchTimeStart || '12:00';
+    const lunchTimeEnd = companySettings.lunchTimeEnd || '13:00';
+    const dinnerTimeStart = companySettings.dinnerTimeStart || '22:00';
+    const dinnerTimeEnd = companySettings.dinnerTimeEnd || '23:00';
+
+    const infoLunchTime = document.getElementById('info-lunch-time');
+    const infoDinnerTime = document.getElementById('info-dinner-time');
+    if (infoLunchTime) infoLunchTime.textContent = `${lunchTimeStart}~${lunchTimeEnd}`;
+    if (infoDinnerTime) infoDinnerTime.textContent = `${dinnerTimeStart}~${dinnerTimeEnd}`;
+
+    // 야간조 식대 조건 표시 (야간 설정 활성화 시만)
+    const nightShiftMealInfo = document.getElementById('info-night-shift-meal');
+    if (nightShiftMealInfo) {
+        nightShiftMealInfo.style.display = companySettings.nightShiftEnabled ? 'block' : 'none';
+    }
 
     // 동적 수당 목록 렌더링
     const allowancesContainer = document.getElementById('dynamicAllowancesInfo');
@@ -306,21 +341,27 @@ function displayEmployeeList() {
         const emp = employees[empId];
         console.log(`📝 직원 카드 생성 [${cardCount + 1}]:`, empId, emp.name);
 
-        // 연차 계산
-        const annualLeaveTotal = emp.annualLeavePerYear || 12;
-        const annualLeaveAdjustment = emp.annualLeaveAdjustment || 0;
-        const annualLeaveAvailable = annualLeaveTotal + annualLeaveAdjustment;
+        // 연차 계산 (보험 미가입자는 연차 없음)
+        let leaveInfo = '';
+        if (!emp.insuranceExempt) {
+            const annualLeaveTotal = emp.annualLeavePerYear || 12;
+            const annualLeaveAdjustment = emp.annualLeaveAdjustment || 0;
+            const annualLeaveAvailable = annualLeaveTotal + annualLeaveAdjustment;
 
-        let leaveInfo = `🌴 연차: ${annualLeaveTotal}일/년`;
-        if (annualLeaveAdjustment !== 0) {
-            leaveInfo += ` (조정: ${annualLeaveAdjustment > 0 ? '+' : ''}${annualLeaveAdjustment}일, 사용가능: ${annualLeaveAvailable}일)`;
+            leaveInfo = `🌴 연차: ${annualLeaveTotal}일/년`;
+            if (annualLeaveAdjustment !== 0) {
+                leaveInfo += ` (조정: ${annualLeaveAdjustment > 0 ? '+' : ''}${annualLeaveAdjustment}일, 사용가능: ${annualLeaveAvailable}일)`;
+            }
+        } else {
+            leaveInfo = `🏥 보험미가입 (연차 해당없음)`;
         }
 
         // 카드 HTML 생성 (inline onclick 사용)
+        const codeDisplay = emp.employeeCode ? `<span style="color: #ff9800; font-weight: bold;">[${emp.employeeCode}]</span> ` : '';
         const cardHTML = `
             <div class="employee-item" draggable="false">
                 <div class="employee-info" draggable="false">
-                    <div class="employee-name" draggable="false">👤 ${emp.name}</div>
+                    <div class="employee-name" draggable="false">${codeDisplay}👤 ${emp.name}</div>
                     <div class="employee-details" draggable="false">
                         📅 입사일: ${emp.hireDate || '미등록'} |
                         💰 기본급: ${formatNumber(emp.basicSalary)}đ |
@@ -329,6 +370,7 @@ function displayEmployeeList() {
                     </div>
                 </div>
                 <div class="employee-actions">
+                    <button class="btn btn-info" onclick="window.viewEmployeeDetail('${empId}')" style="background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);">👁️ 상세보기</button>
                     <button class="btn btn-edit" onclick="window.handleEditEmployee('${empId}')">✏️ 수정</button>
                     <button class="btn btn-delete" onclick="window.handleDeleteEmployee('${empId}')">🗑️ 삭제</button>
                 </div>
@@ -378,15 +420,21 @@ window.handleEditEmployee = function(employeeId) {
     document.getElementById('modalTitle').textContent = '✏️ 직원 정보 수정';
 
     // 폼에 기존 데이터 채우기
+    document.getElementById('modalEmployeeCode').value = emp.employeeCode || '';
     document.getElementById('modalEmployeeName').value = emp.name;
+    document.getElementById('modalBirthDate').value = emp.birthDate || '';
     document.getElementById('modalHireDate').value = emp.hireDate || new Date().toISOString().split('T')[0];
+    document.getElementById('modalDepartment').value = emp.department || '';
+    document.getElementById('modalPosition').value = emp.position || '';
     document.getElementById('modalBasicSalary').value = emp.basicSalary;
     document.getElementById('modalDependents').value = emp.dependents || 0;
     document.getElementById('modalAnnualLeavePerYear').value = emp.annualLeavePerYear || 12;
     document.getElementById('modalAnnualLeaveAdjustment').value = emp.annualLeaveAdjustment || 0;
+    document.getElementById('modalInsuranceExempt').checked = emp.insuranceExempt || false;
 
-    // 모달 열기
+    // 모달 열기 + body 스크롤 막기
     document.getElementById('employeeModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
     document.getElementById('modalEmployeeName').focus();
 
     console.log('✅ 수정 모달 열림:', emp.name);
@@ -420,26 +468,136 @@ window.addEmployee = function() {
     document.getElementById('modalTitle').textContent = '✨ 새 직원 추가';
 
     // 폼 초기화
+    document.getElementById('modalEmployeeCode').value = '';
     document.getElementById('modalEmployeeName').value = '';
+    document.getElementById('modalBirthDate').value = '';
     document.getElementById('modalHireDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('modalDepartment').value = '';
+    document.getElementById('modalPosition').value = '';
     document.getElementById('modalBasicSalary').value = '6980000';
     document.getElementById('modalDependents').value = '0';
     document.getElementById('modalAnnualLeavePerYear').value = '12';
     document.getElementById('modalAnnualLeaveAdjustment').value = '0';
 
-    // 모달 열기
+    // 모달 열기 + body 스크롤 막기
     document.getElementById('employeeModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
     document.getElementById('modalEmployeeName').focus();
 }
 
 // 직원 모달 닫기
 window.closeEmployeeModal = function() {
     document.getElementById('employeeModal').style.display = 'none';
+    document.body.style.overflow = 'auto';  // body 스크롤 복원
     editingEmployeeId = null;
+}
+
+// 직원 상세 정보 보기
+window.viewEmployeeDetail = function(employeeId) {
+    if (!employees || !employees[employeeId]) {
+        alert('⚠️ 직원 정보를 찾을 수 없습니다!');
+        return;
+    }
+
+    const emp = employees[employeeId];
+    const detailContent = document.getElementById('employeeDetailContent');
+
+    // 연차 계산 (보험 미가입자는 연차 없음)
+    let annualLeaveSection = '';
+    if (!emp.insuranceExempt) {
+        const annualLeaveTotal = emp.annualLeavePerYear || 12;
+        const annualLeaveAdjustment = emp.annualLeaveAdjustment || 0;
+        const annualLeaveAvailable = annualLeaveTotal + annualLeaveAdjustment;
+
+        annualLeaveSection = `
+        <div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 20px; border-radius: 15px; border-left: 5px solid #4caf50;">
+            <h3 style="margin: 0 0 15px 0; color: #388e3c; font-size: 1.3em;">🌴 연차 정보</h3>
+            <div style="display: grid; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                    <span style="font-weight: bold; color: #555;">연간 발생:</span>
+                    <span style="color: #333;">${annualLeaveTotal}일</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                    <span style="font-weight: bold; color: #555;">조정:</span>
+                    <span style="color: ${annualLeaveAdjustment >= 0 ? '#4caf50' : '#f44336'}; font-weight: bold;">${annualLeaveAdjustment > 0 ? '+' : ''}${annualLeaveAdjustment}일</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; background: rgba(76, 175, 80, 0.1); padding: 12px; border-radius: 8px;">
+                    <span style="font-weight: bold; color: #388e3c;">사용 가능:</span>
+                    <span style="color: #388e3c; font-weight: bold; font-size: 1.2em;">${annualLeaveAvailable}일</span>
+                </div>
+            </div>
+        </div>`;
+    } else {
+        annualLeaveSection = `
+        <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 20px; border-radius: 15px; border-left: 5px solid #2196f3;">
+            <h3 style="margin: 0 0 15px 0; color: #1976d2; font-size: 1.3em;">🏥 보험/연차 상태</h3>
+            <div style="padding: 15px; background: rgba(33, 150, 243, 0.1); border-radius: 8px; text-align: center;">
+                <span style="color: #1976d2; font-weight: bold; font-size: 1.1em;">사회보험 미가입자 (연차 해당없음)</span>
+            </div>
+        </div>`;
+    }
+
+    // 상세 정보 HTML
+    detailContent.innerHTML = `
+        <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 20px; border-radius: 15px; border-left: 5px solid #00bcd4;">
+            <h3 style="margin: 0 0 15px 0; color: #0097a7; font-size: 1.3em;">👤 기본 정보</h3>
+            <div style="display: grid; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                    <span style="font-weight: bold; color: #555;">직원코드:</span>
+                    <span style="color: #ff9800; font-weight: bold;">${emp.employeeCode || '미등록'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                    <span style="font-weight: bold; color: #555;">이름:</span>
+                    <span style="color: #333;">${emp.name}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                    <span style="font-weight: bold; color: #555;">생년월일:</span>
+                    <span style="color: #333;">${emp.birthDate || '미등록'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                    <span style="font-weight: bold; color: #555;">입사일:</span>
+                    <span style="color: #333;">${emp.hireDate || '미등록'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                    <span style="font-weight: bold; color: #555;">부서:</span>
+                    <span style="color: #333;">${emp.department || '미등록'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                    <span style="font-weight: bold; color: #555;">직책:</span>
+                    <span style="color: #333;">${emp.position || '미등록'}</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); padding: 20px; border-radius: 15px; border-left: 5px solid #9c27b0;">
+            <h3 style="margin: 0 0 15px 0; color: #7b1fa2; font-size: 1.3em;">💰 급여 정보</h3>
+            <div style="display: grid; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                    <span style="font-weight: bold; color: #555;">기본급:</span>
+                    <span style="color: #333; font-weight: bold;">${formatNumber(emp.basicSalary)}đ</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                    <span style="font-weight: bold; color: #555;">부양가족:</span>
+                    <span style="color: #333;">${emp.dependents || 0}명</span>
+                </div>
+            </div>
+        </div>
+
+        ${annualLeaveSection}
+    `;
+
+    // 모달 열기
+    document.getElementById('employeeDetailModal').style.display = 'flex';
+}
+
+// 직원 상세 모달 닫기
+window.closeEmployeeDetailModal = function() {
+    document.getElementById('employeeDetailModal').style.display = 'none';
 }
 
 // 모달에서 직원 저장
 window.saveEmployeeFromModal = function() {
+    const employeeCode = document.getElementById('modalEmployeeCode').value.trim().toUpperCase();
     const name = document.getElementById('modalEmployeeName').value.trim();
     if (!name) {
         alert('⚠️ 직원 이름을 입력하세요!');
@@ -447,21 +605,53 @@ window.saveEmployeeFromModal = function() {
         return;
     }
 
+    // 중복 체크 (코드와 이름)
+    for (const empId in employees) {
+        // 수정 모드일 때 자기 자신은 제외
+        if (editingEmployeeId && empId === editingEmployeeId) continue;
+
+        const emp = employees[empId];
+
+        // 코드 중복 체크 (코드가 입력된 경우만)
+        if (employeeCode && emp.employeeCode &&
+            emp.employeeCode.toLowerCase() === employeeCode.toLowerCase()) {
+            alert(`⚠️ 이미 사용 중인 직원 코드입니다!\n\n코드: ${employeeCode}\n기존 직원: ${emp.name}`);
+            document.getElementById('modalEmployeeCode').focus();
+            return;
+        }
+
+        // 이름 중복 체크
+        if (emp.name && emp.name.toLowerCase().trim() === name.toLowerCase().trim()) {
+            alert(`⚠️ 동일한 이름의 직원이 이미 존재합니다!\n\n이름: ${name}\n기존 코드: ${emp.employeeCode || '없음'}`);
+            document.getElementById('modalEmployeeName').focus();
+            return;
+        }
+    }
+
+    const birthDate = document.getElementById('modalBirthDate').value || '';
     const hireDate = document.getElementById('modalHireDate').value;
+    const department = document.getElementById('modalDepartment').value.trim() || '';
+    const position = document.getElementById('modalPosition').value.trim() || '';
     const basicSalary = parseFloat(document.getElementById('modalBasicSalary').value) || 6980000;
     const dependents = parseInt(document.getElementById('modalDependents').value) || 0;
     const annualLeavePerYear = parseInt(document.getElementById('modalAnnualLeavePerYear').value) || 12;
     const annualLeaveAdjustment = parseInt(document.getElementById('modalAnnualLeaveAdjustment').value) || 0;
+    const insuranceExempt = document.getElementById('modalInsuranceExempt').checked || false;
 
     if (editingEmployeeId) {
         // 수정 모드
         const emp = employees[editingEmployeeId];
+        emp.employeeCode = employeeCode;
         emp.name = name;
+        emp.birthDate = birthDate;
         emp.hireDate = hireDate;
+        emp.department = department;
+        emp.position = position;
         emp.basicSalary = basicSalary;
         emp.dependents = dependents;
         emp.annualLeavePerYear = annualLeavePerYear;
         emp.annualLeaveAdjustment = annualLeaveAdjustment;
+        emp.insuranceExempt = insuranceExempt;
 
         saveEmployeesToStorage();
         displayEmployeeList();
@@ -473,10 +663,15 @@ window.saveEmployeeFromModal = function() {
         // 추가 모드
         const id = 'emp_' + Date.now();
         employees[id] = {
+            employeeCode: employeeCode,
             name: name,
+            birthDate: birthDate,
             hireDate: hireDate,
+            department: department,
+            position: position,
             basicSalary: basicSalary,
             dependents: dependents,
+            insuranceExempt: insuranceExempt,
             // dailyMeal은 더 이상 직원별로 저장하지 않음 (회사 설정의 lunchMeal/dinnerMeal 사용)
             annualLeavePerYear: annualLeavePerYear,
             annualLeaveAdjustment: annualLeaveAdjustment,
@@ -510,15 +705,47 @@ function loadSettingsToForm() {
     const sundayDinnerHoursEl = document.getElementById('settingSundayDinnerHours');
     const annualLeaveLunchMealEl = document.getElementById('settingAnnualLeaveLunchMeal');
     const excusedAbsenceLunchMinHoursEl = document.getElementById('settingExcusedAbsenceLunchMinHours');
+    const nightShiftEnabledEl = document.getElementById('settingNightShiftEnabled');
+    const nightNormalHoursEl = document.getElementById('settingNightNormalHours');
+    const nightNightHoursEl = document.getElementById('settingNightNightHours');
+    const nightShiftTimeSettingsEl = document.getElementById('nightShiftTimeSettings');
 
     if (lunchMealEl) lunchMealEl.value = companySettings.lunchMeal || 25000;
     if (dinnerMealEl) dinnerMealEl.value = companySettings.dinnerMeal || 25000;
+
+    // 식대 시간 설정
+    const lunchTimeStartEl = document.getElementById('settingLunchTimeStart');
+    const lunchTimeEndEl = document.getElementById('settingLunchTimeEnd');
+    const dinnerTimeStartEl = document.getElementById('settingDinnerTimeStart');
+    const dinnerTimeEndEl = document.getElementById('settingDinnerTimeEnd');
+
+    if (lunchTimeStartEl) lunchTimeStartEl.value = companySettings.lunchTimeStart || '12:00';
+    if (lunchTimeEndEl) lunchTimeEndEl.value = companySettings.lunchTimeEnd || '13:00';
+    if (dinnerTimeStartEl) dinnerTimeStartEl.value = companySettings.dinnerTimeStart || '22:00';
+    if (dinnerTimeEndEl) dinnerTimeEndEl.value = companySettings.dinnerTimeEnd || '23:00';
     if (weekdayLunchAutoEl) weekdayLunchAutoEl.checked = companySettings.weekdayLunchAuto !== false;
-    if (weekdayDinnerHoursEl) weekdayDinnerHoursEl.value = companySettings.weekdayDinnerHours || 3;
+    if (weekdayDinnerHoursEl) weekdayDinnerHoursEl.value = companySettings.weekdayDinnerHours || 4;
     if (sundayLunchHoursEl) sundayLunchHoursEl.value = companySettings.sundayLunchHours || 4;
     if (sundayDinnerHoursEl) sundayDinnerHoursEl.value = companySettings.sundayDinnerHours || 12;
     if (annualLeaveLunchMealEl) annualLeaveLunchMealEl.checked = companySettings.annualLeaveLunchMeal === true;
     if (excusedAbsenceLunchMinHoursEl) excusedAbsenceLunchMinHoursEl.value = companySettings.excusedAbsenceLunchMinHours || 4;
+    if (nightShiftEnabledEl) nightShiftEnabledEl.checked = companySettings.nightShiftEnabled === true;
+    if (nightNormalHoursEl) nightNormalHoursEl.value = companySettings.nightNormalHours || 4.5;
+    if (nightNightHoursEl) nightNightHoursEl.value = companySettings.nightNightHours || 3.5;
+
+    // 야간 설정 체크 상태에 따라 시간 설정 표시/숨기기
+    if (nightShiftTimeSettingsEl) {
+        nightShiftTimeSettingsEl.style.display = companySettings.nightShiftEnabled ? 'block' : 'none';
+    }
+
+    // 야간 체크박스 변경 시 시간 설정 표시/숨기기
+    if (nightShiftEnabledEl) {
+        nightShiftEnabledEl.addEventListener('change', function() {
+            if (nightShiftTimeSettingsEl) {
+                nightShiftTimeSettingsEl.style.display = this.checked ? 'block' : 'none';
+            }
+        });
+    }
 
     // 기존 수당 필드는 동적 수당 시스템으로 대체되어 제거됨
     // (attendanceBonus, transportBonus, riskBonus는 allowances 배열에서 관리)
@@ -558,15 +785,32 @@ window.saveSettings = function() {
     const sundayDinnerHoursEl = document.getElementById('settingSundayDinnerHours');
     const annualLeaveLunchMealEl = document.getElementById('settingAnnualLeaveLunchMeal');
     const excusedAbsenceLunchMinHoursEl = document.getElementById('settingExcusedAbsenceLunchMinHours');
+    const nightShiftEnabledEl = document.getElementById('settingNightShiftEnabled');
+    const nightNormalHoursEl = document.getElementById('settingNightNormalHours');
+    const nightNightHoursEl = document.getElementById('settingNightNightHours');
 
     if (lunchMealEl) companySettings.lunchMeal = parseFloat(lunchMealEl.value) || 25000;
     if (dinnerMealEl) companySettings.dinnerMeal = parseFloat(dinnerMealEl.value) || 25000;
+
+    // 식대 시간 설정
+    const lunchTimeStartEl = document.getElementById('settingLunchTimeStart');
+    const lunchTimeEndEl = document.getElementById('settingLunchTimeEnd');
+    const dinnerTimeStartEl = document.getElementById('settingDinnerTimeStart');
+    const dinnerTimeEndEl = document.getElementById('settingDinnerTimeEnd');
+
+    if (lunchTimeStartEl) companySettings.lunchTimeStart = lunchTimeStartEl.value || '12:00';
+    if (lunchTimeEndEl) companySettings.lunchTimeEnd = lunchTimeEndEl.value || '13:00';
+    if (dinnerTimeStartEl) companySettings.dinnerTimeStart = dinnerTimeStartEl.value || '22:00';
+    if (dinnerTimeEndEl) companySettings.dinnerTimeEnd = dinnerTimeEndEl.value || '23:00';
     if (weekdayLunchAutoEl) companySettings.weekdayLunchAuto = weekdayLunchAutoEl.checked;
-    if (weekdayDinnerHoursEl) companySettings.weekdayDinnerHours = parseFloat(weekdayDinnerHoursEl.value) || 3;
+    if (weekdayDinnerHoursEl) companySettings.weekdayDinnerHours = parseFloat(weekdayDinnerHoursEl.value) || 4;
     if (sundayLunchHoursEl) companySettings.sundayLunchHours = parseFloat(sundayLunchHoursEl.value) || 4;
     if (sundayDinnerHoursEl) companySettings.sundayDinnerHours = parseFloat(sundayDinnerHoursEl.value) || 12;
     if (annualLeaveLunchMealEl) companySettings.annualLeaveLunchMeal = annualLeaveLunchMealEl.checked;
     if (excusedAbsenceLunchMinHoursEl) companySettings.excusedAbsenceLunchMinHours = parseFloat(excusedAbsenceLunchMinHoursEl.value) || 0;
+    if (nightShiftEnabledEl) companySettings.nightShiftEnabled = nightShiftEnabledEl.checked;
+    if (nightNormalHoursEl) companySettings.nightNormalHours = parseFloat(nightNormalHoursEl.value) || 4.5;
+    if (nightNightHoursEl) companySettings.nightNightHours = parseFloat(nightNightHoursEl.value) || 3.5;
 
     // 보험료율 설정
     const empSocialEl = document.getElementById('settingEmployeeSocial');
@@ -883,63 +1127,65 @@ window.deleteAllowance = function(allowanceId) {
     }
 }
 
-// 숫자 포맷팅 (로컬 함수 - settings.js 내부용)
-function formatNumber(num) {
-    return new Intl.NumberFormat('vi-VN').format(Math.round(num));
-}
-
 // ==================== 수당 관리 시스템 끝 ====================
 
 // 직원 엑셀 템플릿 다운로드
 window.downloadEmployeeTemplate = function() {
     const wb = XLSX.utils.book_new();
 
-    // Sheet 1: 직원 기본정보
+    // Sheet 1: Staff Information (제목 + 영어 헤더 + Code 컬럼 포함)
     const empData = [
-        ['직원명', '입사일', '기본급', '부양가족수', '연차발생일수', '연차조정'],
-        ['홍길동', '2024-01-15', 6980000, 2, 12, 0],
-        ['김철수', '2023-06-01', 7500000, 0, 12, -3],
-        ['이영희', '2024-11-01', 6500000, 1, 12, 0]
+        [''],  // Row 1: 빈 줄
+        ['STAFF LIST'],  // Row 2: 제목
+        [''],  // Row 3: 빈 줄
+        ['Code', 'Name', 'Birth Date', 'Hire Date', 'Department', 'Position', 'Basic Salary', 'Dependents', 'Annual Leave', 'Adjustment', 'Insurance Exempt'],  // Row 4: 헤더
+        ['KQ-001', 'Nguyễn Văn A', '1990-05-15', '2024-01-15', 'Production', 'Worker', 6980000, 2, 12, 0, 'No'],  // Row 5: 샘플 데이터
+        ['KQ-002', 'Trần Thị B', '1995-08-20', '2024-03-01', 'Office', 'Admin', 7200000, 1, 12, 0, 'No'],
+        ['KQ-003', 'Lê Văn C', '1988-12-10', '2023-06-10', 'Production', 'Supervisor', 8000000, 0, 12, 5, 'Yes']
     ];
+    // 워크시트 생성 (스타일은 사용자가 Excel에서 직접 수정)
     const ws1 = XLSX.utils.aoa_to_sheet(empData);
-    XLSX.utils.book_append_sheet(wb, ws1, '직원기본정보');
 
-    // Sheet 2: 사용 안내
+    // 디버깅: 생성된 워크시트 확인
+    console.log('📝 템플릿 생성 데이터:', empData);
+    console.log('📝 생성된 워크시트 범위:', ws1['!ref']);
+    const testJson = XLSX.utils.sheet_to_json(ws1, {header: 1, blankrows: true});
+    console.log('📝 읽기 테스트:', testJson);
+
+    XLSX.utils.book_append_sheet(wb, ws1, 'Staff List');
+
+    // Sheet 2: User Guide
     const guideData = [
-        ['베트남 급여 계산기 - 직원 정보 템플릿'],
+        ['Vietnam Payroll System - Employee Template'],
         [''],
-        ['사용 방법:'],
-        ['1. "직원기본정보" 시트에 직원 정보를 입력하세요'],
-        ['2. 파일을 저장하고 "엑셀 불러오기" 버튼으로 업로드하세요'],
-        ['3. 직원 정보가 시스템에 자동으로 등록됩니다'],
+        ['How to Use:'],
+        ['1. Fill in employee information in the "Staff List" sheet'],
+        ['2. Save the file and upload using "Upload Excel" button'],
+        ['3. Employee data will be automatically registered in the system'],
         [''],
-        ['컬럼 설명:'],
-        ['- 직원명: 필수 항목'],
-        ['- 입사일: YYYY-MM-DD 형식 (예: 2024-01-15)'],
-        ['- 기본급: 월 기본급 (동)'],
-        ['- 부양가족수: 소득세 계산용 (본인 제외)'],
-        ['- 연차발생일수: 연간 발생 연차 일수 (보통 12일)'],
-        ['- 연차조정: 양수=추가지급, 음수=이미사용 (예: -3 = 이미 3일 사용)'],
+        ['Column Description:'],
+        ['- Code: Employee code (e.g., KQ-001) - Used for duplicate check'],
+        ['- Name: Required field'],
+        ['- Birth Date: YYYY-MM-DD format (e.g., 1990-05-15)'],
+        ['- Hire Date: YYYY-MM-DD format (e.g., 2024-01-15)'],
+        ['- Department: Employee department (optional)'],
+        ['- Position: Job position (optional)'],
+        ['- Basic Salary: Monthly basic salary (VND)'],
+        ['- Dependents: Number of dependents for tax calculation (excluding self)'],
+        ['- Annual Leave: Annual leave days per year (usually 12 days)'],
+        ['- Adjustment: Positive=extra days, Negative=already used (e.g., -3 = used 3 days)'],
+        ['- Insurance Exempt: Yes/No - Social insurance exemption (for daily workers, short-term contracts)'],
         [''],
-        ['주의: 직원명은 필수이며, 다른 항목은 비워두면 기본값이 적용됩니다']
+        ['Note: Name is required. Other fields will use default values if left empty.']
     ];
     const ws2 = XLSX.utils.aoa_to_sheet(guideData);
-    XLSX.utils.book_append_sheet(wb, ws2, '사용안내');
+    XLSX.utils.book_append_sheet(wb, ws2, 'User Guide');
 
-    // 컬럼 너비 설정
-    ws1['!cols'] = [
-        {wch: 15}, // 직원명
-        {wch: 12}, // 입사일
-        {wch: 12}, // 기본급
-        {wch: 12}, // 부양가족수
-        {wch: 15}, // 연차발생일수
-        {wch: 12}  // 연차조정
-    ];
-
+    // 파일 다운로드
     const currentDate = new Date();
-    const fileName = `직원정보_템플릿_${currentDate.getFullYear()}_${currentDate.getMonth()+1}.xlsx`;
+    const fileName = `STAFF_LIST_${currentDate.getFullYear()}_${String(currentDate.getMonth()+1).padStart(2, '0')}.xlsx`;
     XLSX.writeFile(wb, fileName);
-    alert('✅ 직원 정보 템플릿이 다운로드되었습니다!');
+    alert('✅ Template downloaded successfully!\n\nPlease fill in the template and upload using "Upload Excel".');
 }
 
 // 직원 엑셀 불러오기
@@ -951,44 +1197,272 @@ window.loadEmployeeExcel = function(event) {
     reader.onload = function(e) {
         try {
             const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
+            const workbook = XLSX.read(data, {type: 'array', cellDates: true});
 
             // 직원기본정보 시트 읽기
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1, raw: false, blankrows: true});
 
-            // 헤더 제외하고 읽기
-            let count = 0;
-            for (let i = 1; i < jsonData.length; i++) {
+            console.log('📊 엑셀 데이터:', jsonData);
+            console.log('📏 총 행 수:', jsonData.length);
+
+            // 날짜 형식 처리 함수
+            const processDate = (dateValue) => {
+                if (!dateValue) return '';  // 빈 값은 빈 문자열 반환
+
+                const str = dateValue.toString().trim();
+                if (!str) return '';
+
+                // 1. 엑셀 시리얼 번호 (30000~100000)
+                const numValue = Number(str);
+                if (!isNaN(numValue) && numValue > 30000 && numValue < 100000) {
+                    const excelEpoch = new Date(1899, 11, 30);
+                    const date = new Date(excelEpoch.getTime() + numValue * 86400000);
+                    return date.toISOString().split('T')[0];
+                }
+
+                // 2. YYYY-MM-DD 형식
+                const isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+                if (isoMatch) {
+                    const [, year, month, day] = isoMatch;
+                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+
+                // 3. MM/DD/YY 또는 MM/DD/YYYY 형식 (미국식)
+                const slashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+                if (slashMatch) {
+                    let [, month, day, year] = slashMatch;
+                    // 2자리 연도 처리: 50 이상이면 1900년대, 미만이면 2000년대
+                    if (year.length === 2) {
+                        const yearNum = parseInt(year);
+                        year = yearNum >= 50 ? '19' + year : '20' + year;
+                    }
+                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+
+                // 4. DD-MM-YYYY 형식
+                const dashMatch = str.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+                if (dashMatch) {
+                    const [, day, month, year] = dashMatch;
+                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+
+                console.log(`⚠️ 날짜 파싱 실패: "${str}"`);
+                return '';  // 파싱 실패시 빈 문자열
+            };
+
+            // 스마트 헤더 감지 및 데이터 시작 위치 찾기
+            console.log('📋 전체 데이터:', jsonData);
+
+            // 코드 패턴 체크 함수
+            const isCodePattern = (val) => {
+                const str = (val || '').toString().trim();
+                return /^[A-Z]{1,5}[-_]?\d{1,5}$/i.test(str) ||
+                       (str.length <= 10 && /^[A-Z0-9]+-\d+$/i.test(str));
+            };
+
+            // 헤더/제목 키워드 체크 함수
+            const isHeaderKeyword = (val) => {
+                const str = (val || '').toString().trim().toLowerCase();
+                return ['code', 'name', '코드', '이름', 'birth', 'hire', 'department', 'position', 'salary',
+                        'staff list', 'staff', 'employee', 'employees', '직원', '직원목록', '명단'].includes(str);
+            };
+
+            // 데이터 시작 행 찾기 (코드 패턴이 있는 첫 번째 행)
+            let dataStartIndex = -1;
+            let headerIndex = -1;
+
+            for (let i = 0; i < Math.min(jsonData.length, 10); i++) {
                 const row = jsonData[i];
-                if (!row[0]) continue; // 이름 없으면 스킵
+                if (!row || row.length === 0) continue;
 
-                const id = 'emp_' + Date.now() + '_' + i;
-                employees[id] = {
-                    name: row[0],                                    // 직원명
-                    hireDate: row[1] || new Date().toISOString().split('T')[0],  // 입사일
-                    basicSalary: row[2] || 6980000,                 // 기본급
-                    dependents: row[3] || 0,                        // 부양가족수
-                    annualLeavePerYear: row[4] || 12,               // 연차발생일수
-                    annualLeaveAdjustment: row[5] || 0,             // 연차조정
-                    annualLeaveUsed: 0,
-                    holidays: [],
-                    excusedAbsents: [],
-                    absents: [],
-                    annualLeaveDays: [],
-                    overtimeData: {},
-                    nightData: {},
-                    sundayData: {},
-                    normalHoursData: {}
-                };
-                count++;
+                const firstCell = (row[0] || '').toString().trim();
+                const secondCell = (row[1] || '').toString().trim();
+
+                console.log(`📋 [${i}] 분석: "${firstCell}", "${secondCell}"`);
+
+                // 헤더 행인지 확인
+                if (isHeaderKeyword(firstCell) || isHeaderKeyword(secondCell)) {
+                    headerIndex = i;
+                    console.log(`   → 헤더 행 발견!`);
+                    continue;
+                }
+
+                // 데이터 행인지 확인:
+                // 1. 코드 패턴(KQ-XXX)이 첫 셀에 있거나
+                // 2. 최소 5개 이상 셀이 있고, 제목/헤더가 아닌 경우
+                const filledCells = row.filter(cell => cell !== null && cell !== undefined && cell !== '').length;
+                const looksLikeData = isCodePattern(firstCell) ||
+                                      (filledCells >= 5 && !isHeaderKeyword(firstCell) && !isHeaderKeyword(secondCell));
+
+                if (looksLikeData) {
+                    if (dataStartIndex === -1) {
+                        dataStartIndex = i;
+                        console.log(`   → 데이터 시작 행 발견! (셀 수: ${filledCells})`);
+                    }
+                }
+            }
+
+            // 데이터 시작 위치 결정
+            if (dataStartIndex === -1) dataStartIndex = 4;  // 기본값
+            console.log(`📋 최종: 헤더=${headerIndex}, 데이터시작=${dataStartIndex}`);
+
+            // 첫 데이터 행 분석
+            const firstDataRow = jsonData[dataStartIndex] || [];
+            const firstCell = (firstDataRow[0] || '').toString().trim();
+            const hasCodeColumn = isCodePattern(firstCell);
+
+            console.log(`📋 첫 데이터 행:`, firstDataRow);
+            console.log(`📋 Code 컬럼 감지: ${hasCodeColumn ? 'YES' : 'NO'} (첫 셀: "${firstCell}")`);
+
+            // 컬럼 인덱스 설정
+            const COL = hasCodeColumn ? {
+                CODE: 0, NAME: 1, BIRTH: 2, HIRE: 3, DEPT: 4, POSITION: 5,
+                SALARY: 6, DEPENDENTS: 7, LEAVE: 8, ADJ: 9, EXEMPT: 10
+            } : {
+                CODE: -1, NAME: 0, BIRTH: 1, HIRE: 2, DEPT: 3, POSITION: 4,
+                SALARY: 5, DEPENDENTS: 6, LEAVE: 7, ADJ: 8, EXEMPT: 9
+            };
+
+            let importCount = 0;
+            let updateCount = 0;
+
+            for (let i = dataStartIndex; i < jsonData.length; i++) {  // 감지된 시작 위치부터
+                const row = jsonData[i];
+                console.log(`🔍 [${i}] 처리 중:`, row);
+
+                if (!row || row.length === 0) {
+                    console.log(`  ⏭️ 스킵: 빈 행`);
+                    continue;
+                }
+
+                // 컬럼 인덱스에 따라 데이터 읽기
+                console.log(`  📊 Raw row data:`, row);
+                console.log(`  📊 COL indices:`, COL);
+
+                const employeeCode = COL.CODE >= 0 ? (row[COL.CODE] || '').toString().trim() : '';
+                const name = (row[COL.NAME] || '').toString().trim();
+
+                console.log(`  📊 Code=[${COL.CODE}]="${employeeCode}", Name=[${COL.NAME}]="${name}"`);
+
+                if (!name) {
+                    console.log(`  ⏭️ 스킵: 이름 없음`);
+                    continue;
+                }
+
+                const rawBirth = row[COL.BIRTH];
+                const rawHire = row[COL.HIRE];
+                const birthDate = processDate(rawBirth);
+                const hireDate = processDate(rawHire);
+
+                console.log(`  📊 Birth: raw=[${COL.BIRTH}]="${rawBirth}" → "${birthDate}"`);
+                console.log(`  📊 Hire: raw=[${COL.HIRE}]="${rawHire}" → "${hireDate}"`);
+
+                const department = row[COL.DEPT] || '';
+                const position = row[COL.POSITION] || '';
+                const basicSalary = parseInt(row[COL.SALARY]) || 6980000;
+                const dependents = parseInt(row[COL.DEPENDENTS]) || 0;
+                const annualLeavePerYear = parseInt(row[COL.LEAVE]) || 12;
+                const annualLeaveAdjustment = parseInt(row[COL.ADJ]) || 0;
+                const insuranceExemptValue = (row[COL.EXEMPT] || 'No').toString().trim().toLowerCase();
+                const insuranceExempt = insuranceExemptValue === 'yes' || insuranceExemptValue === 'y' || insuranceExemptValue === '1';
+
+                console.log(`  📊 Dept="${department}", Position="${position}", Salary=${basicSalary}, Dep=${dependents}`);
+
+                // 기존 직원 중복 체크 (코드 우선, 없으면 이름으로)
+                let existingId = null;
+
+                // 1. 코드로 검색 (코드가 있는 경우)
+                if (employeeCode) {
+                    for (const empId in employees) {
+                        if (employees[empId].employeeCode &&
+                            employees[empId].employeeCode.toLowerCase() === employeeCode.toLowerCase()) {
+                            existingId = empId;
+                            console.log(`  🔗 코드로 매칭: ${employeeCode}`);
+                            break;
+                        }
+                    }
+                }
+
+                // 2. 코드로 못 찾으면 이름으로 검색
+                if (!existingId) {
+                    for (const empId in employees) {
+                        if (employees[empId].name &&
+                            employees[empId].name.toLowerCase().trim() === name.toLowerCase()) {
+                            existingId = empId;
+                            console.log(`  🔗 이름으로 매칭: ${name}`);
+                            break;
+                        }
+                    }
+                }
+
+                if (existingId) {
+                    // 기존 직원 업데이트 (근태 데이터는 유지!)
+                    if (employeeCode) employees[existingId].employeeCode = employeeCode;
+                    employees[existingId].name = name;
+                    employees[existingId].birthDate = birthDate;
+                    employees[existingId].hireDate = hireDate;
+                    employees[existingId].department = department;
+                    employees[existingId].position = position;
+                    employees[existingId].basicSalary = basicSalary;
+                    employees[existingId].dependents = dependents;
+                    employees[existingId].insuranceExempt = insuranceExempt;
+                    employees[existingId].annualLeavePerYear = annualLeavePerYear;
+                    employees[existingId].annualLeaveAdjustment = annualLeaveAdjustment;
+
+                    updateCount++;
+                    console.log(`  ✅ 업데이트: [${employeeCode}] ${name}`);
+                } else {
+                    // 새 직원 추가
+                    const id = 'emp_' + Date.now() + '_' + i;
+
+                    employees[id] = {
+                        employeeId: id,
+                        employeeCode: employeeCode,
+                        name: name,
+                        birthDate: birthDate,
+                        hireDate: hireDate,
+                        department: department,
+                        position: position,
+                        basicSalary: basicSalary,
+                        dependents: dependents,
+                        insuranceExempt: insuranceExempt,
+                        annualLeavePerYear: annualLeavePerYear,
+                        annualLeaveUsed: 0,
+                        annualLeaveAdjustment: annualLeaveAdjustment,
+                        holidays: [],
+                        excusedAbsents: [],
+                        absents: [],
+                        annualLeaveDays: [],
+                        overtimeData: {},
+                        nightData: {},
+                        sundayData: {},
+                        normalHoursData: {}
+                    };
+
+                    importCount++;
+                    console.log(`  ✅ 신규 추가: [${employeeCode}] ${name}`);
+                }
             }
 
             saveEmployeesToStorage();
             displayEmployeeList();
-            alert(`✅ ${count}명의 직원 정보를 불러왔습니다!`);
+
+            let message = '';
+            if (updateCount > 0 && importCount > 0) {
+                message = `✅ ${updateCount}명 업데이트, ${importCount}명 신규 추가!`;
+            } else if (updateCount > 0) {
+                message = `✅ ${updateCount}명의 직원 정보를 업데이트했습니다!`;
+            } else if (importCount > 0) {
+                message = `✅ ${importCount}명의 직원을 신규 추가했습니다!`;
+            } else {
+                message = '⚠️ 불러온 직원이 없습니다.';
+            }
+            alert(message);
+
         } catch (error) {
+            console.error('엑셀 읽기 오류:', error);
             alert('⚠️ Excel 파일 읽기 오류: ' + error.message);
         }
     };

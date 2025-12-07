@@ -153,6 +153,36 @@ body {
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
+/* 해/달 아이콘 (좌측 상단) */
+.day-icon {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #667eea;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.day-icon:hover {
+    transform: scale(1.15);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    border-color: #764ba2;
+}
+
+.day-icon:active {
+    transform: scale(0.95);
+}
+
 .calendar-day.sunday {
     background: #ffebee;
     border-color: #ef5350;
@@ -183,28 +213,50 @@ body {
     border-color: #4caf50;
 }
 
+.calendar-day.special-leave {
+    background: #e1bee7;
+    border-color: #9c27b0;
+}
+
+.calendar-day.sick-leave {
+    background: #ffe0b2;
+    border-color: #ff9800;
+}
+
 .calendar-day.holiday.selected {
-    background: #ff9800;
+    background: #ff5252;
     color: white;
-    border-color: #f57c00;
+    border-color: #ff1744;
 }
 
 .calendar-day.excused-absent.selected {
-    background: #ab47bc;
+    background: #607d8b;
     color: white;
-    border-color: #8e24aa;
+    border-color: #455a64;
 }
 
 .calendar-day.absent.selected {
-    background: #000;
+    background: #000000;
     color: white;
-    border-color: #000;
+    border-color: #000000;
 }
 
 .calendar-day.annual-leave.selected {
     background: #4caf50;
     color: white;
     border-color: #388e3c;
+}
+
+.calendar-day.special-leave.selected {
+    background: #9c27b0;
+    color: white;
+    border-color: #7b1fa2;
+}
+
+.calendar-day.sick-leave.selected {
+    background: #ff9800;
+    color: white;
+    border-color: #f57c00;
 }
 
 .day-number {
@@ -247,6 +299,22 @@ body {
 .calendar-day.annual-leave .day-label,
 .calendar-day.annual-leave .normal-hours-info,
 .calendar-day.annual-leave .overtime-info {
+    color: #000 !important;
+    font-weight: bold;
+}
+
+.calendar-day.special-leave .day-number,
+.calendar-day.special-leave .day-label,
+.calendar-day.special-leave .normal-hours-info,
+.calendar-day.special-leave .overtime-info {
+    color: #000 !important;
+    font-weight: bold;
+}
+
+.calendar-day.sick-leave .day-number,
+.calendar-day.sick-leave .day-label,
+.calendar-day.sick-leave .normal-hours-info,
+.calendar-day.sick-leave .overtime-info {
     color: #000 !important;
     font-weight: bold;
 }
@@ -300,6 +368,54 @@ body {
     font-weight: bold;
     font-size: 0.9em !important;
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* 야간 근무 */
+.night-info {
+    font-size: 0.85em;
+    margin-top: 4px;
+    padding: 5px 6px;
+    background: #e8daef;
+    border-radius: 4px;
+    border: 1px solid #8e44ad;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+}
+
+.night-info.has-data {
+    background: #8e44ad;
+    color: white;
+    font-weight: bold;
+}
+
+.night-info:hover {
+    background: #9b59b6;
+    color: white;
+}
+
+/* 야간+OT 근무 (200%) */
+.night-ot-info {
+    font-size: 0.85em;
+    margin-top: 4px;
+    padding: 5px 6px;
+    background: #fce4ec;
+    border-radius: 4px;
+    border: 1px solid #c2185b;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+}
+
+.night-ot-info.has-data {
+    background: #c2185b;
+    color: white;
+    font-weight: bold;
+}
+
+.night-ot-info:hover {
+    background: #d81b60;
+    color: white;
 }
 
 .day-number-clickable {
@@ -443,9 +559,267 @@ body {
     color: #333;
 }
 
+/* ==================== 반응형 디자인 ==================== */
+
+/* 대형 노트북 (1400px 이하) */
+@media (max-width: 1400px) {
+    .container {
+        max-width: 95%;
+    }
+
+    .header h1 {
+        font-size: 2em;
+    }
+
+    .main-content {
+        padding: 25px;
+        gap: 20px;
+    }
+
+    .calendar-day {
+        min-height: 120px;
+        padding: 6px;
+    }
+
+    .day-number {
+        font-size: 1.3em;
+    }
+}
+
+/* 노트북/태블릿 (1200px 이하) */
 @media (max-width: 1200px) {
     .main-content {
         grid-template-columns: 1fr;
+    }
+
+    .header {
+        padding: 20px;
+    }
+
+    .header h1 {
+        font-size: 1.8em;
+    }
+
+    .header p {
+        font-size: 1em;
+    }
+
+    .section-title {
+        font-size: 1.5em;
+    }
+
+    .calendar-day {
+        min-height: 110px;
+    }
+
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 소형 노트북 (1024px 이하) */
+@media (max-width: 1024px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        border-radius: 15px;
+    }
+
+    .header h1 {
+        font-size: 1.6em;
+    }
+
+    .main-content {
+        padding: 20px;
+    }
+
+    .input-section, .result-section {
+        padding: 20px;
+    }
+
+    .calendar-day {
+        min-height: 100px;
+        padding: 5px;
+    }
+
+    .day-number {
+        font-size: 1.2em;
+    }
+
+    .normal-hours-info,
+    .overtime-info {
+        font-size: 0.75em;
+        padding: 3px 4px;
+    }
+
+    .day-label {
+        font-size: 0.65em;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .highlight-box .big-number {
+        font-size: 2em;
+    }
+}
+
+/* 태블릿 (768px 이하) */
+@media (max-width: 768px) {
+    body {
+        padding: 5px;
+    }
+
+    .header {
+        padding: 15px;
+    }
+
+    .header h1 {
+        font-size: 1.4em;
+    }
+
+    .main-content {
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .input-section, .result-section {
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .section-title {
+        font-size: 1.3em;
+        margin-bottom: 15px;
+    }
+
+    .calendar-day {
+        min-height: 85px;
+        padding: 4px;
+        border-radius: 5px;
+    }
+
+    .day-number {
+        font-size: 1.1em;
+    }
+
+    .calendar-grid {
+        gap: 3px;
+    }
+
+    .calendar-day-header {
+        padding: 6px;
+        font-size: 0.85em;
+    }
+
+    .date-selector {
+        grid-template-columns: 1fr;
+    }
+
+    .employee-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .employee-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .modal-tabs {
+        flex-wrap: wrap;
+    }
+
+    .modal-tab {
+        flex: 1 1 45%;
+        padding: 10px;
+        font-size: 0.95em;
+    }
+}
+
+/* 모바일 (576px 이하) */
+@media (max-width: 576px) {
+    .header h1 {
+        font-size: 1.2em;
+    }
+
+    .header p {
+        font-size: 0.85em;
+    }
+
+    .main-content {
+        padding: 10px;
+    }
+
+    .input-section, .result-section {
+        padding: 12px;
+    }
+
+    .section-title {
+        font-size: 1.1em;
+    }
+
+    .calendar-day {
+        min-height: 70px;
+        padding: 3px;
+    }
+
+    .day-number {
+        font-size: 1em;
+    }
+
+    .normal-hours-info,
+    .overtime-info {
+        font-size: 0.65em;
+        padding: 2px 3px;
+    }
+
+    .input-group label {
+        font-size: 1em;
+    }
+
+    .input-group input, .input-group select {
+        padding: 10px;
+        font-size: 1em;
+    }
+
+    .btn-calculate {
+        font-size: 1.1em;
+        padding: 12px;
+    }
+
+    .result-item {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .highlight-box {
+        padding: 15px;
+    }
+
+    .highlight-box .big-number {
+        font-size: 1.6em;
+    }
+
+    .modal-body {
+        padding: 15px;
+    }
+
+    .modal-header {
+        padding: 15px 20px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.3em;
     }
 }
 

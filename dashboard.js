@@ -176,9 +176,41 @@ function goToEmployeeSalaryInput(employeeId) {
     window.location.href = `salary-input.html?employee=${employeeId}&year=${year}&month=${month}`;
 }
 
-// 숫자 포맷팅
+// 숫자 포맷팅 (회사 설정에 따라)
 function formatNumber(num) {
-    return new Intl.NumberFormat('vi-VN').format(Math.round(num));
+    const rounded = Math.round(num);
+
+    // 현재 회사 설정 가져오기
+    const currentCompanyId = localStorage.getItem('currentCompanyId');
+    const companyProfiles = JSON.parse(localStorage.getItem('companyProfiles') || '{}');
+    const company = companyProfiles[currentCompanyId] || {};
+
+    const numberFormat = company.numberFormat || 'comma';
+
+    let locale;
+    if (numberFormat === 'comma') {
+        locale = 'en-US';  // 1,234,567
+    } else if (numberFormat === 'dot') {
+        locale = 'de-DE';  // 1.234.567
+    } else {
+        locale = 'fr-FR';  // 1 234 567
+    }
+
+    return new Intl.NumberFormat(locale).format(rounded);
+}
+
+// 통화 기호 가져오기
+function getCurrencySymbol() {
+    const currentCompanyId = localStorage.getItem('currentCompanyId');
+    const companyProfiles = JSON.parse(localStorage.getItem('companyProfiles') || '{}');
+    const company = companyProfiles[currentCompanyId] || {};
+
+    const currency = company.currencyFormat || 'VND';
+
+    if (currency === 'VND') return 'đ';
+    if (currency === 'KRW') return '₩';
+    if (currency === 'USD') return '$';
+    return '';
 }
 
 // ==================== PDF 및 엑셀 출력 기능 ====================
@@ -444,12 +476,12 @@ function exportMonthPayrollExcel(year, month) {
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, `${year}-${month}`);
-    XLSX.writeFile(wb, `급여대장_${year}_${String(month).padStart(2, '0')}.xlsx`);
+    XLSX.writeFile(wb, `PAYROLL_${year}_${String(month).padStart(2, '0')}.xlsx`);
 
     if (hasData) {
-        alert(`✅ ${year}년 ${month}월 급여 대장 엑셀이 생성되었습니다!`);
+        alert(`✅ Payroll ledger for ${year}-${String(month).padStart(2, '0')} has been created!`);
     } else {
-        alert(`✅ ${year}년 ${month}월 급여 대장 빈 양식 엑셀이 생성되었습니다!\n\n데이터를 등록한 후 다시 출력하세요.`);
+        alert(`✅ Empty payroll ledger template for ${year}-${String(month).padStart(2, '0')} has been created!\n\nPlease register data and export again.`);
     }
 }
 
@@ -536,11 +568,9 @@ function refreshModalPayrollTable() {
 
     if (allEmployeeData.length === 0) {
         const tbody = document.getElementById('modalPayrollTableBody');
-        tbody.innerHTML = '<tr><td colspan="12" style="padding: 40px; text-align: center; color: #999;">직원이 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" style="padding: 40px; text-align: center; color: #999;">직원이 없습니다.</td></tr>';
 
         // 합계 초기화
-        document.getElementById('modalTotalWorkDays').textContent = '-';
-        document.getElementById('modalTotalWorkHours').textContent = '-';
         document.getElementById('modalTotalBasicSalary').textContent = '-';
         document.getElementById('modalTotalAllowances').textContent = '-';
         document.getElementById('modalTotalSpecialAllowance').textContent = '-';
@@ -560,7 +590,7 @@ function refreshModalPayrollTable() {
     }
 
     // 테이블 렌더링
-    renderModalPayrollTable(allEmployeeData);
+    renderModalPayrollTable(allEmployeeData, employees);
 
     // 요약 정보 업데이트 (확정된 직원만)
     const confirmedData = allEmployeeData.filter(d => d.isConfirmed);
@@ -568,11 +598,11 @@ function refreshModalPayrollTable() {
 }
 
 // 급여 대장 테이블 렌더링 (확정 + 미확정 직원 모두 표시)
-function renderModalPayrollTable(payrollData) {
+function renderModalPayrollTable(payrollData, employees) {
     const tbody = document.getElementById('modalPayrollTableBody');
 
     if (payrollData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" style="padding: 40px; text-align: center; color: #999;">직원이 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" style="padding: 40px; text-align: center; color: #999;">직원이 없습니다.</td></tr>';
         return;
     }
 
@@ -583,6 +613,11 @@ function renderModalPayrollTable(payrollData) {
         const statusTag = isConfirmed ? '' : '<span style="background: #ff9800; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; margin-left: 5px;">미등록</span>';
 
         if (isConfirmed) {
+            // 보험 미가입자 확인
+            const emp = employees[data.employeeId];
+            const isInsuranceExempt = emp && emp.insuranceExempt ? true : false;
+            const insuranceExemptBadge = isInsuranceExempt ? '<span style="background: #2196f3; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; margin-left: 5px;">🏥 보험미가입</span>' : '';
+
             // 확정된 직원: 모든 정보 표시
             html += `
                 <tr style="cursor: pointer; transition: background 0.2s; background: ${rowBg};"
@@ -591,15 +626,17 @@ function renderModalPayrollTable(payrollData) {
                     onclick="goToEmployeeSalaryInput('${data.employeeId}')"
                     title="클릭하여 ${data.name} 직원 데이터 수정">
                     <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">${index + 1}</td>
-                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">${data.name}${statusTag}</td>
+                    <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">${data.name}${statusTag}${insuranceExemptBadge}</td>
                     <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">${data.workDays}일</td>
                     <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">${data.normalHours}h</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #ddd; color: #ff5722;">${data.overtimeHours || 0}h</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd;">${formatNumber(data.basicPay)}đ</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd;">${formatNumber(data.allowances)}đ</td>
+                    <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #ff5722;">${formatNumber(data.overtimePay || 0)}đ</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #9c27b0;">${formatNumber(data.specialAllowance || 0)}đ</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #2196f3; font-weight: bold;">${formatNumber(data.totalSalary)}đ</td>
-                    <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #f44336;">${formatNumber(data.deductions)}đ</td>
-                    <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #e91e63;">${formatNumber(data.incomeTax)}đ</td>
+                    <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: ${isInsuranceExempt ? '#bbb' : '#f44336'};">${isInsuranceExempt ? '<span style="font-size: 0.9em;">미가입</span>' : formatNumber(data.deductions) + 'đ'}</td>
+                    <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: ${isInsuranceExempt ? '#bbb' : '#e91e63'};">${isInsuranceExempt ? '<span style="font-size: 0.9em;">-</span>' : formatNumber(data.incomeTax) + 'đ'}</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #ff9800;">${formatNumber(data.advancePayment || 0)}đ</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #4caf50; font-weight: bold; font-size: 1.1em;">${formatNumber(data.netSalary)}đ</td>
                 </tr>
@@ -614,7 +651,7 @@ function renderModalPayrollTable(payrollData) {
                     title="클릭하여 ${data.name} 직원 데이터 등록">
                     <td style="padding: 12px; text-align: center; border: 1px solid #ddd; color: #999;">${index + 1}</td>
                     <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold; color: #999;">${data.name}${statusTag}</td>
-                    <td colspan="2" style="padding: 12px; text-align: center; border: 1px solid #ddd; color: #999;">기본급: ${formatNumber(data.basicSalary)}đ</td>
+                    <td colspan="4" style="padding: 12px; text-align: center; border: 1px solid #ddd; color: #999;">기본급: ${formatNumber(data.basicSalary)}đ</td>
                     <td colspan="8" style="padding: 12px; text-align: center; border: 1px solid #ddd; color: #ff9800; font-style: italic;">👆 클릭하여 데이터 등록</td>
                 </tr>
             `;
@@ -623,10 +660,8 @@ function renderModalPayrollTable(payrollData) {
 
     tbody.innerHTML = html;
 
-    // 합계 계산
+    // 합계 계산 (날짜/시간은 제외)
     const totals = {
-        workDays: payrollData.reduce((sum, d) => sum + d.workDays, 0),
-        normalHours: payrollData.reduce((sum, d) => sum + d.normalHours, 0),
         basicPay: payrollData.reduce((sum, d) => sum + d.basicPay, 0),
         allowances: payrollData.reduce((sum, d) => sum + d.allowances, 0),
         specialAllowance: payrollData.reduce((sum, d) => sum + (d.specialAllowance || 0), 0),
@@ -637,8 +672,6 @@ function renderModalPayrollTable(payrollData) {
         netSalary: payrollData.reduce((sum, d) => sum + d.netSalary, 0)
     };
 
-    document.getElementById('modalTotalWorkDays').textContent = totals.workDays + '일';
-    document.getElementById('modalTotalWorkHours').textContent = totals.normalHours + 'h';
     document.getElementById('modalTotalBasicSalary').textContent = formatNumber(totals.basicPay) + 'đ';
     document.getElementById('modalTotalAllowances').textContent = formatNumber(totals.allowances) + 'đ';
     document.getElementById('modalTotalSpecialAllowance').textContent = formatNumber(totals.specialAllowance) + 'đ';
@@ -660,6 +693,108 @@ function updateModalSummary(payrollData) {
     document.getElementById('modalSummaryNetSalary').textContent = formatNumber(totalNet) + 'đ';
     document.getElementById('modalSummaryDeductions').textContent = formatNumber(totalDeductions) + 'đ';
     document.getElementById('modalSummaryTax').textContent = formatNumber(totalTax) + 'đ';
+}
+
+// 급여대장 프린트
+function printPayrollTable() {
+    const year = document.getElementById('modalYear').value;
+    const month = document.getElementById('modalMonth').value;
+    const table = document.getElementById('modalPayrollTable');
+    const rowCount = table.querySelectorAll('tbody tr').length;
+
+    // 행 수에 따라 폰트 크기 자동 조절 (한 장에 맞추기)
+    let fontSize = '9px';
+    let padding = '5px 3px';
+    if (rowCount > 25) {
+        fontSize = '7px';
+        padding = '3px 2px';
+    } else if (rowCount > 15) {
+        fontSize = '8px';
+        padding = '4px 2px';
+    }
+
+    // 프린트용 새 창 열기
+    const printWindow = window.open('', '_blank');
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>급여대장 ${year}년 ${month}월</title>
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                body {
+                    font-family: 'Malgun Gothic', sans-serif;
+                    padding: 10px;
+                }
+                h1 {
+                    text-align: center;
+                    color: #333;
+                    margin-bottom: 5px;
+                    font-size: 14px;
+                }
+                .print-date {
+                    text-align: center;
+                    color: #666;
+                    margin-bottom: 10px;
+                    font-size: 11px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: ${fontSize};
+                }
+                th, td {
+                    border: 1px solid #333;
+                    padding: ${padding};
+                    text-align: center;
+                    white-space: nowrap;
+                }
+                th {
+                    background: #667eea !important;
+                    color: white !important;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                .text-right {
+                    text-align: right;
+                }
+                .text-left {
+                    text-align: left;
+                }
+                @media print {
+                    @page {
+                        size: A4 landscape;
+                        margin: 5mm;
+                    }
+                    html, body {
+                        width: 100%;
+                        height: 100%;
+                    }
+                    body {
+                        transform-origin: top left;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <h1>📊 급여 대장 (Payroll Summary)</h1>
+            <p class="print-date">${year}년 ${month}월 | 인원: ${rowCount}명 | 출력일: ${new Date().toLocaleDateString('ko-KR')}</p>
+            ${table.outerHTML}
+        </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+
+    // 프린트 대화상자 열기
+    setTimeout(() => {
+        printWindow.print();
+    }, 300);
 }
 
 // 페이지 로드시 초기화

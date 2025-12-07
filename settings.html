@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>설정 - 베트남 급여 관리 시스템</title>
 
-    <!-- JavaScript 먼저 로드 (defer로 HTML 파싱 후 실행) -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js" defer></script>
+    <!-- JavaScript 먼저 로드 -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="data-manager.js" defer></script>
-    <script src="excel-template.js" defer></script>
-    <script src="settings.js" defer></script>
+    <script src="excel-template.js?v=20251206_fix2" defer></script>
+    <script src="settings.js?v=20251207" defer></script>
 
     <style>
         * {
@@ -603,12 +603,24 @@
                 <h3 style="color: #764ba2; margin: 20px 0 15px 0; font-size: 1.2em;">🍽️ 식대 설정</h3>
                 <div class="settings-grid">
                     <div class="setting-item">
-                        <label>점심 식대 (đ)</label>
+                        <label>🌞 점심 식대 (đ)</label>
                         <input type="number" id="settingLunchMeal" value="25000">
+                        <div style="display: flex; align-items: center; gap: 5px; margin-top: 8px;">
+                            <input type="text" id="settingLunchTimeStart" value="12:00" placeholder="12:00" style="width: 60px; padding: 5px; border-radius: 4px; border: 1px solid #ddd; text-align: center;">
+                            <span>~</span>
+                            <input type="text" id="settingLunchTimeEnd" value="13:00" placeholder="13:00" style="width: 60px; padding: 5px; border-radius: 4px; border: 1px solid #ddd; text-align: center;">
+                        </div>
+                        <small style="color: #999; margin-top: 3px; display: block;">24시간 형식 (예: 12:00, 23:00)</small>
                     </div>
                     <div class="setting-item">
-                        <label>저녁 식대 (đ)</label>
+                        <label>🌙 저녁 식대 (đ)</label>
                         <input type="number" id="settingDinnerMeal" value="25000">
+                        <div style="display: flex; align-items: center; gap: 5px; margin-top: 8px;">
+                            <input type="text" id="settingDinnerTimeStart" value="22:00" placeholder="22:00" style="width: 60px; padding: 5px; border-radius: 4px; border: 1px solid #ddd; text-align: center;">
+                            <span>~</span>
+                            <input type="text" id="settingDinnerTimeEnd" value="23:00" placeholder="23:00" style="width: 60px; padding: 5px; border-radius: 4px; border: 1px solid #ddd; text-align: center;">
+                        </div>
+                        <small style="color: #999; margin-top: 3px; display: block;">24시간 형식 (예: 18:00, 22:00)</small>
                     </div>
                 </div>
 
@@ -626,10 +638,10 @@
                         <label>평일 저녁 식대 지급 조건</label>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span>연장근무</span>
-                            <input type="number" id="settingWeekdayDinnerHours" value="3" min="0" step="0.5" style="width: 80px; text-align: center;">
+                            <input type="number" id="settingWeekdayDinnerHours" value="4" min="0" step="0.5" style="width: 80px; text-align: center;">
                             <span>시간 이상</span>
                         </div>
-                        <small style="color: #999; margin-top: 5px; display: block;">예: 3시간 → 연장근무 3시간 이상 시 저녁 식대 지급</small>
+                        <small style="color: #999; margin-top: 5px; display: block;">예: 4시간 → 연장근무 4시간 이상 시 저녁 식대 지급</small>
                     </div>
                 </div>
 
@@ -674,6 +686,58 @@
                             <span>시간 이상</span>
                         </div>
                         <small style="color: #999; margin-top: 5px; display: block;">예: 4시간 → 사유결근 시 정규시간 4시간 이상 근무하면 점심 식대 지급 (0으로 설정 시 항상 지급)</small>
+                    </div>
+                </div>
+
+                <!-- 근무 형태 설정 -->
+                <h3 style="color: #764ba2; margin: 25px 0 15px 0; font-size: 1.1em;">🌙 야간 근무 설정</h3>
+                <div class="settings-grid">
+                    <div class="setting-item" style="grid-column: 1 / -1;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="settingNightShiftEnabled" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                            <span>야간 근무 사용 (달력에 ☀️/🌙 전환 버튼 표시)</span>
+                        </label>
+                        <small style="color: #999; margin-top: 5px; display: block;">야간조가 있는 공장에서만 체크하세요.</small>
+                    </div>
+                </div>
+
+                <!-- 야간조 시간대 설정 (야간 근무 체크 시 표시) -->
+                <div id="nightShiftTimeSettings" style="display: none; margin-top: 15px; padding: 15px; background: #f3e5f5; border-radius: 10px; border: 2px solid #9c27b0;">
+                    <h4 style="color: #7b1fa2; margin: 0 0 15px 0;">⏰ 야간조 시간 분배 설정</h4>
+                    <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">야간조의 정규 8시간을 요율별로 분배합니다. (야근시간은 자동으로 200%)</p>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div class="setting-item">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #1565c0;">
+                                ☀️ 정규 시간 (100%)
+                            </label>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <input type="number" id="settingNightNormalHours" value="4.5" step="0.5" min="0" max="8"
+                                    style="width: 80px; padding: 8px; border: 2px solid #1565c0; border-radius: 5px; font-size: 1em; text-align: center;">
+                                <span>시간</span>
+                            </div>
+                            <small style="color: #666; margin-top: 5px; display: block;">예: 17:30~22:00 = 4.5시간</small>
+                        </div>
+
+                        <div class="setting-item">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #7b1fa2;">
+                                🌙 야간 시간 (130%)
+                            </label>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <input type="number" id="settingNightNightHours" value="3.5" step="0.5" min="0" max="8"
+                                    style="width: 80px; padding: 8px; border: 2px solid #7b1fa2; border-radius: 5px; font-size: 1em; text-align: center;">
+                                <span>시간</span>
+                            </div>
+                            <small style="color: #666; margin-top: 5px; display: block;">예: 22:00~02:30 (식사제외) = 3.5시간</small>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 15px; padding: 10px; background: #fff3e0; border-radius: 5px; border-left: 4px solid #ff9800;">
+                        <strong style="color: #e65100;">📌 야간조 계산 방식:</strong>
+                        <ul style="margin: 5px 0 0 20px; color: #666; font-size: 0.9em;">
+                            <li>정규 8시간 = 위 설정대로 분배 (100% + 130%)</li>
+                            <li>야근 시간 = 전부 <strong style="color: #c2185b;">야간OT 200%</strong> 적용</li>
+                        </ul>
                     </div>
                 </div>
 
@@ -870,10 +934,28 @@
                     <div class="payroll-card">
                         <h3 style="color: #ff9800;">🍱 2. 식대</h3>
                         <div style="margin-left: 20px; color: #666;">
-                            <p style="margin-bottom: 8px;">▪ 평일 점심 식대 (자동 지급): <span id="info-daily-meal" style="color: #ff9800; font-weight: bold;">25,000</span>đ</p>
-                            <p style="margin-bottom: 8px;">▪ 평일 저녁 식대 (연장근무 <span id="info-dinner-hours" style="font-weight: bold;">3</span>시간 이상): <span id="info-dinner-meal" style="color: #ff9800; font-weight: bold;">25,000</span>đ</p>
+                            <!-- 식대 금액 및 시간 -->
+                            <p style="margin-bottom: 8px;">🌞 <strong>점심 식대</strong>: <span id="info-daily-meal" style="color: #ff9800; font-weight: bold;">25,000</span>đ (<span id="info-lunch-time" style="color: #1565c0;">12:00~13:00</span>)</p>
+                            <p style="margin-bottom: 12px;">🌙 <strong>저녁 식대</strong>: <span id="info-dinner-meal" style="color: #ff9800; font-weight: bold;">25,000</span>đ (<span id="info-dinner-time" style="color: #4a148c;">22:00~23:00</span>)</p>
+
+                            <!-- 주간조 조건 -->
+                            <div style="background: #e3f2fd; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                                <p style="margin: 0 0 5px 0; font-weight: bold; color: #1565c0;">☀️ 주간조</p>
+                                <p style="margin: 0 0 3px 0; font-size: 0.95em;">▪ 점심 식대: 출근 시 자동 지급</p>
+                                <p style="margin: 0; font-size: 0.95em;">▪ 저녁 식대: 연장근무 <span id="info-dinner-hours" style="font-weight: bold;">4</span>시간 이상</p>
+                            </div>
+
+                            <!-- 야간조 조건 -->
+                            <div id="info-night-shift-meal" style="background: #f3e5f5; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: none;">
+                                <p style="margin: 0 0 5px 0; font-weight: bold; color: #7b1fa2;">🌙 야간조</p>
+                                <p style="margin: 0 0 3px 0; font-size: 0.95em;">▪ 점심 식대: 미지급 (근무시간 외)</p>
+                                <p style="margin: 0; font-size: 0.95em;">▪ 저녁 식대: 자동 지급 (OT 무관)</p>
+                            </div>
+
+                            <!-- 일요일 조건 -->
                             <p style="margin-bottom: 8px;">▪ 일요일 점심 식대 (총 근무 <span id="info-sunday-lunch-hours" style="font-weight: bold;">4</span>시간 이상): <span id="info-sunday-meal" style="color: #ff9800; font-weight: bold;">25,000</span>đ</p>
                             <p style="margin-bottom: 8px;">▪ 일요일 저녁 식대 (총 근무 <span id="info-sunday-dinner-hours" style="font-weight: bold;">12</span>시간 이상): <span id="info-sunday-dinner-meal" style="color: #ff9800; font-weight: bold;">25,000</span>đ</p>
+
                             <div class="info-box" style="border-color: #ff9800;">
                                 ⚖️ <strong>베트남 세법 (Decree 954/2020/NĐ-CP)</strong><br>
                                 💡 식대 비과세 한도: <strong style="color: #ff9800;">월 730,000 VND</strong><br>
@@ -1010,22 +1092,47 @@
     </div>
 
     <!-- 직원 추가/수정 모달 -->
-    <div id="employeeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center;">
-        <div style="background: white; border-radius: 20px; padding: 40px; width: 90%; max-width: 600px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: modalSlideIn 0.3s ease;">
+    <div id="employeeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; overflow-y: auto;">
+        <div style="background: white; border-radius: 20px; padding: 40px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: modalSlideIn 0.3s ease; margin: 20px auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
                 <h2 id="modalTitle" style="margin: 0; color: #667eea; font-size: 1.8em;">✨ 새 직원 추가</h2>
                 <button onclick="closeEmployeeModal()" style="background: none; border: none; font-size: 2em; color: #999; cursor: pointer; line-height: 1;">&times;</button>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 20px;" onkeypress="if(event.key==='Enter') saveEmployeeFromModal()">
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <label style="font-weight: bold; color: #667eea; font-size: 1.1em;">👤 직원 이름 *</label>
-                    <input type="text" id="modalEmployeeName" placeholder="예: Nguyễn Văn Nam" style="padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1.1em; transition: all 0.3s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="font-weight: bold; color: #ff9800; font-size: 1.1em;">🏷️ 직원 코드</label>
+                        <input type="text" id="modalEmployeeCode" placeholder="예: KQ-001" style="padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1.1em; transition: all 0.3s; text-transform: uppercase;" onfocus="this.style.borderColor='#ff9800'" onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="font-weight: bold; color: #667eea; font-size: 1.1em;">👤 직원 이름 *</label>
+                        <input type="text" id="modalEmployeeName" placeholder="예: Nguyễn Văn Nam" style="padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1.1em; transition: all 0.3s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <label style="font-weight: bold; color: #667eea; font-size: 1.1em;">📅 입사일</label>
-                    <input type="date" id="modalHireDate" style="padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1.1em; transition: all 0.3s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="font-weight: bold; color: #667eea; font-size: 1.1em;">🎂 생년월일</label>
+                        <input type="date" id="modalBirthDate" style="padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1.1em; transition: all 0.3s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="font-weight: bold; color: #667eea; font-size: 1.1em;">📅 입사일</label>
+                        <input type="date" id="modalHireDate" style="padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1.1em; transition: all 0.3s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="font-weight: bold; color: #667eea; font-size: 1.1em;">🏢 부서</label>
+                        <input type="text" id="modalDepartment" placeholder="예: Production, Office" style="padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1.1em; transition: all 0.3s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="font-weight: bold; color: #667eea; font-size: 1.1em;">💼 직책</label>
+                        <input type="text" id="modalPosition" placeholder="예: Worker, Admin" style="padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1.1em; transition: all 0.3s;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -1059,6 +1166,18 @@
                         • <strong>양수</strong> (예: +1) = 보너스 1일 추가 지급
                     </p>
                 </div>
+
+                <!-- 사회보험 미가입 체크박스 -->
+                <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 20px; border-radius: 10px; border-left: 4px solid #2196f3; margin-top: 15px;">
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="modalInsuranceExempt" style="width: 24px; height: 24px; cursor: pointer; accent-color: #2196f3;">
+                        <span style="font-weight: bold; color: #1976d2; font-size: 1.1em;">🏥 사회보험 미가입자</span>
+                    </label>
+                    <p style="margin: 10px 0 0 36px; color: #0277bd; font-size: 0.95em; line-height: 1.6;">
+                        💡 체크 시 BHXH, BHYT, BHTN, 노조비가 공제되지 않습니다<br>
+                        (일용직, 단기 계약직 등에 적용)
+                    </p>
+                </div>
             </div>
 
             <div style="display: flex; gap: 15px; margin-top: 30px;">
@@ -1067,6 +1186,26 @@
                 </button>
                 <button id="modalSaveBtn" onclick="saveEmployeeFromModal()" style="flex: 2; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)'">
                     ✅ 저장
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 직원 상세보기 모달 -->
+    <div id="employeeDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; overflow-y: auto;">
+        <div style="background: white; border-radius: 20px; padding: 40px; width: 90%; max-width: 600px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: modalSlideIn 0.3s ease; margin: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h2 style="margin: 0; color: #00bcd4; font-size: 1.8em;">👁️ 직원 상세 정보</h2>
+                <button onclick="closeEmployeeDetailModal()" style="background: none; border: none; font-size: 2em; color: #999; cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+
+            <div id="employeeDetailContent" style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- 여기에 직원 상세 정보가 동적으로 들어감 -->
+            </div>
+
+            <div style="margin-top: 30px;">
+                <button onclick="closeEmployeeDetailModal()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); color: white; border: none; border-radius: 10px; font-size: 1.1em; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 188, 212, 0.4); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 188, 212, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 188, 212, 0.4)'">
+                    닫기
                 </button>
             </div>
         </div>

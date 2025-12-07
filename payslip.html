@@ -327,9 +327,13 @@
                 <span class="info-label">야근시간 (150%)</span>
                 <span class="info-value" id="statOvertime">-</span>
             </div>
-            <div class="info-row">
+            <div class="info-row" id="rowStatNight" style="display: none;">
                 <span class="info-label">야간시간 (130%)</span>
                 <span class="info-value" id="statNight">-</span>
+            </div>
+            <div class="info-row" id="rowStatNightOT" style="display: none;">
+                <span class="info-label">야간+OT (200%)</span>
+                <span class="info-value" id="statNightOT">-</span>
             </div>
             <div class="info-row">
                 <span class="info-label">일요일 특근 (200%)</span>
@@ -348,9 +352,13 @@
                 <span class="info-label">야근 수당 (150%)</span>
                 <span class="info-value" id="payOvertime">-</span>
             </div>
-            <div class="info-row">
+            <div class="info-row" id="rowPayNight" style="display: none;">
                 <span class="info-label">야간 수당 (130%)</span>
                 <span class="info-value" id="payNight">-</span>
+            </div>
+            <div class="info-row" id="rowPayNightOT" style="display: none;">
+                <span class="info-label">야간+OT 수당 (200%)</span>
+                <span class="info-value" id="payNightOT">-</span>
             </div>
             <div class="info-row">
                 <span class="info-label">일요일 수당 (200%)</span>
@@ -486,9 +494,27 @@
     </div>
 
     <script>
-        // 숫자 포맷팅
+        // 숫자 포맷팅 (회사 설정에 따라)
         function formatNumber(num) {
-            return new Intl.NumberFormat('vi-VN').format(Math.round(num));
+            const rounded = Math.round(num);
+
+            // 현재 회사 설정 가져오기
+            const currentCompanyId = localStorage.getItem('currentCompanyId');
+            const companyProfiles = JSON.parse(localStorage.getItem('companyProfiles') || '{}');
+            const company = companyProfiles[currentCompanyId] || {};
+
+            const numberFormat = company.numberFormat || 'comma';
+
+            let locale;
+            if (numberFormat === 'comma') {
+                locale = 'en-US';  // 1,234,567
+            } else if (numberFormat === 'dot') {
+                locale = 'de-DE';  // 1.234.567
+            } else {
+                locale = 'fr-FR';  // 1 234 567
+            }
+
+            return new Intl.NumberFormat(locale).format(rounded);
         }
 
         // URL에서 데이터 가져오기
@@ -584,16 +610,30 @@
             document.getElementById('statNormalHours').textContent = data.normalHours + 'h';
             document.getElementById('statOvertime').textContent = data.overtimeHours + 'h';
             document.getElementById('statNight').textContent = data.nightHours + 'h';
+            document.getElementById('statNightOT').textContent = (data.nightOTHours || 0) + 'h';
             document.getElementById('statSunday').textContent = data.sundayHours + 'h';
+
+            // 야간 설정에 따라 야간 항목 표시/숨김
+            console.log('🌙 nightShiftEnabled:', data.nightShiftEnabled);
+            if (data.nightShiftEnabled) {
+                console.log('🌙 야간 항목 표시!');
+                document.getElementById('rowStatNight').style.display = '';
+                document.getElementById('rowStatNightOT').style.display = '';
+                document.getElementById('rowPayNight').style.display = '';
+                document.getElementById('rowPayNightOT').style.display = '';
+            } else {
+                console.log('☀️ 야간 항목 숨김');
+            }
 
             // 급여 상세
             document.getElementById('payNormal').textContent = formatNumber(data.normalPay) + ' đ';
             document.getElementById('payOvertime').textContent = formatNumber(data.overtimePay) + ' đ';
             document.getElementById('payNight').textContent = formatNumber(data.nightPay) + ' đ';
+            document.getElementById('payNightOT').textContent = formatNumber(data.nightOTPay || 0) + ' đ';
             document.getElementById('paySunday').textContent = formatNumber(data.sundayPay) + ' đ';
 
-            // 총 급여 기본액 (정규 + 야근 + 야간 + 일요일)
-            const totalBasicPay = data.normalPay + data.overtimePay + data.nightPay + data.sundayPay;
+            // 총 급여 기본액 (정규 + 야근 + 야간 + 야간OT + 일요일)
+            const totalBasicPay = data.normalPay + data.overtimePay + data.nightPay + (data.nightOTPay || 0) + data.sundayPay;
             document.getElementById('totalBasicPay').textContent = formatNumber(totalBasicPay) + ' đ';
 
             // 수당 - 식대

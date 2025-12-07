@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>출퇴근 관리 - Vietnam Payroll System</title>
+
+    <!-- SheetJS for Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* 헤더 */
+        .header {
+            background: #2c3e50;
+            color: #fff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.3rem;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+
+        .header-nav a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 툴바 */
+        .toolbar {
+            background: #fff;
+            padding: 15px 30px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            flex-wrap: wrap;
+        }
+
+        .toolbar select, .toolbar input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: #fff;
+        }
+
+        /* 저장 필요 표시 애니메이션 */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* 엑셀 스타일 테이블 */
+        .table-container {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px); /* 화면 높이 - 헤더/툴바 */
+            padding: 20px;
+            padding-top: 0;
+        }
+
+        .excel-table {
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 0.8rem;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .excel-table th, .excel-table td {
+            border: 1px solid #ccc;
+            padding: 4px 2px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .excel-table th {
+            background: #34495e;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* 고정 열 (STT, CODE, 이름, 유형) */
+        .excel-table .col-stt {
+            width: 35px;
+            min-width: 35px;
+            background: #f8f9fa;
+        }
+
+        .excel-table .col-code {
+            width: 70px;
+            min-width: 70px;
+            background: #e8f4fc;
+            font-weight: bold;
+            color: #2980b9;
+        }
+
+        .excel-table .col-name {
+            width: 130px;
+            min-width: 130px;
+            text-align: left;
+            background: #f8f9fa;
+            padding-left: 5px;
+        }
+
+        .excel-table .col-type {
+            width: 75px;
+            min-width: 75px;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+
+        .type-normal {
+            background: #d5f5e3 !important;
+            color: #27ae60;
+        }
+
+        .type-overtime {
+            background: #fdebd0 !important;
+            color: #e67e22;
+        }
+
+        .type-night {
+            background: #e8daef !important;
+            color: #8e44ad;
+        }
+
+        .type-holiday {
+            background: #fadbd8 !important;
+            color: #e74c3c;
+        }
+
+        /* 날짜 열 */
+        .excel-table .col-day {
+            width: 28px;
+            min-width: 28px;
+            max-width: 28px;
+            padding: 2px 1px;
+        }
+
+        .excel-table .col-day.sunday {
+            background: #ffebee !important;
+        }
+
+        .excel-table th.col-day {
+            font-size: 0.75rem;
+            padding: 3px 1px;
+        }
+
+        /* 일요일 헤더 - 빨간 글씨 */
+        .excel-table th.col-day.sunday {
+            background: #c62828 !important;
+            color: #fff;
+        }
+
+        /* 합계 열 */
+        .excel-table .col-total {
+            width: 40px;
+            min-width: 40px;
+            background: #fff3cd;
+            font-weight: bold;
+        }
+
+        /* 합계 헤더 - 어두운 배경 유지 */
+        .excel-table th.col-total {
+            background: #e65100 !important;
+            color: #fff;
+        }
+
+        /* 연차 사용 컬럼 */
+        .excel-table .col-leave-used {
+            width: 40px;
+            min-width: 40px;
+            background: #e8f5e9;
+            font-weight: bold;
+            color: #2e7d32;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .excel-table th.col-leave-used {
+            background: #388e3c !important;
+            color: #fff;
+        }
+
+        /* 연차 잔여 컬럼 */
+        .excel-table .col-leave-remain {
+            width: 40px;
+            min-width: 40px;
+            background: #fff3e0;
+            font-weight: bold;
+            color: #e65100;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .excel-table th.col-leave-remain {
+            background: #f57c00 !important;
+            color: #fff;
+        }
+
+        /* 입력 필드 */
+        .excel-table input {
+            width: 100%;
+            max-width: 26px;
+            border: none;
+            background: transparent;
+            text-align: center;
+            font-size: 0.75rem;
+            padding: 1px;
+        }
+
+        .excel-table input:focus {
+            outline: 2px solid #3498db;
+            background: #fff;
+        }
+
+        .excel-table input::-webkit-inner-spin-button,
+        .excel-table input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .excel-table input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* 직원 그룹 */
+        .employee-group {
+            border-top: 2px solid #34495e;
+        }
+
+        .employee-group:first-child {
+            border-top: none;
+        }
+
+        /* 헤더 고정 (스크롤해도 항상 보임) */
+        .excel-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #34495e;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .excel-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .excel-table th.col-day {
+            height: 40px;
+            vertical-align: middle;
+        }
+
+        /* 범례 */
+        .legend {
+            display: flex;
+            gap: 15px;
+            padding: 10px 30px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+
+        /* 요약 */
+        .summary-bar {
+            background: #2c3e50;
+            color: #fff;
+            padding: 10px 30px;
+            display: flex;
+            gap: 30px;
+            font-size: 0.9rem;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-value {
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        /* 빠른 입력 모달 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 10px;
+            padding: 25px;
+            min-width: 350px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-header h3 {
+            color: #2c3e50;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .quick-btns {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .quick-btn {
+            padding: 5px 12px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+
+        .quick-btn:hover {
+            background: #e9ecef;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <h1>📅 BANG CHAM CONG (출퇴근 관리)</h1>
+        <nav class="header-nav">
+            <a href="index.html">📊 급여대장</a>
+            <a href="salary-input.html">💰 급여계산</a>
+            <a href="settings.html">⚙️ 설정</a>
+        </nav>
+    </header>
+
+    <!-- 툴바 -->
+    <div class="toolbar">
+        <div>
+            <label>년도:</label>
+            <select id="selectYear"></select>
+        </div>
+        <div>
+            <label>월:</label>
+            <select id="selectMonth"></select>
+        </div>
+        <button class="btn btn-primary" onclick="loadEmployeeFromMoney()">🔄 직원 동기화</button>
+        <button class="btn btn-warning" onclick="openQuickFill()">⚡ 빠른 입력</button>
+        <span style="margin: 0 10px; color: #2c3e50; font-weight: bold; font-size: 1.2em;">│</span>
+        <button class="btn btn-info" onclick="pullFromSalaryCalc()" style="background: #00bcd4;">📥 급여계산기에서 들고오기</button>
+        <button class="btn btn-success" onclick="pushToSalaryCalc()">📤 급여계산기로 보내기</button>
+        <span style="margin: 0 10px; color: #2c3e50; font-weight: bold; font-size: 1.2em;">│</span>
+        <button class="btn btn-primary" onclick="exportToExcel()">📊 엑셀 내보내기</button>
+        <button class="btn btn-secondary" onclick="importFromExcel()">📂 엑셀 불러오기</button>
+    </div>
+
+    <!-- 범례 -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background: #d5f5e3;"></div>
+            <span>Giờ Chính (정상)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #fdebd0;"></div>
+            <span>Tăng Ca (야근)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e8daef;"></div>
+            <span>Ca Đêm (야간)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #fadbd8;"></div>
+            <span>Chủ Nhật (휴일)</span>
+        </div>
+        <span style="margin: 0 10px; color: #ccc;">|</span>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #4caf50;"></div>
+            <span>🏖️ 연차</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #9c27b0;"></div>
+            <span>🖤 특별휴가</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ff9800;"></div>
+            <span>🏥 병가</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #607d8b;"></div>
+            <span>📝 사유결근</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #000000;"></div>
+            <span>❌ 무단결근</span>
+        </div>
+    </div>
+
+    <!-- 엑셀 스타일 테이블 -->
+    <div class="table-container">
+        <table class="excel-table" id="attendanceTable">
+            <thead id="tableHead">
+                <!-- 헤더가 여기에 생성됨 -->
+            </thead>
+            <tbody id="tableBody">
+                <!-- 데이터가 여기에 생성됨 -->
+            </tbody>
+        </table>
+        <div class="no-data" id="noDataMsg">
+            <h3>직원 데이터가 없습니다</h3>
+            <p style="margin-top: 10px;">🔄 직원 동기화 버튼을 클릭하거나<br>설정 페이지에서 직원을 등록하세요.</p>
+        </div>
+    </div>
+
+    <!-- 빠른 입력 모달 -->
+    <div class="modal" id="quickFillModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚡ 빠른 입력</h3>
+                <button class="modal-close" onclick="closeQuickFill()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>대상 직원:</label>
+                <select id="quickEmployee" style="width: 100%; padding: 10px;">
+                    <option value="all">전체 직원</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>적용 날짜:</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="quickDayStart" min="1" max="31" value="1" style="width: 60px;">
+                    <span>~</span>
+                    <input type="number" id="quickDayEnd" min="1" max="31" value="31" style="width: 60px;">
+                    <span>일</span>
+                </div>
+                <div class="quick-btns">
+                    <button class="quick-btn" onclick="setQuickDays(1, 31)">전체</button>
+                    <button class="quick-btn" onclick="setQuickDays(1, 15)">1~15</button>
+                    <button class="quick-btn" onclick="setQuickDays(16, 31)">16~31</button>
+                    <button class="quick-btn" onclick="setQuickWeekdays()">평일만</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>정상 근무 (시간):</label>
+                <input type="number" id="quickNormal" min="0" max="24" value="8">
+            </div>
+            <div class="form-group">
+                <label>야근 (시간):</label>
+                <input type="number" id="quickOvertime" min="0" max="12" value="0">
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn btn-primary" style="flex: 1;" onclick="applyQuickFill()">적용</button>
+                <button class="btn btn-secondary" onclick="closeQuickFill()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 엑셀 불러오기용 hidden input -->
+    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleExcelImport(event)">
+
+    <script src="attendance.js"></script>
+</body>
+</html>

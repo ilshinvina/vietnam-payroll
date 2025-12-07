@@ -89,7 +89,7 @@ function addEmployee() {
     employees[id] = {
         name: name,
         hireDate: hireDate || new Date().toISOString().split('T')[0],
-        basicSalary: companySettings.dailyMeal ? 6980000 : 6980000,
+        basicSalary: 6980000,  // 기본급 (설정에서 변경 가능)
         dependents: 0,
         dailyMeal: companySettings.dailyMeal || 25000,
         annualLeavePerYear: 12,  // 연 연차 발생일수
