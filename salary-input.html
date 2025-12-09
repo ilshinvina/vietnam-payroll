@@ -1603,24 +1603,54 @@
             // 토글: 야간조 → 주간조 / 주간조 → 야간조
             if (isCurrentlyNightShift) {
                 // 야간조 → 주간조
-                nightShiftDays.delete(dateKey);  // 혹시 있으면 삭제
-                // nightData에서 자동 추가된 8시간 삭제 (수동 입력 보존)
-                if (nightData[dateKey] === 8) {
+                nightShiftDays.delete(dateKey);
+
+                // nightData 8h → normalHoursData 8h 이동 (출퇴근 관리 연동)
+                const nightHours = nightData[dateKey] || nightData[dateKeyOld] || 0;
+                if (nightHours > 0) {
+                    normalHoursData[dateKey] = nightHours;
                     delete nightData[dateKey];
-                }
-                if (nightData[dateKeyOld] === 8) {
                     delete nightData[dateKeyOld];
+                    console.log(`☀️ ${selectedMonth}/${day}: 주간조로 변경, nightData ${nightHours}h → normalHoursData`);
                 }
-                console.log(`☀️ ${selectedMonth}/${day}: 주간조로 변경`);
+
+                // nightOTData → overtimeData로 되돌리기
+                const nightOT = nightOTData[dateKey] || nightOTData[dateKeyOld] || 0;
+                if (nightOT > 0) {
+                    overtimeData[dateKey] = nightOT;
+                    delete nightOTData[dateKey];
+                    delete nightOTData[dateKeyOld];
+                    console.log(`   └ nightOTData ${nightOT}h → overtimeData`);
+                }
             } else {
                 // 주간조 → 야간조
                 nightShiftDays.add(dateKey);
-                // nightData에 8시간 자동 추가 (출퇴근 관리 연동용)
-                nightData[dateKey] = 8;
-                console.log(`🌙 ${selectedMonth}/${day}: 야간조로 변경, nightData에 8시간 추가`);
+
+                // normalHoursData 8h → nightData 8h 이동 (출퇴근 관리 연동)
+                const normalHours = normalHoursData[dateKey] || normalHoursData[dateKeyOld] || 0;
+                if (normalHours > 0) {
+                    nightData[dateKey] = normalHours;
+                    delete normalHoursData[dateKey];
+                    delete normalHoursData[dateKeyOld];
+                    console.log(`🌙 ${selectedMonth}/${day}: 야간조로 변경, normalHoursData ${normalHours}h → nightData`);
+                } else {
+                    // normalHoursData가 없으면 기본 8시간 추가
+                    nightData[dateKey] = 8;
+                    console.log(`🌙 ${selectedMonth}/${day}: 야간조로 변경, nightData에 8시간 추가`);
+                }
+
+                // overtimeData → nightOTData로 변환
+                const overtime = overtimeData[dateKey] || overtimeData[dateKeyOld] || 0;
+                if (overtime > 0) {
+                    nightOTData[dateKey] = overtime;
+                    delete overtimeData[dateKey];
+                    delete overtimeData[dateKeyOld];
+                    console.log(`   └ overtimeData ${overtime}h → nightOTData`);
+                }
             }
             console.log(`   변경 후 nightShiftDays:`, [...nightShiftDays]);
             console.log(`   변경 후 nightData[${dateKey}]:`, nightData[dateKey]);
+            console.log(`   변경 후 normalHoursData[${dateKey}]:`, normalHoursData[dateKey]);
 
             // 토글 아이콘 업데이트
             const isNightShift = nightShiftDays.has(dateKey);
@@ -1647,6 +1677,7 @@
 
             updateStats();
             calculate();
+            generateCalendar();  // 달력 다시 그리기 (정규 근무시간 표시 업데이트)
             scheduleAutoSave(); // 자동저장
         }
 
