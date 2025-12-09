@@ -3441,14 +3441,28 @@
                 }
             });
 
-            // 출퇴근 관리 연동: Ca Đêm이 있는 날의 Tăng Ca를 야간OT로 자동 변환
-            // nightData가 있는 날의 overtimeData를 nightOTData로 이동
+            // 출퇴근 관리 연동: nightData와 normalHoursData 배타적 처리
+            // 1. nightData가 있는 날: nightShiftDays 추가, Tăng Ca → 야간OT 변환
             Object.keys(nightData).forEach(dateKey => {
+                // nightData가 있는 날짜를 nightShiftDays에 추가 (야간조 표시용)
+                if (!nightShiftDays.has(dateKey)) {
+                    nightShiftDays.add(dateKey);
+                    console.log(`🌙 ${dateKey}: nightData 감지 → nightShiftDays에 추가 (야간조 표시)`);
+                }
+
+                // overtimeData → nightOTData로 이동
                 if (overtimeData[dateKey]) {
-                    // overtimeData → nightOTData로 이동
                     nightOTData[dateKey] = overtimeData[dateKey];
                     delete overtimeData[dateKey];
-                    console.log(`🌙 ${dateKey}: Tăng Ca ${nightOTData[dateKey]}h를 야간OT로 자동 변환`);
+                    console.log(`   └ Tăng Ca ${nightOTData[dateKey]}h를 야간OT로 자동 변환`);
+                }
+            });
+
+            // 2. normalHoursData가 있는 날: nightShiftDays에서 제거 (주간조로 전환)
+            Object.keys(normalHoursData).forEach(dateKey => {
+                if (nightShiftDays.has(dateKey)) {
+                    nightShiftDays.delete(dateKey);
+                    console.log(`☀️ ${dateKey}: normalHoursData 감지 → nightShiftDays에서 제거 (주간조로 전환)`);
                 }
             });
 
