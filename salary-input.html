@@ -3567,6 +3567,68 @@
 
             employees[currentEmployeeId].leaveData = existingLeaveData;
 
+            // 출퇴근 관리 연동: sundayData도 월별 병합 (다른 달 데이터 보존)
+            let existingSundayData = {};
+            if (savedData) {
+                try {
+                    const latestEmployees = JSON.parse(savedData);
+                    existingSundayData = latestEmployees[currentEmployeeId]?.sundayData || {};
+                } catch (e) {
+                    // 파싱 실패 시 빈 객체
+                }
+            }
+
+            // 현재 달의 기존 sundayData 삭제
+            Object.keys(existingSundayData).forEach(key => {
+                if (key.startsWith(monthPrefix)) {
+                    delete existingSundayData[key];
+                }
+            });
+
+            // 현재 달의 새 sundayData 추가 (메모리 데이터 사용)
+            Object.keys(sundayData).forEach(key => {
+                if (key.startsWith(monthPrefix)) {
+                    existingSundayData[key] = sundayData[key];
+                }
+            });
+
+            employees[currentEmployeeId].sundayData = existingSundayData;
+
+            // overtimeData, nightData, normalHoursData, nightOTData도 월별 병합
+            const dataTypes = {
+                overtimeData: overtimeData,
+                nightData: nightData,
+                normalHoursData: normalHoursData,
+                nightOTData: nightOTData
+            };
+
+            Object.keys(dataTypes).forEach(dataKey => {
+                let existingData = {};
+                if (savedData) {
+                    try {
+                        const latestEmployees = JSON.parse(savedData);
+                        existingData = latestEmployees[currentEmployeeId]?.[dataKey] || {};
+                    } catch (e) {}
+                }
+
+                // 현재 달의 기존 데이터 삭제
+                Object.keys(existingData).forEach(key => {
+                    if (key.startsWith(monthPrefix)) {
+                        delete existingData[key];
+                    }
+                });
+
+                // 현재 달의 새 데이터 추가
+                const memoryData = dataTypes[dataKey] || {};
+                Object.keys(memoryData).forEach(key => {
+                    if (key.startsWith(monthPrefix)) {
+                        existingData[key] = memoryData[key];
+                    }
+                });
+
+                employees[currentEmployeeId][dataKey] = existingData;
+            });
+
             saveEmployeesToStorage();
         }
 
