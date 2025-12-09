@@ -402,16 +402,34 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
 
     switch (typeKey) {
         case 'normal':
-            if (numValue > 0) emp.normalHoursData[dateKey] = numValue;
-            else delete emp.normalHoursData[dateKey];
+            if (numValue > 0) {
+                emp.normalHoursData[dateKey] = numValue;
+                // Giờ Chính과 Ca Đêm은 배타적 (동시 입력 불가)
+                const dateKeyNorm = normalizeDateKey(dateKey);
+                const dateKeyDenorm = denormalizeDateKey(dateKey);
+                if (emp.nightData[dateKey]) delete emp.nightData[dateKey];
+                if (emp.nightData[dateKeyNorm]) delete emp.nightData[dateKeyNorm];
+                if (emp.nightData[dateKeyDenorm]) delete emp.nightData[dateKeyDenorm];
+            } else {
+                delete emp.normalHoursData[dateKey];
+            }
             break;
         case 'overtime':
             if (numValue > 0) emp.overtimeData[dateKey] = numValue;
             else delete emp.overtimeData[dateKey];
             break;
         case 'night':
-            if (numValue > 0) emp.nightData[dateKey] = numValue;
-            else delete emp.nightData[dateKey];
+            if (numValue > 0) {
+                emp.nightData[dateKey] = numValue;
+                // Ca Đêm과 Giờ Chính은 배타적 (동시 입력 불가)
+                const dateKeyNorm = normalizeDateKey(dateKey);
+                const dateKeyDenorm = denormalizeDateKey(dateKey);
+                if (emp.normalHoursData[dateKey]) delete emp.normalHoursData[dateKey];
+                if (emp.normalHoursData[dateKeyNorm]) delete emp.normalHoursData[dateKeyNorm];
+                if (emp.normalHoursData[dateKeyDenorm]) delete emp.normalHoursData[dateKeyDenorm];
+            } else {
+                delete emp.nightData[dateKey];
+            }
             break;
         case 'holiday':
             if (numValue > 0) emp.sundayData[dateKey] = numValue;
@@ -434,6 +452,13 @@ function handleInputChange(input) {
 
     // 합계 업데이트
     updateTotal(employeeId, typeKey);
+
+    // Giờ Chính ↔ Ca Đêm 배타적 입력 시 반대쪽 합계도 업데이트
+    if (typeKey === 'normal') {
+        updateTotal(employeeId, 'night');
+    } else if (typeKey === 'night') {
+        updateTotal(employeeId, 'normal');
+    }
 }
 
 // 셀 키보드 이벤트 (클릭으로 선택된 상태)
