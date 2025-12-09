@@ -453,11 +453,17 @@ function handleInputChange(input) {
     // 합계 업데이트
     updateTotal(employeeId, typeKey);
 
-    // Giờ Chính ↔ Ca Đêm 배타적 입력 시 반대쪽 합계도 업데이트
-    if (typeKey === 'normal') {
-        updateTotal(employeeId, 'night');
-    } else if (typeKey === 'night') {
-        updateTotal(employeeId, 'normal');
+    // Giờ Chính ↔ Ca Đêm 배타적 입력 시 반대쪽도 처리
+    if ((typeKey === 'normal' || typeKey === 'night') && parseFloat(value) > 0) {
+        // 반대쪽 input 필드 찾아서 비우기
+        const oppositeType = typeKey === 'normal' ? 'night' : 'normal';
+        const oppositeInput = document.querySelector(
+            `input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="${oppositeType}"]`
+        );
+        if (oppositeInput && oppositeInput.value) {
+            oppositeInput.value = '';
+            updateTotal(employeeId, oppositeType);
+        }
     }
 }
 
