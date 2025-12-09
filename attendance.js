@@ -409,9 +409,9 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
             break;
     }
 
-    // 변경사항 표시 및 자동저장 예약
+    // 변경사항 표시 (자동저장 비활성화 - 보내기 버튼 필요)
     hasUnsavedChanges = true;
-    scheduleAutoSave();
+    updateSaveIndicator();
 }
 
 function handleInputChange(input) {
@@ -769,9 +769,9 @@ function saveLeaveData(employeeId, dateKey, leaveType) {
         delete emp.leaveData[dateKey];
     }
 
-    // 변경사항 표시 및 자동저장 예약
+    // 변경사항 표시 (자동저장 비활성화 - 보내기 버튼 필요)
     hasUnsavedChanges = true;
-    scheduleAutoSave();
+    updateSaveIndicator();
 
     // 연차 사용/잔여 표시 업데이트
     updateLeaveDisplay(employeeId, emp);
@@ -1026,59 +1026,49 @@ function pushToSalaryCalc(silent = false) {
     console.log('급여계산기로 데이터 전송 완료' + (silent ? ' (자동저장)' : ''));
 }
 
-// ==================== 자동저장 시스템 ====================
+// ==================== 자동저장 시스템 (비활성화) ====================
+// 출퇴근 관리는 수동 저장만 지원 (보내기 버튼)
+// 급여계산기가 데이터의 우선순위를 가짐
 
-// 자동저장 예약 (디바운스)
-function scheduleAutoSave() {
-    // 기존 타이머 취소
-    if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer);
-    }
+// // 자동저장 예약 (디바운스) - 비활성화됨
+// function scheduleAutoSave() {
+//     // 기존 타이머 취소
+//     if (autoSaveTimer) {
+//         clearTimeout(autoSaveTimer);
+//     }
+//
+//     // 2초 후 자동저장
+//     autoSaveTimer = setTimeout(() => {
+//         autoSave();
+//     }, AUTO_SAVE_DELAY);
+//
+//     // 저장 대기 중 표시
+//     updateSaveIndicator('pending');
+// }
 
-    // 2초 후 자동저장
-    autoSaveTimer = setTimeout(() => {
-        autoSave();
-    }, AUTO_SAVE_DELAY);
-
-    // 저장 대기 중 표시
-    updateSaveIndicator('pending');
-}
-
-// 자동저장 실행
-function autoSave() {
-    if (!hasUnsavedChanges) return;
-
-    localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
-    hasUnsavedChanges = false;
-    updateSaveIndicator('saved');
-
-    console.log('✅ 자동저장 완료:', new Date().toLocaleTimeString());
-}
+// // 자동저장 실행 - 비활성화됨
+// function autoSave() {
+//     if (!hasUnsavedChanges) return;
+//
+//     localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
+//     hasUnsavedChanges = false;
+//     updateSaveIndicator('saved');
+//
+//     console.log('✅ 자동저장 완료:', new Date().toLocaleTimeString());
+// }
 
 // 저장 상태 표시 업데이트
 function updateSaveIndicator(status = null) {
     const pushBtn = document.querySelector('button[onclick="pushToSalaryCalc()"]');
     if (!pushBtn) return;
 
-    if (status === 'pending') {
-        // 저장 대기 중
-        pushBtn.textContent = '💾 저장 중...';
-        pushBtn.style.background = '#ff9800';
-        pushBtn.style.animation = '';
-    } else if (status === 'saved' || !hasUnsavedChanges) {
-        // 저장 완료
-        pushBtn.textContent = '✅ 자동저장됨';
+    if (!hasUnsavedChanges) {
+        // 저장된 상태
+        pushBtn.textContent = '📤 급여계산기로 보내기';
         pushBtn.style.background = '#4caf50';
         pushBtn.style.animation = '';
-
-        // 3초 후 기본 텍스트로 복원
-        setTimeout(() => {
-            if (!hasUnsavedChanges) {
-                pushBtn.textContent = '📤 급여계산기로 보내기';
-            }
-        }, 3000);
     } else {
-        // 미저장 상태
+        // 미저장 상태 - 보내기 필요
         pushBtn.textContent = '📤 급여계산기로 보내기 ●';
         pushBtn.style.background = '#ff9800';
         pushBtn.style.animation = 'pulse 1s infinite';
