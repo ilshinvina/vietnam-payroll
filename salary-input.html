@@ -3361,18 +3361,17 @@
             document.getElementById('dependents').value = emp.dependents || 0;
             document.getElementById('dailyMeal').value = formatNumber(emp.dailyMeal || 25000);
 
-            // 달력 데이터 (날짜 형식 정규화)
-            holidays = new Set(normalizeDateSet(emp.holidays || []));
-            excusedAbsents = new Set(normalizeDateSet(emp.excusedAbsents || []));
-            absents = new Set(normalizeDateSet(emp.absents || []));
-            annualLeaveDays = new Set(normalizeDateSet(emp.annualLeaveDays || []));
+            // 달력 데이터 초기화
+            holidays = new Set();
+            excusedAbsents = new Set();
+            absents = new Set();
+            annualLeaveDays = new Set();
+            specialLeaveDays = new Set();
+            sickLeaveDays = new Set();
             annualLeaveMemos = emp.annualLeaveMemos || {};
 
-            // 경조사/병가 데이터 로드
-            specialLeaveDays = new Set(normalizeDateSet(emp.specialLeaveDays || []));
-            sickLeaveDays = new Set(normalizeDateSet(emp.sickLeaveDays || []));
-
-            // 출퇴근 관리(leaveData)에서 연차/휴가 데이터 동기화
+            // leaveData가 Source of Truth (출퇴근 관리 우선)
+            // 구버전 배열은 무시하고 leaveData만 사용
             if (emp.leaveData) {
                 Object.entries(emp.leaveData).forEach(([dateKey, leaveType]) => {
                     const normalizedKey = normalizeDateKey(dateKey);
@@ -3390,6 +3389,14 @@
                         absents.add(normalizedKey);
                     }
                 });
+            } else {
+                // leaveData가 없으면 구버전 배열 사용 (하위 호환)
+                holidays = new Set(normalizeDateSet(emp.holidays || []));
+                excusedAbsents = new Set(normalizeDateSet(emp.excusedAbsents || []));
+                absents = new Set(normalizeDateSet(emp.absents || []));
+                annualLeaveDays = new Set(normalizeDateSet(emp.annualLeaveDays || []));
+                specialLeaveDays = new Set(normalizeDateSet(emp.specialLeaveDays || []));
+                sickLeaveDays = new Set(normalizeDateSet(emp.sickLeaveDays || []));
             }
             overtimeData = normalizeDateObject(emp.overtimeData || {});
             nightData = normalizeDateObject(emp.nightData || {});
@@ -3783,11 +3790,35 @@
             const dailyMeal = emp.dailyMeal || 25000;
             const dependents = emp.dependents || 0;
 
-            // 월별 데이터 필터링 (구버전 호환)
-            const holidays = new Set((emp.holidays || []).filter(d => isTargetMonth(d)));
-            const excusedAbsents = new Set((emp.excusedAbsents || []).filter(d => isTargetMonth(d)));
-            const absents = new Set((emp.absents || []).filter(d => isTargetMonth(d)));
-            const annualLeaveDays = new Set((emp.annualLeaveDays || []).filter(d => isTargetMonth(d)));
+            // 월별 데이터 필터링 - leaveData가 Source of Truth
+            const holidays = new Set();
+            const excusedAbsents = new Set();
+            const absents = new Set();
+            const annualLeaveDays = new Set();
+            const specialLeaveDays = new Set();
+            const sickLeaveDays = new Set();
+
+            if (emp.leaveData) {
+                // leaveData 우선 사용
+                Object.entries(emp.leaveData).forEach(([dateKey, leaveType]) => {
+                    if (isTargetMonth(dateKey)) {
+                        if (leaveType === 'holiday') holidays.add(dateKey);
+                        else if (leaveType === 'excused') excusedAbsents.add(dateKey);
+                        else if (leaveType === 'absent') absents.add(dateKey);
+                        else if (leaveType === 'annual') annualLeaveDays.add(dateKey);
+                        else if (leaveType === 'special') specialLeaveDays.add(dateKey);
+                        else if (leaveType === 'sick') sickLeaveDays.add(dateKey);
+                    }
+                });
+            } else {
+                // leaveData 없으면 구버전 배열 사용 (하위 호환)
+                (emp.holidays || []).filter(d => isTargetMonth(d)).forEach(d => holidays.add(d));
+                (emp.excusedAbsents || []).filter(d => isTargetMonth(d)).forEach(d => excusedAbsents.add(d));
+                (emp.absents || []).filter(d => isTargetMonth(d)).forEach(d => absents.add(d));
+                (emp.annualLeaveDays || []).filter(d => isTargetMonth(d)).forEach(d => annualLeaveDays.add(d));
+                (emp.specialLeaveDays || []).filter(d => isTargetMonth(d)).forEach(d => specialLeaveDays.add(d));
+                (emp.sickLeaveDays || []).filter(d => isTargetMonth(d)).forEach(d => sickLeaveDays.add(d));
+            }
 
             const overtimeData = {};
             const nightData = {};
