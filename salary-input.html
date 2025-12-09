@@ -1604,13 +1604,23 @@
             if (isCurrentlyNightShift) {
                 // 야간조 → 주간조
                 nightShiftDays.delete(dateKey);  // 혹시 있으면 삭제
+                // nightData에서 자동 추가된 8시간 삭제 (수동 입력 보존)
+                if (nightData[dateKey] === 8) {
+                    delete nightData[dateKey];
+                }
+                if (nightData[dateKeyOld] === 8) {
+                    delete nightData[dateKeyOld];
+                }
                 console.log(`☀️ ${selectedMonth}/${day}: 주간조로 변경`);
             } else {
                 // 주간조 → 야간조
                 nightShiftDays.add(dateKey);
-                console.log(`🌙 ${selectedMonth}/${day}: 야간조로 변경`);
+                // nightData에 8시간 자동 추가 (출퇴근 관리 연동용)
+                nightData[dateKey] = 8;
+                console.log(`🌙 ${selectedMonth}/${day}: 야간조로 변경, nightData에 8시간 추가`);
             }
             console.log(`   변경 후 nightShiftDays:`, [...nightShiftDays]);
+            console.log(`   변경 후 nightData[${dateKey}]:`, nightData[dateKey]);
 
             // 토글 아이콘 업데이트
             const isNightShift = nightShiftDays.has(dateKey);
