@@ -3300,7 +3300,24 @@
 
         // LocalStorage에 직원 데이터 저장
         function saveEmployeesToStorage() {
-            localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
+            // 출퇴근 관리의 변경사항을 덮어쓰지 않도록 localStorage에서 최신 데이터 먼저 읽기
+            const savedData = localStorage.getItem('vietnamPayrollEmployees');
+            if (savedData) {
+                try {
+                    const latestEmployees = JSON.parse(savedData);
+                    // 현재 메모리의 직원 데이터만 병합 (다른 직원은 최신 데이터 유지)
+                    Object.keys(employees).forEach(empId => {
+                        latestEmployees[empId] = employees[empId];
+                    });
+                    localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(latestEmployees));
+                    console.log('💾 저장 시 최신 데이터 병합 완료');
+                } catch (e) {
+                    // 파싱 실패 시 그냥 저장
+                    localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
+                }
+            } else {
+                localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
+            }
         }
 
         // 직원 선택 드롭다운 업데이트

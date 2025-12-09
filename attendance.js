@@ -1017,11 +1017,7 @@ function pushToSalaryCalc(silent = false) {
     updateSaveIndicator();
 
     if (!silent) {
-        // 급여계산기로 이동 + 자동 계산
-        if (confirm('✅ 데이터가 저장되었습니다!\n\n급여계산기로 이동해서 전체 직원 급여를 자동 계산하시겠습니까?')) {
-            // 자동 계산 모드로 이동 (현재 년/월 정보 포함)
-            window.location.href = `salary-input.html?autoCalc=all&year=${currentYear}&month=${currentMonth}`;
-        }
+        alert('✅ 데이터가 저장되었습니다!\n\n급여계산기를 새로고침(F5)하면 변경사항이 반영됩니다.');
     }
     console.log('급여계산기로 데이터 전송 완료' + (silent ? ' (자동저장)' : ''));
 }
