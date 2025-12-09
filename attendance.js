@@ -226,7 +226,7 @@ function renderTableBody(tbody, employeeArray, daysInMonth) {
             // 날짜별 입력 필드
             let total = 0;
             for (let day = 1; day <= daysInMonth; day++) {
-                const dateKey = `${currentYear}-${currentMonth}-${day}`;
+                const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const value = getWorkValue(id, dateKey, type.key);
                 const dow = new Date(currentYear, currentMonth - 1, day).getDay();
                 const isSunday = dow === 0;
@@ -294,7 +294,7 @@ function calculateLeaveUsedThisMonth(employeeId, emp) {
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
     for (let day = 1; day <= daysInMonth; day++) {
-        const dateKey = `${currentYear}-${currentMonth}-${day}`;
+        const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dateKeyNorm = normalizeDateKey(dateKey);
         if (emp.leaveData[dateKey] === 'annual' || emp.leaveData[dateKeyNorm] === 'annual') {
             count++;
@@ -316,7 +316,7 @@ function calculateLeaveUsedThisYear(employeeId, emp) {
     for (let month = 1; month <= currentMonth; month++) {
         const daysInMonth = new Date(currentYear, month, 0).getDate();
         for (let day = 1; day <= daysInMonth; day++) {
-            const dateKey = `${currentYear}-${month}-${day}`;
+            const dateKey = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const dateKeyNorm = normalizeDateKey(dateKey);
             const leaveType = emp.leaveData[dateKey] || emp.leaveData[dateKeyNorm];
             // 연차 + 병가만 카운트 (경조사는 제외)
@@ -831,7 +831,7 @@ function updateTotal(employeeId, typeKey) {
     let total = 0;
 
     for (let day = 1; day <= daysInMonth; day++) {
-        const dateKey = `${currentYear}-${currentMonth}-${day}`;
+        const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         total += getWorkValue(employeeId, dateKey, typeKey);
     }
 
@@ -897,7 +897,7 @@ function applyQuickFill() {
             // 일요일 건너뛰기 (평일만 모드에서)
             if (weekdaysOnly && dow === 0) continue;
 
-            const dateKey = `${currentYear}-${currentMonth}-${day}`;
+            const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
             if (normalHours > 0) {
                 setWorkValue(empId, dateKey, 'normal', normalHours);
@@ -953,6 +953,30 @@ function pullFromSalaryCalc() {
         // normalHoursData 확인
         if (emp.normalHoursData) {
             Object.keys(emp.normalHoursData).forEach(key => {
+                if (key.startsWith(monthPrefix) || key.startsWith(monthPrefixAlt)) {
+                    hasData = true;
+                }
+            });
+        }
+        // sundayData 확인 (일요일 특근)
+        if (emp.sundayData) {
+            Object.keys(emp.sundayData).forEach(key => {
+                if (key.startsWith(monthPrefix) || key.startsWith(monthPrefixAlt)) {
+                    hasData = true;
+                }
+            });
+        }
+        // nightData 확인 (야간)
+        if (emp.nightData) {
+            Object.keys(emp.nightData).forEach(key => {
+                if (key.startsWith(monthPrefix) || key.startsWith(monthPrefixAlt)) {
+                    hasData = true;
+                }
+            });
+        }
+        // nightOTData 확인 (야간OT)
+        if (emp.nightOTData) {
+            Object.keys(emp.nightOTData).forEach(key => {
                 if (key.startsWith(monthPrefix) || key.startsWith(monthPrefixAlt)) {
                     hasData = true;
                 }
