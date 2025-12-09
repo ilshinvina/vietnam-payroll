@@ -1358,21 +1358,19 @@ function saveAllData() {
 
 // ==================== 데이터 초기화 ====================
 function resetAttendanceData() {
-    // 초기화 옵션 선택
+    // 초기화 옵션 선택 (모든 직원만 해당)
     const options = [
-        '1. 현재 직원의 이번 달만 초기화',
-        '2. 현재 직원의 전체 데이터 초기화',
-        '3. 모든 직원의 이번 달만 초기화',
-        '4. 모든 직원의 전체 데이터 초기화'
+        '1. 모든 직원의 이번 달만 초기화',
+        '2. 모든 직원의 전체 데이터 초기화'
     ];
 
     const choice = prompt(
         '⚠️ 초기화 옵션을 선택하세요:\n\n' +
         options.join('\n') +
-        '\n\n숫자를 입력하세요 (1-4):'
+        '\n\n숫자를 입력하세요 (1-2):'
     );
 
-    if (!choice || !['1', '2', '3', '4'].includes(choice.trim())) {
+    if (!choice || !['1', '2'].includes(choice.trim())) {
         if (choice !== null) {
             alert('취소되었습니다.');
         }
@@ -1380,10 +1378,8 @@ function resetAttendanceData() {
     }
 
     const confirmMsg = {
-        '1': `현재 직원의 ${currentYear}년 ${currentMonth}월 데이터를`,
-        '2': '현재 직원의 전체 데이터를',
-        '3': `모든 직원의 ${currentYear}년 ${currentMonth}월 데이터를`,
-        '4': '모든 직원의 전체 데이터를'
+        '1': `모든 직원의 ${currentYear}년 ${currentMonth}월 데이터를`,
+        '2': '모든 직원의 전체 데이터를'
     };
 
     if (!confirm(`⚠️ 정말로 ${confirmMsg[choice.trim()]} 초기화하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!`)) {
@@ -1448,16 +1444,12 @@ function resetAttendanceData() {
         emp.nightShiftDays = [];
     }
 
-    // 선택된 옵션에 따라 초기화
-    const selectedEmpId = document.querySelector('.employee-tab.active')?.dataset?.empId;
-
-    if (option === '1' && selectedEmpId && employees[selectedEmpId]) {
-        clearEmployeeMonth(employees[selectedEmpId]);
-    } else if (option === '2' && selectedEmpId && employees[selectedEmpId]) {
-        clearEmployeeAll(employees[selectedEmpId]);
-    } else if (option === '3') {
+    // 선택된 옵션에 따라 초기화 (모든 직원)
+    if (option === '1') {
+        // 모든 직원의 이번 달만 초기화
         Object.values(employees).forEach(emp => clearEmployeeMonth(emp));
-    } else if (option === '4') {
+    } else if (option === '2') {
+        // 모든 직원의 전체 데이터 초기화
         Object.values(employees).forEach(emp => clearEmployeeAll(emp));
     }
 
