@@ -3506,8 +3506,8 @@
                 advancePaymentAmount: parseMoneyInput(document.getElementById('advancePaymentAmount')?.value)
             };
 
-            // 출퇴근 관리 연동: leaveData 업데이트
-            const leaveData = employees[currentEmployeeId].leaveData || {};
+            // 출퇴근 관리 연동: leaveData 완전 재구성 (삭제 반영)
+            const leaveData = {};  // 기존 것 무시하고 새로 생성
             holidays.forEach(key => { leaveData[key] = 'holiday'; });
             annualLeaveDays.forEach(key => { leaveData[key] = 'annual'; });
             specialLeaveDays.forEach(key => { leaveData[key] = 'special'; });
