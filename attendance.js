@@ -1045,8 +1045,7 @@ function pullFromSalaryCalc() {
     updateQuickEmployeeSelect();
     renderTable();
 
-    // 출퇴근 관리 전용 localStorage에 현재 달 데이터만 저장
-    const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    // 출퇴근 관리 전용 localStorage에 현재 달 데이터만 저장 (monthPrefix 이미 위에서 선언됨)
     const attendanceData = localStorage.getItem('vietnamPayrollEmployees_attendance');
     let attendanceEmployees = {};
 
