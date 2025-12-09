@@ -448,8 +448,10 @@ function handleCellKeyDown(event) {
         // 입력 모드 진입
         input.style.pointerEvents = 'auto';
         input.focus();
-        // 커서를 끝으로
-        input.setSelectionRange(input.value.length, input.value.length);
+        // 커서를 끝으로 (text 타입에만 적용)
+        if (input.type !== 'number') {
+            input.setSelectionRange(input.value.length, input.value.length);
+        }
         input.addEventListener('blur', function onBlur() {
             input.style.pointerEvents = 'none';
             input.removeEventListener('blur', onBlur);
@@ -1010,8 +1012,8 @@ function pullFromSalaryCalc() {
 
 // 출퇴근 관리 데이터 저장 (localStorage만 업데이트)
 function saveAttendanceData() {
-    if (!currentEmployeeId) {
-        alert('⚠️ 직원을 먼저 선택해주세요.');
+    if (Object.keys(employees).length === 0) {
+        alert('⚠️ 저장할 직원 데이터가 없습니다.');
         return;
     }
 
@@ -1027,8 +1029,10 @@ function saveAttendanceData() {
         }
     }
 
-    // 현재 직원 데이터만 업데이트 (다른 직원은 그대로 유지)
-    allEmployees[currentEmployeeId] = employees[currentEmployeeId];
+    // 현재 메모리의 모든 직원 데이터 업데이트
+    Object.keys(employees).forEach(empId => {
+        allEmployees[empId] = employees[empId];
+    });
 
     // localStorage에 저장
     localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(allEmployees));
@@ -1037,8 +1041,8 @@ function saveAttendanceData() {
     hasUnsavedChanges = false;
     updateSaveIndicator();
 
-    alert('💾 저장 완료!\n\n출퇴근 관리 데이터가 저장되었습니다.');
-    console.log('출퇴근 관리 데이터 저장 완료:', currentEmployeeId);
+    alert(`💾 저장 완료!\n\n출퇴근 관리 데이터가 저장되었습니다.\n저장된 직원: ${Object.keys(employees).length}명`);
+    console.log('출퇴근 관리 데이터 저장 완료:', Object.keys(employees).length, '명');
 }
 
 // 급여계산기로 데이터 보내기 (저장)
