@@ -1045,24 +1045,87 @@ function pullFromSalaryCalc() {
     updateQuickEmployeeSelect();
     renderTable();
 
-    // 출퇴근 관리 전용 localStorage에 저장 (급여계산기 데이터 복사)
-    localStorage.setItem('vietnamPayrollEmployees_attendance', JSON.stringify(employees));
-    console.log('📥 급여계산기 데이터를 출퇴근 관리로 복사 완료');
+    // 출퇴근 관리 전용 localStorage에 현재 달 데이터만 저장
+    const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    const attendanceData = localStorage.getItem('vietnamPayrollEmployees_attendance');
+    let attendanceEmployees = {};
+
+    if (attendanceData) {
+        try {
+            attendanceEmployees = JSON.parse(attendanceData);
+        } catch (e) {}
+    }
+
+    // 각 직원의 현재 달 데이터만 업데이트 (급여계산기 데이터로 덮어쓰기)
+    Object.keys(employees).forEach(empId => {
+        const emp = employees[empId];
+
+        if (!attendanceEmployees[empId]) {
+            attendanceEmployees[empId] = { ...emp, name: emp.name };
+        }
+
+        // 현재 달 데이터만 업데이트
+        const dataKeys = ['normalHoursData', 'overtimeData', 'nightData', 'sundayData', 'nightOTData'];
+        dataKeys.forEach(dataKey => {
+            if (!attendanceEmployees[empId][dataKey]) attendanceEmployees[empId][dataKey] = {};
+
+            // 현재 달 데이터 삭제
+            Object.keys(attendanceEmployees[empId][dataKey]).forEach(key => {
+                if (key.startsWith(monthPrefix)) {
+                    delete attendanceEmployees[empId][dataKey][key];
+                }
+            });
+
+            // 급여계산기의 현재 달 데이터 추가
+            if (emp[dataKey]) {
+                Object.keys(emp[dataKey]).forEach(key => {
+                    if (key.startsWith(monthPrefix)) {
+                        attendanceEmployees[empId][dataKey][key] = emp[dataKey][key];
+                    }
+                });
+            }
+        });
+
+        // leaveData도 현재 달만 업데이트
+        if (!attendanceEmployees[empId].leaveData) attendanceEmployees[empId].leaveData = {};
+
+        // 현재 달 leaveData 삭제
+        Object.keys(attendanceEmployees[empId].leaveData).forEach(key => {
+            if (key.startsWith(monthPrefix)) {
+                delete attendanceEmployees[empId].leaveData[key];
+            }
+        });
+
+        // 급여계산기의 현재 달 leaveData 추가
+        if (emp.leaveData) {
+            Object.keys(emp.leaveData).forEach(key => {
+                if (key.startsWith(monthPrefix)) {
+                    attendanceEmployees[empId].leaveData[key] = emp.leaveData[key];
+                }
+            });
+        }
+    });
+
+    localStorage.setItem('vietnamPayrollEmployees_attendance', JSON.stringify(attendanceEmployees));
+    console.log(`📥 ${currentYear}년 ${currentMonth}월 급여계산기 데이터를 출퇴근 관리로 복사 완료`);
 
     hasUnsavedChanges = false;
     updateSaveIndicator();
 
-    alert(`✅ 급여계산기에서 데이터를 불러왔습니다!\n\n📅 ${currentYear}년 ${currentMonth}월\n👥 총 직원: ${Object.keys(employees).length}명\n📊 데이터 있음: ${dataFound}명\n⚠️ 데이터 없음: ${emptyData}명`);
+    alert(`✅ 급여계산기에서 데이터를 불러왔습니다!\n\n📅 ${currentYear}년 ${currentMonth}월 데이터만 복사\n👥 총 직원: ${Object.keys(employees).length}명\n📊 데이터 있음: ${dataFound}명\n⚠️ 데이터 없음: ${emptyData}명`);
 }
 
-// 출퇴근 관리 데이터 저장 (출퇴근 관리 전용 localStorage에만 저장)
+// 출퇴근 관리 데이터 저장 (현재 선택된 달만)
 function saveAttendanceData() {
     if (Object.keys(employees).length === 0) {
         alert('⚠️ 저장할 직원 데이터가 없습니다.');
         return;
     }
 
-    // 출퇴근 관리 전용 localStorage에서 최신 데이터 읽기
+    const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    console.log(`💾 ${currentYear}년 ${currentMonth}월 데이터만 저장 시작...`);
+
+    // 출퇴근 관리 전용 localStorage에서 전체 데이터 읽기
     const savedData = localStorage.getItem('vietnamPayrollEmployees_attendance');
     let allEmployees = {};
 
@@ -1074,9 +1137,55 @@ function saveAttendanceData() {
         }
     }
 
-    // 현재 메모리의 모든 직원 데이터 업데이트
+    // 각 직원의 현재 달 데이터만 업데이트
     Object.keys(employees).forEach(empId => {
-        allEmployees[empId] = employees[empId];
+        const emp = employees[empId];
+
+        // 기존 직원 데이터가 있으면 가져오기 (다른 달 데이터 보존)
+        if (!allEmployees[empId]) {
+            allEmployees[empId] = { ...emp, name: emp.name };
+        }
+
+        // 현재 달 데이터만 업데이트
+        const dataKeys = ['normalHoursData', 'overtimeData', 'nightData', 'sundayData', 'nightOTData'];
+        dataKeys.forEach(dataKey => {
+            if (!allEmployees[empId][dataKey]) allEmployees[empId][dataKey] = {};
+
+            // 현재 달 데이터 삭제 (기존 것 제거)
+            Object.keys(allEmployees[empId][dataKey]).forEach(key => {
+                if (key.startsWith(monthPrefix)) {
+                    delete allEmployees[empId][dataKey][key];
+                }
+            });
+
+            // 메모리의 현재 달 데이터 추가
+            if (emp[dataKey]) {
+                Object.keys(emp[dataKey]).forEach(key => {
+                    if (key.startsWith(monthPrefix)) {
+                        allEmployees[empId][dataKey][key] = emp[dataKey][key];
+                    }
+                });
+            }
+        });
+
+        // leaveData도 현재 달만 업데이트
+        if (!allEmployees[empId].leaveData) allEmployees[empId].leaveData = {};
+
+        // 현재 달 leaveData 삭제
+        Object.keys(allEmployees[empId].leaveData).forEach(key => {
+            if (key.startsWith(monthPrefix)) {
+                delete allEmployees[empId].leaveData[key];
+            }
+        });
+
+        // 메모리의 현재 달 leaveData 추가
+        if (emp.leaveData) {
+            Object.keys(emp.leaveData).forEach(key => {
+                if (key.startsWith(monthPrefix)) {
+                    allEmployees[empId].leaveData[key] = emp.leaveData[key];
+                }
+            });
+        }
     });
 
     // 출퇴근 관리 전용 localStorage에 저장
@@ -1086,26 +1195,97 @@ function saveAttendanceData() {
     hasUnsavedChanges = false;
     updateSaveIndicator();
 
-    alert(`💾 저장 완료!\n\n출퇴근 관리 데이터가 저장되었습니다.\n저장된 직원: ${Object.keys(employees).length}명`);
-    console.log('💾 출퇴근 관리 전용 데이터 저장 완료:', Object.keys(employees).length, '명');
+    alert(`💾 저장 완료!\n\n📅 ${currentYear}년 ${currentMonth}월 데이터가 저장되었습니다.\n저장된 직원: ${Object.keys(employees).length}명`);
+    console.log(`💾 ${currentYear}년 ${currentMonth}월 데이터 저장 완료:`, Object.keys(employees).length, '명');
 }
 
-// 급여계산기로 데이터 보내기 (메인 + 출퇴근 관리 전용 모두 저장)
+// 급여계산기로 데이터 보내기 (현재 선택된 달만)
 function pushToSalaryCalc(silent = false) {
+    if (Object.keys(employees).length === 0) {
+        alert('⚠️ 보낼 직원 데이터가 없습니다.');
+        return;
+    }
+
+    const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    console.log(`📤 ${currentYear}년 ${currentMonth}월 데이터만 급여계산기로 전송 시작...`);
+
+    // 메인 localStorage에서 전체 데이터 읽기
+    const mainData = localStorage.getItem('vietnamPayrollEmployees');
+    let mainEmployees = {};
+
+    if (mainData) {
+        try {
+            mainEmployees = JSON.parse(mainData);
+        } catch (e) {
+            console.error('localStorage 파싱 오류:', e);
+        }
+    }
+
+    // 각 직원의 현재 달 데이터만 업데이트 (다른 달 보존)
+    Object.keys(employees).forEach(empId => {
+        const emp = employees[empId];
+
+        // 기존 직원 데이터가 있으면 가져오기
+        if (!mainEmployees[empId]) {
+            mainEmployees[empId] = { ...emp, name: emp.name };
+        }
+
+        // 현재 달 데이터만 업데이트
+        const dataKeys = ['normalHoursData', 'overtimeData', 'nightData', 'sundayData', 'nightOTData'];
+        dataKeys.forEach(dataKey => {
+            if (!mainEmployees[empId][dataKey]) mainEmployees[empId][dataKey] = {};
+
+            // 현재 달 데이터 삭제
+            Object.keys(mainEmployees[empId][dataKey]).forEach(key => {
+                if (key.startsWith(monthPrefix)) {
+                    delete mainEmployees[empId][dataKey][key];
+                }
+            });
+
+            // 메모리의 현재 달 데이터 추가
+            if (emp[dataKey]) {
+                Object.keys(emp[dataKey]).forEach(key => {
+                    if (key.startsWith(monthPrefix)) {
+                        mainEmployees[empId][dataKey][key] = emp[dataKey][key];
+                    }
+                });
+            }
+        });
+
+        // leaveData도 현재 달만 업데이트
+        if (!mainEmployees[empId].leaveData) mainEmployees[empId].leaveData = {};
+
+        // 현재 달 leaveData 삭제
+        Object.keys(mainEmployees[empId].leaveData).forEach(key => {
+            if (key.startsWith(monthPrefix)) {
+                delete mainEmployees[empId].leaveData[key];
+            }
+        });
+
+        // 메모리의 현재 달 leaveData 추가
+        if (emp.leaveData) {
+            Object.keys(emp.leaveData).forEach(key => {
+                if (key.startsWith(monthPrefix)) {
+                    mainEmployees[empId].leaveData[key] = emp.leaveData[key];
+                }
+            });
+        }
+    });
+
     // 메인 localStorage에 저장 (급여계산기용)
-    localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
+    localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(mainEmployees));
 
     // 출퇴근 관리 전용 localStorage에도 저장 (동기화 유지)
-    localStorage.setItem('vietnamPayrollEmployees_attendance', JSON.stringify(employees));
+    localStorage.setItem('vietnamPayrollEmployees_attendance', JSON.stringify(mainEmployees));
 
     // 변경사항 저장 완료
     hasUnsavedChanges = false;
     updateSaveIndicator();
 
     if (!silent) {
-        alert('✅ 데이터가 저장되었습니다!\n\n급여계산기를 새로고침(F5)하면 변경사항이 반영됩니다.');
+        alert(`✅ 데이터가 저장되었습니다!\n\n📅 ${currentYear}년 ${currentMonth}월 데이터만 전송\n급여계산기를 새로고침(F5)하면 변경사항이 반영됩니다.`);
     }
-    console.log('📤 급여계산기로 데이터 전송 완료 (메인 + 출퇴근 관리 전용 모두 저장)' + (silent ? ' (자동저장)' : ''));
+    console.log(`📤 ${currentYear}년 ${currentMonth}월 데이터 급여계산기로 전송 완료` + (silent ? ' (자동저장)' : ''));
 }
 
 // ==================== 자동저장 시스템 (비활성화) ====================
