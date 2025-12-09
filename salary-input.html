@@ -3524,15 +3524,48 @@
                 advancePaymentAmount: parseMoneyInput(document.getElementById('advancePaymentAmount')?.value)
             };
 
-            // 출퇴근 관리 연동: leaveData 완전 재구성 (삭제 반영)
-            const leaveData = {};  // 기존 것 무시하고 새로 생성
-            holidays.forEach(key => { leaveData[key] = 'holiday'; });
-            annualLeaveDays.forEach(key => { leaveData[key] = 'annual'; });
-            specialLeaveDays.forEach(key => { leaveData[key] = 'special'; });
-            sickLeaveDays.forEach(key => { leaveData[key] = 'sick'; });
-            excusedAbsents.forEach(key => { leaveData[key] = 'excused'; });
-            absents.forEach(key => { leaveData[key] = 'absent'; });
-            employees[currentEmployeeId].leaveData = leaveData;
+            // 출퇴근 관리 연동: leaveData 업데이트 (현재 달만 덮어쓰기)
+            // localStorage의 최신 leaveData를 가져와서 현재 달만 업데이트
+            const savedData = localStorage.getItem('vietnamPayrollEmployees');
+            let existingLeaveData = {};
+            if (savedData) {
+                try {
+                    const latestEmployees = JSON.parse(savedData);
+                    existingLeaveData = latestEmployees[currentEmployeeId]?.leaveData || {};
+                } catch (e) {
+                    // 파싱 실패 시 빈 객체
+                }
+            }
+
+            // 현재 달의 기존 데이터 삭제
+            const monthPrefix = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+            Object.keys(existingLeaveData).forEach(key => {
+                if (key.startsWith(monthPrefix)) {
+                    delete existingLeaveData[key];
+                }
+            });
+
+            // 현재 달의 새 데이터 추가 (메모리의 Set 사용)
+            holidays.forEach(key => {
+                if (key.startsWith(monthPrefix)) existingLeaveData[key] = 'holiday';
+            });
+            annualLeaveDays.forEach(key => {
+                if (key.startsWith(monthPrefix)) existingLeaveData[key] = 'annual';
+            });
+            specialLeaveDays.forEach(key => {
+                if (key.startsWith(monthPrefix)) existingLeaveData[key] = 'special';
+            });
+            sickLeaveDays.forEach(key => {
+                if (key.startsWith(monthPrefix)) existingLeaveData[key] = 'sick';
+            });
+            excusedAbsents.forEach(key => {
+                if (key.startsWith(monthPrefix)) existingLeaveData[key] = 'excused';
+            });
+            absents.forEach(key => {
+                if (key.startsWith(monthPrefix)) existingLeaveData[key] = 'absent';
+            });
+
+            employees[currentEmployeeId].leaveData = existingLeaveData;
 
             saveEmployeesToStorage();
         }
