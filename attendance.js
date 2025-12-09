@@ -332,6 +332,7 @@ function calculateLeaveUsedThisYear(employeeId, emp) {
 // 휴가 타입별 스타일 반환
 function getLeaveStyle(leaveType) {
     switch (leaveType) {
+        case 'holiday': return 'background: #2196f3; color: white;';
         case 'annual': return 'background: #4caf50; color: white;';
         case 'special': return 'background: #9c27b0; color: white;';
         case 'sick': return 'background: #ff9800; color: white;';
@@ -582,6 +583,7 @@ function showLeaveMenu(event, td) {
 
     const options = [
         { key: '', label: '✖ 취소 (일반)', color: '' },
+        { key: 'holiday', label: '📅 공휴일', color: '#2196f3' },
         { key: 'annual', label: '🏖️ 연차', color: '#4caf50' },
         { key: 'special', label: '🖤 특별휴가 (경조사)', color: '#9c27b0' },
         { key: 'sick', label: '🏥 병가', color: '#ff9800' },
@@ -704,8 +706,8 @@ function setLeaveType(td, input, leaveType, color) {
         // 연차/특별휴가/병가는 8시간으로 설정 (normal행에만)
         if (leaveType === 'annual' || leaveType === 'special' || leaveType === 'sick') {
             if (normalInput) normalInput.value = 8;
-        } else if (leaveType === 'excused' || leaveType === 'absent') {
-            if (normalInput) normalInput.value = '';  // 사유결근/무단결근은 0시간
+        } else if (leaveType === 'excused' || leaveType === 'absent' || leaveType === 'holiday') {
+            if (normalInput) normalInput.value = '';  // 사유결근/무단결근/공휴일은 0시간
         }
     } else {
         // 색상 제거
@@ -734,6 +736,8 @@ function saveLeaveData(employeeId, dateKey, leaveType) {
     if (!emp.annualLeaveDays) emp.annualLeaveDays = [];
 
     // 기존 데이터에서 해당 날짜 제거
+    if (!emp.holidays) emp.holidays = [];
+    emp.holidays = emp.holidays.filter(d => d !== dateKey);
     emp.excusedAbsents = emp.excusedAbsents.filter(d => d !== dateKey);
     emp.absents = emp.absents.filter(d => d !== dateKey);
     emp.annualLeaveDays = emp.annualLeaveDays.filter(d => d !== dateKey);
@@ -743,7 +747,9 @@ function saveLeaveData(employeeId, dateKey, leaveType) {
         emp.leaveData[dateKey] = leaveType;
 
         // 급여계산기 연동: 해당 배열에 추가
-        if (leaveType === 'excused') {
+        if (leaveType === 'holiday') {
+            emp.holidays.push(dateKey);
+        } else if (leaveType === 'excused') {
             emp.excusedAbsents.push(dateKey);
         } else if (leaveType === 'absent') {
             emp.absents.push(dateKey);

@@ -3376,7 +3376,9 @@
             if (emp.leaveData) {
                 Object.entries(emp.leaveData).forEach(([dateKey, leaveType]) => {
                     const normalizedKey = normalizeDateKey(dateKey);
-                    if (leaveType === 'annual') {
+                    if (leaveType === 'holiday') {
+                        holidays.add(normalizedKey);
+                    } else if (leaveType === 'annual') {
                         annualLeaveDays.add(normalizedKey);
                     } else if (leaveType === 'special') {
                         specialLeaveDays.add(normalizedKey);
@@ -3499,6 +3501,7 @@
 
             // 출퇴근 관리 연동: leaveData 업데이트
             const leaveData = employees[currentEmployeeId].leaveData || {};
+            holidays.forEach(key => { leaveData[key] = 'holiday'; });
             annualLeaveDays.forEach(key => { leaveData[key] = 'annual'; });
             specialLeaveDays.forEach(key => { leaveData[key] = 'special'; });
             sickLeaveDays.forEach(key => { leaveData[key] = 'sick'; });
