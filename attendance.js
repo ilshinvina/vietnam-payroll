@@ -75,12 +75,12 @@ function initDateSelectors() {
     // 이벤트 리스너
     yearSelect.addEventListener('change', () => {
         currentYear = parseInt(yearSelect.value);
-        loadEmployeeFromMoney();  // 년도 변경 시 최신 데이터 로드
+        renderTable();  // 메모리 데이터로 테이블만 다시 그림
     });
 
     monthSelect.addEventListener('change', () => {
         currentMonth = parseInt(monthSelect.value);
-        loadEmployeeFromMoney();  // 달 변경 시 최신 데이터 로드
+        renderTable();  // 메모리 데이터로 테이블만 다시 그림
     });
 }
 
