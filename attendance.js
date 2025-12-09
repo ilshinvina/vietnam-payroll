@@ -86,16 +86,26 @@ function initDateSelectors() {
 
 // ==================== 직원 관리 ====================
 function loadEmployeeFromMoney() {
-    console.log('MONEY에서 직원 데이터 로드...');
+    console.log('출퇴근 관리 전용 데이터 로드...');
 
-    // localStorage에서 직원 데이터 로드 (MONEY 시스템 키: vietnamPayrollEmployees)
-    const savedEmployees = localStorage.getItem('vietnamPayrollEmployees');
+    // 출퇴근 관리 전용 localStorage에서 데이터 로드
+    const savedEmployees = localStorage.getItem('vietnamPayrollEmployees_attendance');
     if (savedEmployees) {
         employees = JSON.parse(savedEmployees);
         console.log('직원 수:', Object.keys(employees).length);
     } else {
-        employees = {};
-        console.log('저장된 직원 없음');
+        // 전용 데이터가 없으면 메인에서 복사 (초기 설정)
+        console.log('출퇴근 관리 전용 데이터 없음 → 메인에서 복사');
+        const mainEmployees = localStorage.getItem('vietnamPayrollEmployees');
+        if (mainEmployees) {
+            employees = JSON.parse(mainEmployees);
+            // 출퇴근 관리 전용으로 저장
+            localStorage.setItem('vietnamPayrollEmployees_attendance', mainEmployees);
+            console.log('메인에서 복사 완료, 직원 수:', Object.keys(employees).length);
+        } else {
+            employees = {};
+            console.log('메인에도 저장된 직원 없음');
+        }
     }
 
     // 빠른 입력 모달의 직원 셀렉트 업데이트
@@ -1004,21 +1014,25 @@ function pullFromSalaryCalc() {
     updateQuickEmployeeSelect();
     renderTable();
 
+    // 출퇴근 관리 전용 localStorage에 저장 (급여계산기 데이터 복사)
+    localStorage.setItem('vietnamPayrollEmployees_attendance', JSON.stringify(employees));
+    console.log('📥 급여계산기 데이터를 출퇴근 관리로 복사 완료');
+
     hasUnsavedChanges = false;
     updateSaveIndicator();
 
-    alert(`✅ 데이터를 불러왔습니다!\n\n📅 ${currentYear}년 ${currentMonth}월\n👥 총 직원: ${Object.keys(employees).length}명\n📊 데이터 있음: ${dataFound}명\n⚠️ 데이터 없음: ${emptyData}명`);
+    alert(`✅ 급여계산기에서 데이터를 불러왔습니다!\n\n📅 ${currentYear}년 ${currentMonth}월\n👥 총 직원: ${Object.keys(employees).length}명\n📊 데이터 있음: ${dataFound}명\n⚠️ 데이터 없음: ${emptyData}명`);
 }
 
-// 출퇴근 관리 데이터 저장 (localStorage만 업데이트)
+// 출퇴근 관리 데이터 저장 (출퇴근 관리 전용 localStorage에만 저장)
 function saveAttendanceData() {
     if (Object.keys(employees).length === 0) {
         alert('⚠️ 저장할 직원 데이터가 없습니다.');
         return;
     }
 
-    // localStorage에서 최신 데이터 읽기
-    const savedData = localStorage.getItem('vietnamPayrollEmployees');
+    // 출퇴근 관리 전용 localStorage에서 최신 데이터 읽기
+    const savedData = localStorage.getItem('vietnamPayrollEmployees_attendance');
     let allEmployees = {};
 
     if (savedData) {
@@ -1034,20 +1048,24 @@ function saveAttendanceData() {
         allEmployees[empId] = employees[empId];
     });
 
-    // localStorage에 저장
-    localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(allEmployees));
+    // 출퇴근 관리 전용 localStorage에 저장
+    localStorage.setItem('vietnamPayrollEmployees_attendance', JSON.stringify(allEmployees));
 
     // 변경사항 저장 완료
     hasUnsavedChanges = false;
     updateSaveIndicator();
 
     alert(`💾 저장 완료!\n\n출퇴근 관리 데이터가 저장되었습니다.\n저장된 직원: ${Object.keys(employees).length}명`);
-    console.log('출퇴근 관리 데이터 저장 완료:', Object.keys(employees).length, '명');
+    console.log('💾 출퇴근 관리 전용 데이터 저장 완료:', Object.keys(employees).length, '명');
 }
 
-// 급여계산기로 데이터 보내기 (저장)
+// 급여계산기로 데이터 보내기 (메인 + 출퇴근 관리 전용 모두 저장)
 function pushToSalaryCalc(silent = false) {
+    // 메인 localStorage에 저장 (급여계산기용)
     localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
+
+    // 출퇴근 관리 전용 localStorage에도 저장 (동기화 유지)
+    localStorage.setItem('vietnamPayrollEmployees_attendance', JSON.stringify(employees));
 
     // 변경사항 저장 완료
     hasUnsavedChanges = false;
@@ -1056,7 +1074,7 @@ function pushToSalaryCalc(silent = false) {
     if (!silent) {
         alert('✅ 데이터가 저장되었습니다!\n\n급여계산기를 새로고침(F5)하면 변경사항이 반영됩니다.');
     }
-    console.log('급여계산기로 데이터 전송 완료' + (silent ? ' (자동저장)' : ''));
+    console.log('📤 급여계산기로 데이터 전송 완료 (메인 + 출퇴근 관리 전용 모두 저장)' + (silent ? ' (자동저장)' : ''));
 }
 
 // ==================== 자동저장 시스템 (비활성화) ====================
