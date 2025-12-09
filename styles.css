@@ -194,13 +194,13 @@ body {
 }
 
 .calendar-day.holiday {
-    background: #fff3e0;
-    border-color: #ff9800;
+    background: #bbdefb;
+    border-color: #2196f3;
 }
 
 .calendar-day.excused-absent {
-    background: #e1bee7;
-    border-color: #ab47bc;
+    background: #cfd8dc;
+    border-color: #607d8b;
 }
 
 .calendar-day.absent {
@@ -224,9 +224,9 @@ body {
 }
 
 .calendar-day.holiday.selected {
-    background: #ff5252;
+    background: #2196f3;
     color: white;
-    border-color: #ff1744;
+    border-color: #1976d2;
 }
 
 .calendar-day.excused-absent.selected {
