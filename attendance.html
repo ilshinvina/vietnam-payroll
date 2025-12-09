@@ -120,6 +120,11 @@
             background: #c0392b;
         }
 
+        /* 저장하기 버튼 hover */
+        button[onclick="saveAttendanceData()"]:hover {
+            background: #7b1fa2 !important;
+        }
+
         /* 저장 필요 표시 애니메이션 */
         @keyframes pulse {
             0% { opacity: 1; }
@@ -605,6 +610,7 @@
         <button class="btn btn-primary" onclick="loadEmployeeFromMoney()">🔄 직원 동기화</button>
         <button class="btn btn-warning" onclick="openQuickFill()">⚡ 빠른 입력</button>
         <span style="margin: 0 10px; color: #2c3e50; font-weight: bold; font-size: 1.2em;">│</span>
+        <button class="btn" onclick="saveAttendanceData()" style="background: #9c27b0; color: #fff;">💾 저장하기</button>
         <button class="btn btn-info" onclick="pullFromSalaryCalc()" style="background: #00bcd4;">📥 급여계산기에서 들고오기</button>
         <button class="btn btn-success" onclick="pushToSalaryCalc()">📤 급여계산기로 보내기</button>
         <span style="margin: 0 10px; color: #2c3e50; font-weight: bold; font-size: 1.2em;">│</span>

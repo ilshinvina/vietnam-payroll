@@ -1008,6 +1008,39 @@ function pullFromSalaryCalc() {
     alert(`✅ 데이터를 불러왔습니다!\n\n📅 ${currentYear}년 ${currentMonth}월\n👥 총 직원: ${Object.keys(employees).length}명\n📊 데이터 있음: ${dataFound}명\n⚠️ 데이터 없음: ${emptyData}명`);
 }
 
+// 출퇴근 관리 데이터 저장 (localStorage만 업데이트)
+function saveAttendanceData() {
+    if (!currentEmployeeId) {
+        alert('⚠️ 직원을 먼저 선택해주세요.');
+        return;
+    }
+
+    // localStorage에서 최신 데이터 읽기
+    const savedData = localStorage.getItem('vietnamPayrollEmployees');
+    let allEmployees = {};
+
+    if (savedData) {
+        try {
+            allEmployees = JSON.parse(savedData);
+        } catch (e) {
+            console.error('localStorage 파싱 오류:', e);
+        }
+    }
+
+    // 현재 직원 데이터만 업데이트 (다른 직원은 그대로 유지)
+    allEmployees[currentEmployeeId] = employees[currentEmployeeId];
+
+    // localStorage에 저장
+    localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(allEmployees));
+
+    // 변경사항 저장 완료
+    hasUnsavedChanges = false;
+    updateSaveIndicator();
+
+    alert('💾 저장 완료!\n\n출퇴근 관리 데이터가 저장되었습니다.');
+    console.log('출퇴근 관리 데이터 저장 완료:', currentEmployeeId);
+}
+
 // 급여계산기로 데이터 보내기 (저장)
 function pushToSalaryCalc(silent = false) {
     localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
@@ -1055,19 +1088,33 @@ function pushToSalaryCalc(silent = false) {
 
 // 저장 상태 표시 업데이트
 function updateSaveIndicator(status = null) {
+    const saveBtn = document.querySelector('button[onclick="saveAttendanceData()"]');
     const pushBtn = document.querySelector('button[onclick="pushToSalaryCalc()"]');
-    if (!pushBtn) return;
 
     if (!hasUnsavedChanges) {
         // 저장된 상태
-        pushBtn.textContent = '📤 급여계산기로 보내기';
-        pushBtn.style.background = '#4caf50';
-        pushBtn.style.animation = '';
+        if (saveBtn) {
+            saveBtn.textContent = '💾 저장하기';
+            saveBtn.style.background = '#9c27b0';
+            saveBtn.style.animation = '';
+        }
+        if (pushBtn) {
+            pushBtn.textContent = '📤 급여계산기로 보내기';
+            pushBtn.style.background = '#4caf50';
+            pushBtn.style.animation = '';
+        }
     } else {
-        // 미저장 상태 - 보내기 필요
-        pushBtn.textContent = '📤 급여계산기로 보내기 ●';
-        pushBtn.style.background = '#ff9800';
-        pushBtn.style.animation = 'pulse 1s infinite';
+        // 미저장 상태 - 저장 필요
+        if (saveBtn) {
+            saveBtn.textContent = '💾 저장하기 ●';
+            saveBtn.style.background = '#ff5722';
+            saveBtn.style.animation = 'pulse 1s infinite';
+        }
+        if (pushBtn) {
+            pushBtn.textContent = '📤 급여계산기로 보내기 ●';
+            pushBtn.style.background = '#ff9800';
+            pushBtn.style.animation = 'pulse 1s infinite';
+        }
     }
 }
 
