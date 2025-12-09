@@ -75,7 +75,9 @@ function loadSettingsForYear(year) {
             sundayLunchHours: 4,
             sundayDinnerHours: 12,
             annualLeaveLunchMeal: false,
-            excusedAbsenceLunchMinHours: 4,
+            excusedAbsenceLunchMeal: false,
+            sickLeaveLunchMeal: false,
+            specialLeaveLunchMeal: false,
             attendanceBonus: 300000,
             transportBonus: 200000,
             riskBonus: 100000,
@@ -110,8 +112,14 @@ function loadSettingsForYear(year) {
     if (companySettings.annualLeaveLunchMeal === undefined) {
         companySettings.annualLeaveLunchMeal = false;
     }
-    if (companySettings.excusedAbsenceLunchMinHours === undefined) {
-        companySettings.excusedAbsenceLunchMinHours = 4;
+    if (companySettings.excusedAbsenceLunchMeal === undefined) {
+        companySettings.excusedAbsenceLunchMeal = false;
+    }
+    if (companySettings.sickLeaveLunchMeal === undefined) {
+        companySettings.sickLeaveLunchMeal = false;
+    }
+    if (companySettings.specialLeaveLunchMeal === undefined) {
+        companySettings.specialLeaveLunchMeal = false;
     }
 
     // 기존 수당을 새 시스템으로 마이그레이션 (최초 1회만)
@@ -335,9 +343,15 @@ function displayEmployeeList() {
         return;
     }
 
-    // 각 직원 카드 생성
+    // 각 직원 카드 생성 (코드순 정렬)
+    const sortedEmployeeIds = Object.keys(employees).sort((a, b) => {
+        const codeA = employees[a].employeeCode || '';
+        const codeB = employees[b].employeeCode || '';
+        return codeA.localeCompare(codeB, undefined, { numeric: true });
+    });
+
     let cardCount = 0;
-    for (const empId in employees) {
+    for (const empId of sortedEmployeeIds) {
         const emp = employees[empId];
         console.log(`📝 직원 카드 생성 [${cardCount + 1}]:`, empId, emp.name);
 
@@ -451,15 +465,84 @@ window.handleDeleteEmployee = function(employeeId) {
     }
 
     const emp = employees[employeeId];
-    if (confirm(`⚠️ ${emp.name} 직원을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+    if (confirm(`⚠️ ${emp.name} 직원을 삭제하시겠습니까?\n\n• 직원 정보\n• 출퇴근 데이터\n• 급여 이력\n\n모두 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`)) {
+
+        // 1. 직원 삭제
         delete employees[employeeId];
         saveEmployeesToStorage();
+
+        // 2. 급여 이력에서 해당 직원 제거
+        cleanupEmployeeFromPayrollHistory(employeeId);
+
+        // 3. 출퇴근 데이터에서 해당 직원 제거
+        cleanupEmployeeAttendanceData(employeeId);
+
         displayEmployeeList();
-        alert('✅ 삭제되었습니다!');
+        alert('✅ 삭제되었습니다!\n\n관련 급여/출퇴근 데이터도 정리되었습니다.');
         console.log('✅ 직원 삭제 완료:', emp.name);
     } else {
         console.log('❌ 삭제 취소됨');
     }
+}
+
+// 급여 이력에서 직원 데이터 제거
+function cleanupEmployeeFromPayrollHistory(employeeId) {
+    // 모든 월별 급여 이력 확인
+    const historyList = JSON.parse(localStorage.getItem('payrollHistoryList') || '[]');
+
+    historyList.forEach(item => {
+        const historyKey = `payrollHistory_${item.year}_${item.month}`;
+        const confirmKey = `payrollConfirmed_${item.year}_${item.month}`;
+
+        // 이력 데이터에서 제거
+        let historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+        if (historyData.data && Array.isArray(historyData.data)) {
+            historyData.data = historyData.data.filter(d => d.employeeId !== employeeId && d.id !== employeeId);
+        }
+        if (historyData.confirmedEmployees && Array.isArray(historyData.confirmedEmployees)) {
+            historyData.confirmedEmployees = historyData.confirmedEmployees.filter(id => id !== employeeId);
+        }
+
+        // 빈 데이터면 삭제, 아니면 업데이트
+        if (!historyData.data || historyData.data.length === 0) {
+            localStorage.removeItem(historyKey);
+        } else {
+            localStorage.setItem(historyKey, JSON.stringify(historyData));
+        }
+
+        // 확정 목록에서도 제거
+        let confirmedList = JSON.parse(localStorage.getItem(confirmKey) || '[]');
+        confirmedList = confirmedList.filter(id => id !== employeeId);
+        if (confirmedList.length === 0) {
+            localStorage.removeItem(confirmKey);
+        } else {
+            localStorage.setItem(confirmKey, JSON.stringify(confirmedList));
+        }
+    });
+
+    console.log('✅ 급여 이력에서 직원 데이터 정리 완료:', employeeId);
+}
+
+// 출퇴근 데이터에서 직원 데이터 제거
+function cleanupEmployeeAttendanceData(employeeId) {
+    // localStorage에서 해당 직원의 출퇴근 관련 키 찾아서 삭제
+    const keysToCheck = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+            key.startsWith(`attendance_${employeeId}`) ||
+            key.startsWith(`nightShiftDays_${employeeId}`) ||
+            key.startsWith(`leaveDays_${employeeId}`)
+        )) {
+            keysToCheck.push(key);
+        }
+    }
+
+    keysToCheck.forEach(key => {
+        localStorage.removeItem(key);
+    });
+
+    console.log('✅ 출퇴근 데이터 정리 완료:', keysToCheck.length, '개 항목 삭제');
 }
 
 // 직원 추가 모달 열기
@@ -704,10 +787,13 @@ function loadSettingsToForm() {
     const sundayLunchHoursEl = document.getElementById('settingSundayLunchHours');
     const sundayDinnerHoursEl = document.getElementById('settingSundayDinnerHours');
     const annualLeaveLunchMealEl = document.getElementById('settingAnnualLeaveLunchMeal');
-    const excusedAbsenceLunchMinHoursEl = document.getElementById('settingExcusedAbsenceLunchMinHours');
+    const sickLeaveLunchMealEl = document.getElementById('settingSickLeaveLunchMeal');
+    const specialLeaveLunchMealEl = document.getElementById('settingSpecialLeaveLunchMeal');
+    const excusedAbsenceLunchMealEl = document.getElementById('settingExcusedAbsenceLunchMeal');
     const nightShiftEnabledEl = document.getElementById('settingNightShiftEnabled');
     const nightNormalHoursEl = document.getElementById('settingNightNormalHours');
     const nightNightHoursEl = document.getElementById('settingNightNightHours');
+    const nightOTRateEl = document.getElementById('settingNightOTRate');
     const nightShiftTimeSettingsEl = document.getElementById('nightShiftTimeSettings');
 
     if (lunchMealEl) lunchMealEl.value = companySettings.lunchMeal || 25000;
@@ -728,10 +814,28 @@ function loadSettingsToForm() {
     if (sundayLunchHoursEl) sundayLunchHoursEl.value = companySettings.sundayLunchHours || 4;
     if (sundayDinnerHoursEl) sundayDinnerHoursEl.value = companySettings.sundayDinnerHours || 12;
     if (annualLeaveLunchMealEl) annualLeaveLunchMealEl.checked = companySettings.annualLeaveLunchMeal === true;
-    if (excusedAbsenceLunchMinHoursEl) excusedAbsenceLunchMinHoursEl.value = companySettings.excusedAbsenceLunchMinHours || 4;
+    if (sickLeaveLunchMealEl) sickLeaveLunchMealEl.checked = companySettings.sickLeaveLunchMeal === true;
+    if (specialLeaveLunchMealEl) specialLeaveLunchMealEl.checked = companySettings.specialLeaveLunchMeal === true;
+    if (excusedAbsenceLunchMealEl) excusedAbsenceLunchMealEl.checked = companySettings.excusedAbsenceLunchMeal === true;
     if (nightShiftEnabledEl) nightShiftEnabledEl.checked = companySettings.nightShiftEnabled === true;
     if (nightNormalHoursEl) nightNormalHoursEl.value = companySettings.nightNormalHours || 4.5;
     if (nightNightHoursEl) nightNightHoursEl.value = companySettings.nightNightHours || 3.5;
+    if (nightOTRateEl) nightOTRateEl.value = companySettings.nightOTRate || 2.0;
+
+    // 야간OT 비율 표시 업데이트
+    const nightOTRateDisplay = document.getElementById('nightOTRateDisplay');
+    if (nightOTRateDisplay) {
+        nightOTRateDisplay.textContent = Math.round((companySettings.nightOTRate || 2.0) * 100);
+    }
+
+    // 야간OT 비율 변경 시 표시 업데이트
+    if (nightOTRateEl) {
+        nightOTRateEl.addEventListener('change', function() {
+            if (nightOTRateDisplay) {
+                nightOTRateDisplay.textContent = Math.round(parseFloat(this.value) * 100);
+            }
+        });
+    }
 
     // 야간 설정 체크 상태에 따라 시간 설정 표시/숨기기
     if (nightShiftTimeSettingsEl) {
@@ -784,7 +888,9 @@ window.saveSettings = function() {
     const sundayLunchHoursEl = document.getElementById('settingSundayLunchHours');
     const sundayDinnerHoursEl = document.getElementById('settingSundayDinnerHours');
     const annualLeaveLunchMealEl = document.getElementById('settingAnnualLeaveLunchMeal');
-    const excusedAbsenceLunchMinHoursEl = document.getElementById('settingExcusedAbsenceLunchMinHours');
+    const sickLeaveLunchMealEl = document.getElementById('settingSickLeaveLunchMeal');
+    const specialLeaveLunchMealEl = document.getElementById('settingSpecialLeaveLunchMeal');
+    const excusedAbsenceLunchMealEl = document.getElementById('settingExcusedAbsenceLunchMeal');
     const nightShiftEnabledEl = document.getElementById('settingNightShiftEnabled');
     const nightNormalHoursEl = document.getElementById('settingNightNormalHours');
     const nightNightHoursEl = document.getElementById('settingNightNightHours');
@@ -807,10 +913,16 @@ window.saveSettings = function() {
     if (sundayLunchHoursEl) companySettings.sundayLunchHours = parseFloat(sundayLunchHoursEl.value) || 4;
     if (sundayDinnerHoursEl) companySettings.sundayDinnerHours = parseFloat(sundayDinnerHoursEl.value) || 12;
     if (annualLeaveLunchMealEl) companySettings.annualLeaveLunchMeal = annualLeaveLunchMealEl.checked;
-    if (excusedAbsenceLunchMinHoursEl) companySettings.excusedAbsenceLunchMinHours = parseFloat(excusedAbsenceLunchMinHoursEl.value) || 0;
+    if (excusedAbsenceLunchMealEl) companySettings.excusedAbsenceLunchMeal = excusedAbsenceLunchMealEl.checked;
+    if (sickLeaveLunchMealEl) companySettings.sickLeaveLunchMeal = sickLeaveLunchMealEl.checked;
+    if (specialLeaveLunchMealEl) companySettings.specialLeaveLunchMeal = specialLeaveLunchMealEl.checked;
     if (nightShiftEnabledEl) companySettings.nightShiftEnabled = nightShiftEnabledEl.checked;
     if (nightNormalHoursEl) companySettings.nightNormalHours = parseFloat(nightNormalHoursEl.value) || 4.5;
     if (nightNightHoursEl) companySettings.nightNightHours = parseFloat(nightNightHoursEl.value) || 3.5;
+
+    // 야간OT 비율 저장
+    const nightOTRateEl = document.getElementById('settingNightOTRate');
+    if (nightOTRateEl) companySettings.nightOTRate = parseFloat(nightOTRateEl.value) || 2.0;
 
     // 보험료율 설정
     const empSocialEl = document.getElementById('settingEmployeeSocial');

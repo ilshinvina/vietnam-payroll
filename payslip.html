@@ -2,14 +2,8 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>급여명세서</title>
-    <style>
-        @page {
-            size: A4;
-            margin: 10mm;
-        }
-    </style>
     <style>
         * {
             margin: 0;
@@ -18,266 +12,328 @@
         }
 
         body {
-            font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-            line-height: 1.6;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
         }
 
         .payslip-container {
-            max-width: 800px;
+            max-width: 450px;
             margin: 0 auto;
             background: white;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            border-radius: 10px;
-            page-break-inside: avoid;
-            break-inside: avoid;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
         }
 
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px;
+            padding: 20px;
             text-align: center;
         }
 
-        .company-logo {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 15px;
-            border-radius: 50%;
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2em;
-            color: #667eea;
-        }
-
-        .company-logo img {
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 50%;
-        }
-
-        .company-name {
-            font-size: 1.5em;
+        .header .company-name {
+            font-size: 1.3em;
             font-weight: bold;
             margin-bottom: 5px;
         }
 
-        .document-title {
-            font-size: 1.8em;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
-        .period {
-            font-size: 1.1em;
-            margin-top: 5px;
+        .header .period {
+            font-size: 0.95em;
             opacity: 0.9;
         }
 
+        .employee-info {
+            background: #f8f9ff;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .employee-info .name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .employee-info .code {
+            font-size: 0.85em;
+            color: #666;
+        }
+
         .section {
-            padding: 25px 30px;
-            page-break-inside: avoid;
-            break-inside: avoid;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
         }
 
         .section-title {
-            font-size: 1.2em;
+            font-size: 0.9em;
             font-weight: bold;
             color: #667eea;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px dashed #e0e0e0;
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
-        }
-
-        .info-label {
-            color: #666;
-            font-weight: 500;
-        }
-
-        .info-value {
-            font-weight: bold;
-            color: #333;
-            text-align: right;
-        }
-
-        .sub-item {
-            padding-left: 20px;
-            font-size: 0.95em;
-            color: #888;
-        }
-
-        .sub-item .info-label {
-            color: #888;
-        }
-
-        .total-section {
-            background: #f9f9f9;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .net-salary-label {
-            font-size: 1.3em;
-            color: #666;
             margin-bottom: 10px;
         }
 
-        .net-salary-amount {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #4caf50;
-            margin-bottom: 5px;
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.9em;
         }
 
-        .net-salary-text {
-            font-size: 1.1em;
-            color: #888;
+        .row .label {
+            color: #555;
+        }
+
+        .row .value {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .row.highlight {
+            background: #f0f4ff;
+            margin: 5px -10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+        }
+
+        .row.highlight .label,
+        .row.highlight .value {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .row.deduction .value {
+            color: #e53935;
+        }
+
+        .total-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .total-section .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .total-section .amount {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-top: 5px;
         }
 
         .footer {
-            padding: 20px;
+            padding: 15px 20px;
             text-align: center;
             color: #888;
-            font-size: 0.9em;
-            background: #fafafa;
+            font-size: 0.8em;
         }
 
-        .button-container {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
+        .calendar-section {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+            margin-top: 10px;
+        }
+
+        .calendar-header {
+            text-align: center;
+            font-size: 0.7em;
+            font-weight: bold;
+            padding: 5px 0;
+            color: #666;
+        }
+
+        .calendar-header.sunday {
+            color: #e53935;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
             display: flex;
-            gap: 15px;
-            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 0.75em;
+            border: 1px solid #eee;
+            position: relative;
+            padding: 4px;
         }
 
-        .action-button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 50px;
+        .calendar-day .day-num {
+            font-weight: 600;
             font-size: 1.1em;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            transition: all 0.3s;
         }
 
-        .action-button:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        .calendar-day .day-label {
+            font-size: 0.65em;
+            margin-top: 2px;
+        }
+
+        /* 근무 표시 (동그라미 + 시간) */
+        .work-indicators {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            margin-top: 2px;
+            width: 100%;
+            font-size: 0.6em;
+        }
+
+        .work-item {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            justify-content: center;
+        }
+
+        .work-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .work-dot.overtime {
+            background: #ffa000;
+        }
+
+        .work-dot.night {
+            background: #1976d2;
+        }
+
+        .work-dot.sunday-work {
+            background: #e64a19;
+        }
+
+        .work-dot.night-ot {
+            background: #7b1fa2;
+        }
+
+        .work-hours {
+            font-weight: 500;
+            line-height: 1;
+        }
+
+        .calendar-day.normal {
+            background: white;
+            color: #333;
+        }
+
+        .calendar-day.sunday {
+            background: #ffebee;
+            color: #e53935;
+            border-color: #ffcdd2;
+        }
+
+        .calendar-day.holiday {
+            background: #fff3e0;
+            color: #e65100;
+            border-color: #ffcc80;
+        }
+
+        .calendar-day.annual {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-color: #a5d6a7;
+        }
+
+        .calendar-day.excused {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-color: #90caf9;
+        }
+
+        .calendar-day.absent {
+            background: #333;
+            color: white;
+            border-color: #333;
+        }
+
+        .calendar-day.family {
+            background: #f3e5f5;
+            color: #9c27b0;
+            border-color: #ce93d8;
+        }
+
+        .calendar-day.empty {
+            background: transparent;
+            border: none;
+        }
+
+        .calendar-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 0.7em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .legend-box {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+
+        /* 버튼 스타일 */
+        .button-section {
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            color: white;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-pdf {
+            background: linear-gradient(135deg, #ff9a44 0%, #fc6075 100%);
         }
 
         .btn-html {
-            background: #4caf50;
+            background: linear-gradient(135deg, #2af598 0%, #009efd 100%);
         }
 
-        .btn-html:hover {
-            background: #45a049;
+        .btn-print {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        /* PDF/인쇄 최적화 */
-        @media print {
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                color-adjust: exact !important;
-            }
-
-            body {
-                padding: 0 !important;
-                margin: 0 !important;
-                background: white !important;
-            }
-
-            .payslip-container {
-                box-shadow: none !important;
-                border-radius: 0 !important;
-                max-width: 100% !important;
-                width: 100% !important;
-                margin: 0 !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-
-            .button-container {
-                display: none !important;
-            }
-
-            .header {
-                page-break-after: avoid !important;
-                break-after: avoid !important;
-            }
-
-            .section {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-
-            .total-section {
-                page-break-before: avoid !important;
-                break-before: avoid !important;
-            }
-
-            .footer {
-                page-break-before: avoid !important;
-                break-before: avoid !important;
-            }
-        }
-
-        /* 모바일 최적화 */
-        @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-
-            .header {
-                padding: 20px;
-            }
-
-            .company-name {
-                font-size: 1.2em;
-            }
-
-            .document-title {
-                font-size: 1.5em;
-            }
-
-            .section {
-                padding: 20px 15px;
-            }
-
-            .net-salary-amount {
-                font-size: 2em;
-            }
-
-            .button-container {
-                bottom: 15px;
-                right: 15px;
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .action-button {
-                padding: 12px 20px;
-                font-size: 1em;
-            }
+        .btn-close {
+            background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
         }
     </style>
 </head>
@@ -285,579 +341,611 @@
     <div class="payslip-container">
         <!-- 헤더 -->
         <div class="header">
-            <div class="company-logo" id="companyLogo">🏢</div>
             <div class="company-name" id="companyName">회사명</div>
-            <div class="document-title">급여명세서</div>
-            <div class="period" id="period">2025년 4월</div>
+            <div class="period" id="period">급여명세서 - 00/0000</div>
         </div>
 
         <!-- 직원 정보 -->
-        <div class="section">
-            <div class="section-title">👤 직원 정보</div>
-            <div class="info-row">
-                <span class="info-label">성명</span>
-                <span class="info-value" id="empName">-</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">기본급</span>
-                <span class="info-value" id="empBasicSalary">-</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">부양가족</span>
-                <span class="info-value" id="empDependents">-</span>
-            </div>
+        <div class="employee-info">
+            <div class="name" id="employeeName">직원명</div>
+            <div class="code" id="employeeCode">직원코드 | 부서</div>
         </div>
 
-        <!-- 근무 통계 -->
-        <div class="section">
-            <div class="section-title">📊 근무 통계</div>
-            <div class="info-row">
-                <span class="info-label">총 일수</span>
-                <span class="info-value" id="statTotalDays">-</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">실 근무일</span>
-                <span class="info-value" id="statWorkDays">-</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">정규 근무시간</span>
-                <span class="info-value" id="statNormalHours">-</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">야근시간 (150%)</span>
-                <span class="info-value" id="statOvertime">-</span>
-            </div>
-            <div class="info-row" id="rowStatNight" style="display: none;">
-                <span class="info-label">야간시간 (130%)</span>
-                <span class="info-value" id="statNight">-</span>
-            </div>
-            <div class="info-row" id="rowStatNightOT" style="display: none;">
-                <span class="info-label">야간+OT (200%)</span>
-                <span class="info-value" id="statNightOT">-</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">일요일 특근 (200%)</span>
-                <span class="info-value" id="statSunday">-</span>
-            </div>
-        </div>
-
-        <!-- 급여 상세 -->
+        <!-- 💵 급여 상세 -->
         <div class="section">
             <div class="section-title">💵 급여 상세</div>
-            <div class="info-row">
-                <span class="info-label">정규 근무 급여</span>
-                <span class="info-value" id="payNormal">-</span>
+            <div class="row">
+                <span class="label">기본급</span>
+                <span class="value" id="basicSalary">0 원</span>
             </div>
-            <div class="info-row">
-                <span class="info-label">야근 수당 (150%)</span>
-                <span class="info-value" id="payOvertime">-</span>
+            <div class="row">
+                <span class="label">근무일수</span>
+                <span class="value" id="workDays">0 일</span>
             </div>
-            <div class="info-row" id="rowPayNight" style="display: none;">
-                <span class="info-label">야간 수당 (130%)</span>
-                <span class="info-value" id="payNight">-</span>
+            <div class="row">
+                <span class="label">정규 급여</span>
+                <span class="value" id="normalPay">0 원</span>
             </div>
-            <div class="info-row" id="rowPayNightOT" style="display: none;">
-                <span class="info-label">야간+OT 수당 (200%)</span>
-                <span class="info-value" id="payNightOT">-</span>
+            <div class="row" id="overtimeRow" style="display:none;">
+                <span class="label" id="overtimeLabel">야근 (0h x 150%)</span>
+                <span class="value" id="overtimePay">0 원</span>
             </div>
-            <div class="info-row">
-                <span class="info-label">일요일 수당 (200%)</span>
-                <span class="info-value" id="paySunday">-</span>
+            <div class="row" id="nightRow" style="display:none;">
+                <span class="label" id="nightLabel">야간 (0h x 30%)</span>
+                <span class="value" id="nightPay">0 원</span>
             </div>
-            <div class="info-row" style="margin-top: 10px; padding-top: 15px;">
-                <span class="info-label" style="font-weight: bold;">💵 총 급여 기본액</span>
-                <span class="info-value" style="color: #2196f3; font-weight: bold; font-size: 1.1em;" id="totalBasicPay">-</span>
+            <div class="row" id="nightOTRow" style="display:none;">
+                <span class="label" id="nightOTLabel">야간OT (0h x 195%)</span>
+                <span class="value" id="nightOTPay">0 원</span>
+            </div>
+            <div class="row" id="sundayRow" style="display:none;">
+                <span class="label" id="sundayLabel">일요일 (0h x 200%)</span>
+                <span class="value" id="sundayPay">0 원</span>
+            </div>
+            <div class="row highlight">
+                <span class="label">💰 총 급여 상세</span>
+                <span class="value" id="salaryDetailTotal">0 원</span>
             </div>
         </div>
 
-        <!-- 수당 -->
+        <!-- 🎁 수당 -->
         <div class="section">
             <div class="section-title">🎁 수당</div>
-            <div class="info-row">
-                <span class="info-label">🍚 총 식대 (<span id="totalMealCount">0</span>식)</span>
-                <span class="info-value" id="allowanceMeal">-</span>
+            <div class="row">
+                <span class="label">식대</span>
+                <span class="value" id="mealAllowance">0 원</span>
             </div>
-            <div class="info-row sub-item" id="mealWeekdayLunchRow">
-                <span class="info-label">└ 평일 점심</span>
-                <span class="info-value" id="mealWeekdayLunch">-</span>
+            <div id="dynamicAllowancesList"></div>
+            <div class="row" id="specialAllowanceRow" style="display:none;">
+                <span class="label">💎 특별수당</span>
+                <span class="value" id="specialAllowance">0 원</span>
             </div>
-            <div class="info-row sub-item" id="mealWeekdayDinnerRow">
-                <span class="info-label">└ 평일 저녁 (야근)</span>
-                <span class="info-value" id="mealWeekdayDinner">-</span>
-            </div>
-            <div class="info-row sub-item" id="mealSundayLunchRow">
-                <span class="info-label">└ 일요일 점심</span>
-                <span class="info-value" id="mealSundayLunch">-</span>
-            </div>
-            <div class="info-row sub-item" id="mealSundayDinnerRow">
-                <span class="info-label">└ 일요일 저녁</span>
-                <span class="info-value" id="mealSundayDinner">-</span>
-            </div>
-            <div class="info-row sub-item" id="mealAnnualLeaveLunchRow">
-                <span class="info-label">└ 연차 점심</span>
-                <span class="info-value" id="mealAnnualLeaveLunch">-</span>
-            </div>
-            <div class="info-row sub-item" id="mealExcusedAbsentLunchRow">
-                <span class="info-label">└ 사유결근 점심</span>
-                <span class="info-value" id="mealExcusedAbsentLunch">-</span>
-            </div>
-            <!-- 동적 수당 컨테이너 -->
-            <div id="dynamicAllowancesContainer"></div>
-            <!-- 특수수당 -->
-            <div class="info-row" id="specialAllowanceRow" style="display: none; border-top: 2px solid #9c27b0; margin-top: 10px; padding-top: 10px;">
-                <span class="info-label" style="color: #9c27b0; font-weight: bold;">💎 특수수당 (Phụ cấp đặc biệt)</span>
-                <span class="info-value" style="color: #9c27b0; font-weight: bold;" id="specialAllowanceValue">-</span>
-            </div>
-            <div class="info-row" style="margin-top: 10px; padding-top: 15px;">
-                <span class="info-label" style="font-weight: bold;">🎁 총 수당</span>
-                <span class="info-value" style="color: #4caf50; font-weight: bold; font-size: 1.1em;" id="totalAllowances">-</span>
+            <div class="row highlight" style="background:#e8f5e9;">
+                <span class="label" style="color:#4caf50;">💵 총 수당</span>
+                <span class="value" style="color:#4caf50;" id="allowanceTotal">0 원</span>
             </div>
         </div>
 
-        <!-- 공제 -->
-        <div class="section">
-            <div class="section-title">➖ 공제</div>
-            <div class="info-row">
-                <span class="info-label">BHXH (사회보험)</span>
-                <span class="info-value" id="deductSocial">-</span>
+        <!-- 💰 총 급여 -->
+        <div class="section" style="background:#e8f5e9;">
+            <div class="section-title" style="color:#4caf50;">💰 총 급여</div>
+            <div class="row">
+                <span class="label">급여 상세</span>
+                <span class="value" id="salaryDetailTotal2">0 원</span>
             </div>
-            <div class="info-row">
-                <span class="info-label">BHYT (건강보험)</span>
-                <span class="info-value" id="deductHealth">-</span>
+            <div class="row">
+                <span class="label">+ 수당</span>
+                <span class="value" id="allowanceTotal2">0 원</span>
             </div>
-            <div class="info-row">
-                <span class="info-label">BHTN (실업보험)</span>
-                <span class="info-value" id="deductUnemploy">-</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">개인소득세</span>
-                <span class="info-value" id="deductTax">-</span>
-            </div>
-            <!-- 선금 -->
-            <div class="info-row" id="advancePaymentRow" style="display: none; border-top: 2px solid #ff9800; margin-top: 10px; padding-top: 10px;">
-                <span class="info-label" style="color: #ff9800; font-weight: bold;">💰 선금 차감 (Ứng lương)</span>
-                <span class="info-value" style="color: #ff9800; font-weight: bold;" id="advancePaymentValue">-</span>
-            </div>
-            <div class="info-row" style="margin-top: 10px; padding-top: 15px;">
-                <span class="info-label" style="font-weight: bold;">총 공제액</span>
-                <span class="info-value" style="color: #e53935;" id="deductTotal">-</span>
+            <div class="row highlight" style="background:#c8e6c9;">
+                <span class="label" style="color:#2e7d32;font-size:1.1em;">= 총 급여</span>
+                <span class="value" style="color:#2e7d32;font-size:1.2em;" id="totalSalary">0 원</span>
             </div>
         </div>
 
-        <!-- 최종 정산 요약 -->
-        <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white;">
-            <div class="section-title" style="color: white; font-size: 1.2em;">📊 최종 정산</div>
-            <div class="info-row" style="border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 8px;">
-                <span class="info-label" style="color: rgba(255,255,255,0.9);">급여 상세 합계</span>
-                <span class="info-value" style="color: white;" id="finalBasicPayTotal">-</span>
+        <!-- 🥼 보험료 공제 -->
+        <div class="section" id="insuranceSection">
+            <div class="section-title" style="color:#f57c00;">🥼 보험료 공제 (10.5%)</div>
+            <div class="row deduction">
+                <span class="label">사회보험 (8%)</span>
+                <span class="value" id="socialIns">-0 원</span>
             </div>
-            <div class="info-row" style="border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 8px;">
-                <span class="info-label" style="color: rgba(255,255,255,0.9);">수당 합계</span>
-                <span class="info-value" style="color: white;" id="finalAllowanceTotal">-</span>
+            <div class="row deduction">
+                <span class="label">건강보험 (1.5%)</span>
+                <span class="value" id="healthIns">-0 원</span>
             </div>
-            <div class="info-row" style="border-bottom: 2px solid white; padding-bottom: 12px; margin-bottom: 12px;">
-                <span class="info-label" style="color: white; font-weight: bold; font-size: 1.1em;">= 총 급여</span>
-                <span class="info-value" style="color: #ffd700; font-weight: bold; font-size: 1.2em;" id="finalTotalSalary">-</span>
+            <div class="row deduction">
+                <span class="label">실업보험 (1%)</span>
+                <span class="value" id="unemployIns">-0 원</span>
             </div>
-            <div class="info-row">
-                <span class="info-label" style="color: rgba(255,255,255,0.9);">- 보험료 공제</span>
-                <span class="info-value" style="color: #ffcccc;" id="finalInsuranceDeduct">-</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label" style="color: rgba(255,255,255,0.9);">- 개인소득세</span>
-                <span class="info-value" style="color: #ffcccc;" id="finalTaxDeduct">-</span>
-            </div>
-            <div class="info-row" id="finalAdvanceRow" style="display: none;">
-                <span class="info-label" style="color: rgba(255,255,255,0.9);">- 선금</span>
-                <span class="info-value" style="color: #ffcccc;" id="finalAdvanceDeduct">-</span>
+            <div class="row highlight deduction">
+                <span class="label">총 공제액</span>
+                <span class="value" id="totalDeduction">-0 원</span>
             </div>
         </div>
 
-        <!-- 실수령액 -->
+        <!-- 🧾 소득세 -->
+        <div class="section" id="taxSection">
+            <div class="section-title" style="color:#e91e63;">🧾 소득세</div>
+            <div class="row">
+                <span class="label">과세소득</span>
+                <span class="value" id="taxableIncome">0 원</span>
+            </div>
+            <div class="row">
+                <span class="label">본인 공제</span>
+                <span class="value">-11,000,000 원</span>
+            </div>
+            <div class="row" id="dependentRow" style="display:none;">
+                <span class="label" id="dependentLabel">부양가족 공제 (0×4,400,000)</span>
+                <span class="value" id="dependentDeduction">-0 원</span>
+            </div>
+            <div class="row" style="border-top:1px dashed #ddd;padding-top:6px;margin-top:6px;">
+                <span class="label">과세표준</span>
+                <span class="value" id="taxBase">0 원</span>
+            </div>
+            <div class="row highlight deduction" style="background:#fce4ec;">
+                <span class="label" style="color:#e91e63;">💰 소득세</span>
+                <span class="value" style="color:#e91e63;" id="incomeTax">-0 원</span>
+            </div>
+        </div>
+
+        <!-- 🎁 비과세 내역 -->
+        <div class="section" id="taxFreeSection" style="background:#e8f5e9;">
+            <div class="section-title" style="color:#4caf50;">🎁 비과세 내역</div>
+            <div class="row">
+                <span class="label">💚 식대 (100%)</span>
+                <span class="value" style="color:#4caf50;" id="taxFreeMeal">0 원</span>
+            </div>
+            <div class="row" id="taxFreeOTRow" style="display:none;">
+                <span class="label">💚 야근 비과세 (1/3)</span>
+                <span class="value" style="color:#4caf50;" id="taxFreeOT">0 원</span>
+            </div>
+            <div class="row" id="taxFreeSundayRow" style="display:none;">
+                <span class="label">💚 일요일 비과세 (1/2)</span>
+                <span class="value" style="color:#4caf50;" id="taxFreeSunday">0 원</span>
+            </div>
+            <div class="row highlight" style="background:#c8e6c9;">
+                <span class="label" style="color:#2e7d32;">총 비과세</span>
+                <span class="value" style="color:#2e7d32;" id="totalTaxFree">0 원</span>
+            </div>
+        </div>
+
+        <!-- 선금 차감 -->
+        <div class="section" id="advanceSection" style="display:none;">
+            <div class="section-title" style="color:#ff5722;">💸 선금 차감</div>
+            <div class="row deduction">
+                <span class="label">선금액</span>
+                <span class="value" id="advancePayment">-0 원</span>
+            </div>
+        </div>
+
+        <!-- 💵 실수령액 -->
         <div class="total-section">
-            <div class="net-salary-label">💰 실수령액</div>
-            <div class="net-salary-amount" id="netSalary">0 đ</div>
-            <div class="net-salary-text" id="netSalaryText">-</div>
+            <div class="label">💵 실수령액</div>
+            <div class="amount" id="netSalary">0 원</div>
+            <div style="font-size:0.8em;opacity:0.9;margin-top:5px;">
+                총 급여 - 보험료 - 소득세 - 선금
+            </div>
+        </div>
+
+        <!-- 📅 근무 달력 -->
+        <div class="calendar-section">
+            <div class="section-title">📅 근무 달력 - 00/0000</div>
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- 달력이 여기에 생성됩니다 -->
+            </div>
+            <div class="calendar-legend">
+                <!-- 배경 상태 -->
+                <div class="legend-item">
+                    <div class="legend-box" style="background:white;"></div>
+                    <span>근무</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background:#ffebee;"></div>
+                    <span>일요일</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background:#fff3e0;"></div>
+                    <span>공휴일</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background:#e8f5e9;"></div>
+                    <span>연차</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background:#e3f2fd;"></div>
+                    <span>병가</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background:#f3e5f5;"></div>
+                    <span>경조사</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background:#333;"></div>
+                    <span>결근</span>
+                </div>
+                <!-- 동그라미 표시 -->
+                <div style="width:100%; height:1px; background:#ddd; margin:5px 0;"></div>
+                <div class="legend-item">
+                    <div style="width:10px;height:10px;border-radius:50%;background:#ffd700;border:1px solid #ddd;"></div>
+                    <span>야근</span>
+                </div>
+                <div class="legend-item">
+                    <div style="width:10px;height:10px;border-radius:50%;background:#1e88e5;border:1px solid #ddd;"></div>
+                    <span>야간</span>
+                </div>
+                <div class="legend-item">
+                    <div style="width:10px;height:10px;border-radius:50%;background:#ff6f00;border:1px solid #ddd;"></div>
+                    <span>일특근</span>
+                </div>
+                <div class="legend-item">
+                    <div style="width:10px;height:10px;border-radius:50%;background:#9c27b0;border:1px solid #ddd;"></div>
+                    <span>야간OT</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 버튼 -->
+        <div class="button-section">
+            <div class="btn-row">
+                <button class="btn btn-pdf" onclick="downloadPDF()">📄 PDF 다운로드</button>
+                <button class="btn btn-html" onclick="downloadHTML()">📁 HTML 다운로드</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-print" onclick="window.print()">🖨️ 인쇄 / Print</button>
+                <button class="btn btn-close" onclick="window.close()">❌ 닫기 / Close</button>
+            </div>
         </div>
 
         <!-- 푸터 -->
         <div class="footer">
-            <p>본 급여명세서는 전자문서로 발행되었습니다.</p>
-            <p id="printDate">발행일: -</p>
+            <div>생성일 / Created: <span id="createdDate"></span></div>
+            <div>Vietnam Payroll System</div>
         </div>
     </div>
 
-    <!-- 저장 버튼 -->
-    <div class="button-container">
-        <button class="action-button btn-html" onclick="saveAsHTML()">📄 HTML 저장</button>
-        <button class="action-button" onclick="downloadPDF()">💾 PDF 저장</button>
-    </div>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
-        // 숫자 포맷팅 (회사 설정에 따라)
+        // URL 파라미터에서 데이터 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const dataString = urlParams.get('data');
+        
+        if (!dataString) {
+            alert('❌ 데이터가 없습니다!');
+        } else {
+            const data = JSON.parse(decodeURIComponent(dataString));
+            console.log('📦 받은 데이터:', data);
+            displayPayslip(data);
+        }
+
         function formatNumber(num) {
-            const rounded = Math.round(num);
-
-            // 현재 회사 설정 가져오기
-            const currentCompanyId = localStorage.getItem('currentCompanyId');
-            const companyProfiles = JSON.parse(localStorage.getItem('companyProfiles') || '{}');
-            const company = companyProfiles[currentCompanyId] || {};
-
-            const numberFormat = company.numberFormat || 'comma';
-
-            let locale;
-            if (numberFormat === 'comma') {
-                locale = 'en-US';  // 1,234,567
-            } else if (numberFormat === 'dot') {
-                locale = 'de-DE';  // 1.234.567
-            } else {
-                locale = 'fr-FR';  // 1 234 567
-            }
-
-            return new Intl.NumberFormat(locale).format(rounded);
+            return Math.round(num).toLocaleString('ko-KR');
         }
 
-        // URL에서 데이터 가져오기
-        function loadPayslipData() {
-            // 1. embedded 데이터 확인 (HTML 파일로 저장된 경우)
-            if (typeof EMBEDDED_PAYSLIP_DATA !== 'undefined') {
-                console.log('===== 📱 급여명세서 페이지 로드 (Embedded Data) =====');
-                console.log('✅ 파일에 포함된 데이터 사용');
-                displayPayslip(EMBEDDED_PAYSLIP_DATA);
-                return;
-            }
-
-            // 2. URL 파라미터 확인 (일반적인 경우)
-            const urlParams = new URLSearchParams(window.location.search);
-            const data = urlParams.get('data');
-
-            console.log('===== 📱 급여명세서 페이지 로드 (URL Parameter) =====');
-            console.log('URL에서 data 파라미터 확인...');
-
-            if (!data) {
-                console.error('❌ 급여 데이터가 없습니다!');
-                alert('급여 데이터가 없습니다!\n\n급여 입력 화면에서 "📱 모바일 급여명세서" 버튼을 눌러주세요.');
-                return;
-            }
-
-            console.log('✅ data 파라미터 존재 (길이:', data.length, ')');
-
-            try {
-                const payslipData = JSON.parse(decodeURIComponent(data));
-                console.log('✅ JSON 파싱 성공');
-                displayPayslip(payslipData);
-            } catch (e) {
-                console.error('❌ 데이터 로드 실패:', e);
-                alert('급여 데이터를 불러올 수 없습니다!');
-            }
-        }
-
-        // 급여명세서 표시
         function displayPayslip(data) {
-            // 데이터 저장 (PDF 생성 시 사용)
-            currentPayslipData = data;
-
-            // PDF 파일명 설정 (브라우저가 이 제목을 기본 파일명으로 사용)
-            document.title = `${data.employeeName}_${data.year}년${data.month}월_급여명세서`;
-
-            console.log('==========================================');
-            console.log('===== 📱 모바일 급여명세서 데이터 수신 =====');
-            console.log('==========================================');
-            console.log('📦 받은 전체 데이터:', data);
-            console.log('🏢 회사명:', data.companyName);
-            console.log('🖼️ 회사 로고:', data.companyLogo);
-            console.log('👤 직원명:', data.employeeName);
-            console.log('📅 연도:', data.year);
-            console.log('📅 월:', data.month);
-            console.log('💰 기본급:', data.basicSalary);
-            console.log('💎 특수수당:', data.specialAllowance);
-            console.log('💰 선금:', data.advancePayment);
-            console.log('==========================================');
-
-            // 회사 정보
-            const companyNameElement = document.getElementById('companyName');
-            const companyLogoElement = document.getElementById('companyLogo');
-
-            console.log('🎯 회사명 표시 시작...');
-            console.log('   - Element:', companyNameElement);
-            console.log('   - 표시할 값:', data.companyName || '회사명');
-            companyNameElement.textContent = data.companyName || '회사명';
-            console.log('✅ 회사명 표시 완료:', companyNameElement.textContent);
-
-            console.log('🎯 로고 표시 시작...');
-            console.log('   - Element:', companyLogoElement);
-            if (data.companyLogo) {
-                console.log('   - 로고 URL 있음:', data.companyLogo);
-                companyLogoElement.innerHTML = `<img src="${data.companyLogo}" alt="로고">`;
-                console.log('✅ 로고 이미지 설정 완료');
-            } else {
-                console.log('   - 로고 URL 없음 - 기본 아이콘 사용');
-                companyLogoElement.innerHTML = '🏢';
-                console.log('✅ 기본 아이콘 설정 완료');
-            }
-
-            // 기간
-            document.getElementById('period').textContent = `${data.year}년 ${data.month}월`;
+            // 헤더
+            document.getElementById('companyName').textContent = data.companyName || '회사명';
+            document.getElementById('period').textContent = `급여명세서 - ${data.month}/${data.year}`;
 
             // 직원 정보
-            document.getElementById('empName').textContent = data.employeeName;
-            document.getElementById('empBasicSalary').textContent = formatNumber(data.basicSalary) + ' đ';
-            document.getElementById('empDependents').textContent = data.dependents + '명';
-
-            // 근무 통계
-            document.getElementById('statTotalDays').textContent = data.totalDays + '일';
-            document.getElementById('statWorkDays').textContent = data.workDays + '일';
-            document.getElementById('statNormalHours').textContent = data.normalHours + 'h';
-            document.getElementById('statOvertime').textContent = data.overtimeHours + 'h';
-            document.getElementById('statNight').textContent = data.nightHours + 'h';
-            document.getElementById('statNightOT').textContent = (data.nightOTHours || 0) + 'h';
-            document.getElementById('statSunday').textContent = data.sundayHours + 'h';
-
-            // 야간 설정에 따라 야간 항목 표시/숨김
-            console.log('🌙 nightShiftEnabled:', data.nightShiftEnabled);
-            if (data.nightShiftEnabled) {
-                console.log('🌙 야간 항목 표시!');
-                document.getElementById('rowStatNight').style.display = '';
-                document.getElementById('rowStatNightOT').style.display = '';
-                document.getElementById('rowPayNight').style.display = '';
-                document.getElementById('rowPayNightOT').style.display = '';
-            } else {
-                console.log('☀️ 야간 항목 숨김');
-            }
+            document.getElementById('employeeName').textContent = data.employeeName || '직원명';
+            document.getElementById('employeeCode').textContent = '직원코드 | 부서';
 
             // 급여 상세
-            document.getElementById('payNormal').textContent = formatNumber(data.normalPay) + ' đ';
-            document.getElementById('payOvertime').textContent = formatNumber(data.overtimePay) + ' đ';
-            document.getElementById('payNight').textContent = formatNumber(data.nightPay) + ' đ';
-            document.getElementById('payNightOT').textContent = formatNumber(data.nightOTPay || 0) + ' đ';
-            document.getElementById('paySunday').textContent = formatNumber(data.sundayPay) + ' đ';
+            document.getElementById('basicSalary').textContent = formatNumber(data.basicSalary) + ' 원';
+            document.getElementById('workDays').textContent = data.workDays + ' 일';
+            document.getElementById('normalPay').textContent = formatNumber(data.normalPay) + ' 원';
 
-            // 총 급여 기본액 (정규 + 야근 + 야간 + 야간OT + 일요일)
-            const totalBasicPay = data.normalPay + data.overtimePay + data.nightPay + (data.nightOTPay || 0) + data.sundayPay;
-            document.getElementById('totalBasicPay').textContent = formatNumber(totalBasicPay) + ' đ';
-
-            // 수당 - 식대
-            document.getElementById('totalMealCount').textContent = data.totalMealCount;
-            document.getElementById('allowanceMeal').textContent = formatNumber(data.mealAllowance) + ' đ';
-
-            // 식대 세부 (0식인 항목 숨김)
-            if (data.weekdayLunchCount > 0) {
-                document.getElementById('mealWeekdayLunch').textContent =
-                    `${data.weekdayLunchCount}식 × ${formatNumber(data.lunchMeal)}đ = ${formatNumber(data.weekdayLunchCount * data.lunchMeal)}đ`;
-            } else {
-                document.getElementById('mealWeekdayLunchRow').style.display = 'none';
+            // 야근
+            if (data.overtimeHours > 0) {
+                document.getElementById('overtimeRow').style.display = '';
+                document.getElementById('overtimeLabel').textContent = `야근 (${data.overtimeHours}h × 150%)`;
+                document.getElementById('overtimePay').textContent = formatNumber(data.overtimePay) + ' 원';
             }
 
-            if (data.weekdayDinnerCount > 0) {
-                document.getElementById('mealWeekdayDinner').textContent =
-                    `${data.weekdayDinnerCount}식 × ${formatNumber(data.dinnerMeal)}đ = ${formatNumber(data.weekdayDinnerCount * data.dinnerMeal)}đ`;
-            } else {
-                document.getElementById('mealWeekdayDinnerRow').style.display = 'none';
+            // 야간
+            if (data.nightHours > 0) {
+                document.getElementById('nightRow').style.display = '';
+                document.getElementById('nightLabel').textContent = `야간 (${data.nightHours}h × 30%)`;
+                document.getElementById('nightPay').textContent = formatNumber(data.nightPay) + ' 원';
             }
 
-            if (data.sundayLunchCount > 0) {
-                document.getElementById('mealSundayLunch').textContent =
-                    `${data.sundayLunchCount}식 × ${formatNumber(data.lunchMeal)}đ = ${formatNumber(data.sundayLunchCount * data.lunchMeal)}đ`;
-            } else {
-                document.getElementById('mealSundayLunchRow').style.display = 'none';
+            // 야간OT
+            if (data.nightOTHours > 0) {
+                document.getElementById('nightOTRow').style.display = '';
+                document.getElementById('nightOTLabel').textContent = `야간OT (${data.nightOTHours}h × 195%)`;
+                document.getElementById('nightOTPay').textContent = formatNumber(data.nightOTPay) + ' 원';
             }
 
-            if (data.sundayDinnerCount > 0) {
-                document.getElementById('mealSundayDinner').textContent =
-                    `${data.sundayDinnerCount}식 × ${formatNumber(data.dinnerMeal)}đ = ${formatNumber(data.sundayDinnerCount * data.dinnerMeal)}đ`;
-            } else {
-                document.getElementById('mealSundayDinnerRow').style.display = 'none';
+            // 일요일
+            if (data.sundayHours > 0) {
+                document.getElementById('sundayRow').style.display = '';
+                document.getElementById('sundayLabel').textContent = `일요일 (${data.sundayHours}h × 200%)`;
+                document.getElementById('sundayPay').textContent = formatNumber(data.sundayPay) + ' 원';
             }
 
-            if (data.annualLeaveLunchCount > 0) {
-                document.getElementById('mealAnnualLeaveLunch').textContent =
-                    `${data.annualLeaveLunchCount}식 × ${formatNumber(data.lunchMeal)}đ = ${formatNumber(data.annualLeaveLunchCount * data.lunchMeal)}đ`;
-            } else {
-                document.getElementById('mealAnnualLeaveLunchRow').style.display = 'none';
-            }
+            // 급여 상세 합계
+            const salaryDetailTotal = data.normalPay + data.overtimePay + data.nightPay + data.nightOTPay + data.sundayPay;
+            document.getElementById('salaryDetailTotal').textContent = formatNumber(salaryDetailTotal) + ' 원';
+            document.getElementById('salaryDetailTotal2').textContent = formatNumber(salaryDetailTotal) + ' 원';
 
-            if (data.excusedAbsentLunchCount > 0) {
-                document.getElementById('mealExcusedAbsentLunch').textContent =
-                    `${data.excusedAbsentLunchCount}식 × ${formatNumber(data.lunchMeal)}đ = ${formatNumber(data.excusedAbsentLunchCount * data.lunchMeal)}đ`;
-            } else {
-                document.getElementById('mealExcusedAbsentLunchRow').style.display = 'none';
-            }
+            // 수당
+            document.getElementById('mealAllowance').textContent = formatNumber(data.mealAllowance) + ' 원';
 
-            // 동적 수당 렌더링
-            const dynamicAllowancesContainer = document.getElementById('dynamicAllowancesContainer');
-            dynamicAllowancesContainer.innerHTML = ''; // 초기화
-
+            // 동적 수당
+            const dynamicList = document.getElementById('dynamicAllowancesList');
+            let dynamicTotal = 0;
             if (data.allowances && data.allowances.length > 0) {
                 data.allowances.forEach(allowance => {
+                    dynamicTotal += allowance.amount;
                     const row = document.createElement('div');
-                    row.className = 'info-row';
+                    row.className = 'row';
                     row.innerHTML = `
-                        <span class="info-label">${allowance.name}</span>
-                        <span class="info-value">${formatNumber(allowance.amount)} đ</span>
+                        <span class="label">${allowance.name}</span>
+                        <span class="value">${formatNumber(allowance.amount)} 원</span>
                     `;
-                    dynamicAllowancesContainer.appendChild(row);
+                    dynamicList.appendChild(row);
                 });
-            } else {
-                // 수당이 없는 경우 안내 메시지 (선택사항)
-                dynamicAllowancesContainer.innerHTML = `
-                    <div class="info-row" style="color: #888; font-style: italic;">
-                        <span class="info-label">설정된 수당이 없습니다</span>
-                        <span class="info-value">0 đ</span>
-                    </div>
-                `;
             }
 
-            // 특수수당 표시
-            if (data.specialAllowance && data.specialAllowance > 0) {
-                document.getElementById('specialAllowanceRow').style.display = 'flex';
-                document.getElementById('specialAllowanceValue').textContent = formatNumber(data.specialAllowance) + ' đ';
-            } else {
-                document.getElementById('specialAllowanceRow').style.display = 'none';
+            // 특별수당
+            if (data.specialAllowance > 0) {
+                document.getElementById('specialAllowanceRow').style.display = '';
+                document.getElementById('specialAllowance').textContent = formatNumber(data.specialAllowance) + ' 원';
             }
 
-            // 총 수당 계산 (식대 + 동적 수당 + 특수수당)
-            let totalDynamicAllowances = 0;
-            if (data.allowances && data.allowances.length > 0) {
-                totalDynamicAllowances = data.allowances.reduce((sum, allowance) => sum + allowance.amount, 0);
+            // 수당 합계
+            const allowanceTotal = data.mealAllowance + dynamicTotal + data.specialAllowance;
+            document.getElementById('allowanceTotal').textContent = formatNumber(allowanceTotal) + ' 원';
+            document.getElementById('allowanceTotal2').textContent = formatNumber(allowanceTotal) + ' 원';
+
+            // 총 급여
+            document.getElementById('totalSalary').textContent = formatNumber(data.totalSalary) + ' 원';
+
+            // 보험료
+            document.getElementById('socialIns').textContent = '-' + formatNumber(data.socialIns) + ' 원';
+            document.getElementById('healthIns').textContent = '-' + formatNumber(data.healthIns) + ' 원';
+            document.getElementById('unemployIns').textContent = '-' + formatNumber(data.unemployIns) + ' 원';
+            document.getElementById('totalDeduction').textContent = '-' + formatNumber(data.totalDeduction) + ' 원';
+
+            // 소득세
+            const taxableIncome = data.normalPay + data.overtimePay * 2/3 + data.nightPay + data.nightOTPay * 2/3 + data.sundayPay * 1/2 + dynamicTotal + data.specialAllowance;
+            document.getElementById('taxableIncome').textContent = formatNumber(taxableIncome) + ' 원';
+
+            if (data.dependents > 0) {
+                document.getElementById('dependentRow').style.display = '';
+                document.getElementById('dependentLabel').textContent = `부양가족 공제 (${data.dependents}×4,400,000)`;
+                document.getElementById('dependentDeduction').textContent = '-' + formatNumber(data.dependents * 4400000) + ' 원';
             }
-            const totalAllowancesAmount = data.mealAllowance + totalDynamicAllowances + (data.specialAllowance || 0);
-            document.getElementById('totalAllowances').textContent = formatNumber(totalAllowancesAmount) + ' đ';
 
-            // 공제
-            document.getElementById('deductSocial').textContent = formatNumber(data.socialIns) + ' đ';
-            document.getElementById('deductHealth').textContent = formatNumber(data.healthIns) + ' đ';
-            document.getElementById('deductUnemploy').textContent = formatNumber(data.unemployIns) + ' đ';
-            document.getElementById('deductTax').textContent = formatNumber(data.incomeTax) + ' đ';
+            const taxBase = Math.max(0, taxableIncome - 11000000 - (data.dependents * 4400000));
+            document.getElementById('taxBase').textContent = formatNumber(taxBase) + ' 원';
+            document.getElementById('incomeTax').textContent = '-' + formatNumber(data.incomeTax) + ' 원';
 
-            // 선금 표시
-            if (data.advancePayment && data.advancePayment > 0) {
-                document.getElementById('advancePaymentRow').style.display = 'flex';
-                document.getElementById('advancePaymentValue').textContent = formatNumber(data.advancePayment) + ' đ';
-            } else {
-                document.getElementById('advancePaymentRow').style.display = 'none';
+            // 비과세
+            document.getElementById('taxFreeMeal').textContent = formatNumber(data.mealAllowance) + ' 원';
+            
+            if (data.overtimePay > 0) {
+                document.getElementById('taxFreeOTRow').style.display = '';
+                document.getElementById('taxFreeOT').textContent = formatNumber(data.overtimePay * 1/3) + ' 원';
             }
 
-            // 총 공제액 (보험료 + 소득세 + 선금)
-            const totalDeductionAmount = data.totalDeduction + data.incomeTax + (data.advancePayment || 0);
-            document.getElementById('deductTotal').textContent = formatNumber(totalDeductionAmount) + ' đ';
+            if (data.sundayPay > 0) {
+                document.getElementById('taxFreeSundayRow').style.display = '';
+                document.getElementById('taxFreeSunday').textContent = formatNumber(data.sundayPay * 1/2) + ' 원';
+            }
 
-            // ===== 최종 정산 요약 =====
-            document.getElementById('finalBasicPayTotal').textContent = formatNumber(totalBasicPay) + ' đ';
-            document.getElementById('finalAllowanceTotal').textContent = formatNumber(totalAllowancesAmount) + ' đ';
-            document.getElementById('finalTotalSalary').textContent = formatNumber(data.totalSalary) + ' đ';
-            document.getElementById('finalInsuranceDeduct').textContent = formatNumber(data.totalDeduction) + ' đ';
-            document.getElementById('finalTaxDeduct').textContent = formatNumber(data.incomeTax) + ' đ';
+            const totalTaxFree = data.mealAllowance + (data.overtimePay * 1/3) + (data.sundayPay * 1/2);
+            document.getElementById('totalTaxFree').textContent = formatNumber(totalTaxFree) + ' 원';
 
-            // 선금 (있으면 표시)
-            if (data.advancePayment && data.advancePayment > 0) {
-                document.getElementById('finalAdvanceRow').style.display = 'flex';
-                document.getElementById('finalAdvanceDeduct').textContent = formatNumber(data.advancePayment) + ' đ';
-            } else {
-                document.getElementById('finalAdvanceRow').style.display = 'none';
+            // 선금
+            if (data.advancePayment > 0) {
+                document.getElementById('advanceSection').style.display = 'block';
+                document.getElementById('advancePayment').textContent = '-' + formatNumber(data.advancePayment) + ' 원';
             }
 
             // 실수령액
-            document.getElementById('netSalary').textContent = formatNumber(data.netSalary) + ' đ';
-            document.getElementById('netSalaryText').textContent = numberToVietnamese(data.netSalary) + ' đồng';
+            document.getElementById('netSalary').textContent = formatNumber(data.netSalary) + ' 원';
 
-            // 발행일
-            const today = new Date();
-            document.getElementById('printDate').textContent = `발행일: ${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+            // 달력 생성
+            generateCalendar(data);
+
+            // 생성일
+            document.getElementById('createdDate').textContent = new Date().toLocaleDateString('ko-KR');
         }
 
-        // 숫자를 베트남어로 변환 (간단 버전)
-        function numberToVietnamese(num) {
-            const roundedNum = Math.round(num);
+        function generateCalendar(data) {
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
 
-            if (roundedNum >= 1000000) {
-                const millions = Math.floor(roundedNum / 1000000);
-                const thousands = Math.floor((roundedNum % 1000000) / 1000);
-                if (thousands === 0) {
-                    return `${millions} triệu`;
-                }
-                return `${millions} triệu ${thousands} nghìn`;
-            } else if (roundedNum >= 1000) {
-                const thousands = Math.floor(roundedNum / 1000);
-                return `${thousands} nghìn`;
+            // 달력 헤더
+            const headers = ['일', '월', '화', '수', '목', '금', '토'];
+            headers.forEach((day, i) => {
+                const header = document.createElement('div');
+                header.className = 'calendar-header' + (i === 0 ? ' sunday' : '');
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+
+            // 월의 첫날과 마지막날
+            const firstDay = new Date(data.year, data.month - 1, 1).getDay();
+            const lastDate = new Date(data.year, data.month, 0).getDate();
+
+            // 데이터 Set으로 변환
+            const holidays = new Set(data.holidays || []);
+            const absents = new Set(data.absents || []);
+            const excusedAbsents = new Set(data.excusedAbsents || []);
+            const annualLeaveDays = new Set(data.annualLeaveDays || []);
+            const specialLeaveDays = new Set(data.specialLeaveDays || []);
+            const sickLeaveDays = new Set(data.sickLeaveDays || []);
+            const overtimeData = data.overtimeData || {};
+            const nightData = data.nightData || {};
+            const sundayData = data.sundayData || {};
+
+            // 빈 칸 채우기
+            for (let i = 0; i < firstDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'calendar-day empty';
+                grid.appendChild(empty);
             }
-            return `${roundedNum}`;
-        }
 
-        // PDF 다운로드
-        let currentPayslipData = null;
+            // 날짜 채우기
+            for (let day = 1; day <= lastDate; day++) {
+                const date = new Date(data.year, data.month - 1, day);
+                const dayOfWeek = date.getDay();
+                const dateKey = `${data.year}-${String(data.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                const cell = document.createElement('div');
+                cell.className = 'calendar-day';
+
+                // 날짜 숫자
+                const dayNum = document.createElement('span');
+                dayNum.className = 'day-num';
+                dayNum.textContent = day;
+                cell.appendChild(dayNum);
+
+                // 상태 판단 (우선순위 순서)
+                let status = '';
+                let label = '';
+
+                if (absents.has(dateKey)) {
+                    cell.classList.add('absent');
+                    status = 'absent';
+                    label = 'X';
+                } else if (holidays.has(dateKey)) {
+                    cell.classList.add('holiday');
+                    status = 'holiday';
+                    label = '공';
+                } else if (annualLeaveDays.has(dateKey)) {
+                    cell.classList.add('annual');
+                    status = 'annual';
+                    // label = '연';  // 배경색으로 표시되므로 글자 불필요
+                } else if (specialLeaveDays.has(dateKey)) {
+                    cell.classList.add('family');
+                    status = 'family';
+                    // label = '경';  // 배경색으로 표시되므로 글자 불필요
+                } else if (sickLeaveDays.has(dateKey)) {
+                    cell.classList.add('excused');
+                    status = 'sick';
+                    // label = '병';  // 배경색으로 표시되므로 글자 불필요
+                } else if (excusedAbsents.has(dateKey)) {
+                    cell.classList.add('excused');
+                    status = 'excused';
+                    // label = '무';  // 배경색으로 표시되므로 글자 불필요
+                } else if (dayOfWeek === 0) {
+                    cell.classList.add('sunday');
+                    status = 'sunday';
+                    label = '일';
+                } else {
+                    cell.classList.add('normal');
+                    status = 'normal';
+                }
+
+                // 라벨 추가 (결근, 공휴일, 일요일만)
+                if (label) {
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'day-label';
+                    labelSpan.textContent = label;
+                    cell.appendChild(labelSpan);
+                }
+
+                // 근무 표시 추가 (동그라미 + 시간)
+                const indicators = document.createElement('div');
+                indicators.className = 'work-indicators';
+                
+                let hasIndicator = false;
+                
+                if (overtimeData[dateKey] && overtimeData[dateKey] > 0) {
+                    const item = document.createElement('div');
+                    item.className = 'work-item';
+                    const dot = document.createElement('div');
+                    dot.className = 'work-dot overtime';
+                    const hours = document.createElement('span');
+                    hours.className = 'work-hours';
+                    hours.textContent = `+${overtimeData[dateKey]}`;
+                    item.appendChild(dot);
+                    item.appendChild(hours);
+                    indicators.appendChild(item);
+                    hasIndicator = true;
+                }
+                
+                if (nightData[dateKey] && nightData[dateKey] > 0) {
+                    const item = document.createElement('div');
+                    item.className = 'work-item';
+                    const dot = document.createElement('div');
+                    dot.className = 'work-dot night';
+                    const hours = document.createElement('span');
+                    hours.className = 'work-hours';
+                    hours.textContent = `+${nightData[dateKey]}`;
+                    item.appendChild(dot);
+                    item.appendChild(hours);
+                    indicators.appendChild(item);
+                    hasIndicator = true;
+                }
+                
+                if (sundayData[dateKey] && sundayData[dateKey] > 0) {
+                    const item = document.createElement('div');
+                    item.className = 'work-item';
+                    const dot = document.createElement('div');
+                    dot.className = 'work-dot sunday-work';
+                    const hours = document.createElement('span');
+                    hours.className = 'work-hours';
+                    hours.textContent = `+${sundayData[dateKey]}`;
+                    item.appendChild(dot);
+                    item.appendChild(hours);
+                    indicators.appendChild(item);
+                    hasIndicator = true;
+                }
+                
+                // 야간OT
+                if (data.nightOTData && data.nightOTData[dateKey] && data.nightOTData[dateKey] > 0) {
+                    const item = document.createElement('div');
+                    item.className = 'work-item';
+                    const dot = document.createElement('div');
+                    dot.className = 'work-dot night-ot';
+                    const hours = document.createElement('span');
+                    hours.className = 'work-hours';
+                    hours.textContent = `+${data.nightOTData[dateKey]}`;
+                    item.appendChild(dot);
+                    item.appendChild(hours);
+                    indicators.appendChild(item);
+                    hasIndicator = true;
+                }
+                
+                if (hasIndicator) {
+                    cell.appendChild(indicators);
+                }
+
+                grid.appendChild(cell);
+            }
+
+            // 달력 제목 업데이트
+            document.querySelector('.calendar-section .section-title').textContent = 
+                `📅 근무 달력 - ${data.month}/${data.year}`;
+        }
 
         function downloadPDF() {
-            if (!currentPayslipData) {
-                alert('데이터를 불러오는 중입니다. 잠시만 기다려주세요.');
-                return;
-            }
+            const element = document.querySelector('.payslip-container');
+            const employeeName = document.getElementById('employeeName').textContent;
+            const period = document.getElementById('period').textContent.replace('급여명세서 - ', '');
+            
+            const opt = {
+                margin: 5,
+                filename: `급여명세서_${employeeName}_${period}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
 
-            // 브라우저 인쇄 기능 사용
-            // 모바일: 인쇄 대화상자에서 "PDF로 저장" 선택
-            // 파일명은 브라우저가 자동으로 생성
-            window.print();
+            // 버튼 숨기기
+            document.querySelector('.button-section').style.display = 'none';
+            
+            html2pdf().set(opt).from(element).save().then(() => {
+                document.querySelector('.button-section').style.display = '';
+            });
         }
 
-        // HTML 파일로 저장
-        function saveAsHTML() {
-            if (!currentPayslipData) {
-                alert('데이터를 불러오는 중입니다. 잠시만 기다려주세요.');
-                return;
-            }
-
-            // 파일명 생성
-            const fileName = `${currentPayslipData.employeeName}_${currentPayslipData.year}년${currentPayslipData.month}월_급여명세서.html`;
-
-            // 현재 HTML 복제
-            const clonedDoc = document.documentElement.cloneNode(true);
-
-            // 복제된 문서에서 버튼 제거
-            const buttonContainer = clonedDoc.querySelector('.button-container');
-            if (buttonContainer) {
-                buttonContainer.remove();
-            }
-
-            // 데이터를 embedded 스크립트로 삽입
-            const embeddedScript = document.createElement('script');
-            embeddedScript.textContent = `
-// 급여명세서 데이터 (HTML 파일에 포함)
-const EMBEDDED_PAYSLIP_DATA = ${JSON.stringify(currentPayslipData, null, 2)};
-console.log('✅ Embedded 데이터 로드됨:', EMBEDDED_PAYSLIP_DATA);
-            `;
-
-            // head에 스크립트 삽입 (다른 스크립트보다 먼저 실행되도록)
-            const head = clonedDoc.querySelector('head');
-            if (head && head.firstChild) {
-                head.insertBefore(embeddedScript, head.firstChild);
-            } else if (head) {
-                head.appendChild(embeddedScript);
-            }
-
-            // 완전한 HTML 문자열 생성
-            const htmlContent = '<!DOCTYPE html>\n' + clonedDoc.outerHTML;
-
-            // Blob 생성
+        function downloadHTML() {
+            const employeeName = document.getElementById('employeeName').textContent;
+            const period = document.getElementById('period').textContent.replace('급여명세서 - ', '');
+            
+            // 버튼 숨기기
+            const buttonSection = document.querySelector('.button-section');
+            buttonSection.style.display = 'none';
+            
+            const htmlContent = document.documentElement.outerHTML;
+            
+            // 버튼 다시 보이기
+            buttonSection.style.display = '';
+            
             const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-
-            // 다운로드 링크 생성
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-
-            // 클릭하여 다운로드
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            // URL 해제
-            URL.revokeObjectURL(link.href);
-
-            console.log('✅ HTML 파일 저장 완료:', fileName);
-            alert('✅ HTML 파일이 저장되었습니다!\n\n파일을 열면 데이터가 자동으로 표시됩니다.');
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `급여명세서_${employeeName}_${period}.html`;
+            a.click();
+            URL.revokeObjectURL(url);
         }
-
-        // 페이지 로드 시 실행
-        window.onload = loadPayslipData;
     </script>
 </body>
 </html>

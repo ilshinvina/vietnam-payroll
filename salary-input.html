@@ -168,14 +168,14 @@
                     </div>
                 </div>
 
-                <!-- 급여 데이터 관리 카드 -->
+                <!-- ========== 데이터 관리 섹션 숨김 처리 (2025-12-08) ==========
                 <div class="action-card">
                     <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.2em;">💾 데이터 관리</h3>
                     <p style="color: #666; margin-bottom: 15px; font-size: 0.95em;">
                         💡 직원 등록은 <a href="settings.html" style="color: #667eea; font-weight: bold;">⚙️ 설정 페이지</a>에서 하세요!
                     </p>
 
-                    <!-- DAILY-REPORT 연동 -->
+                    DAILY-REPORT 연동
                     <div style="margin-bottom: 15px; padding: 15px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border-radius: 10px;">
                         <h4 style="color: white; margin-bottom: 10px; font-size: 1.1em;">📋 출근기록 불러오기</h4>
                         <input type="file" id="dailyReportExcelUpload" accept=".xlsx, .xls" onchange="importFromDailyReport(event)" style="display: none;">
@@ -196,7 +196,7 @@
                         </button>
                     </div>
 
-                    <!-- 데이터 확정 버튼 -->
+                    데이터 확정 버튼
                     <div style="margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);">
                         <button onclick="confirmCurrentEmployee()" class="modern-btn" style="width: 100%; padding: 16px; background: white; color: #667eea; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.2em; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.3s;">
                             ✅ 현재 직원 데이터 확정
@@ -205,11 +205,11 @@
                             확정된 직원만 메인 페이지에 표시됩니다!
                         </p>
                         <div id="confirmStatus" style="margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.2); border-radius: 6px; text-align: center; color: white; font-size: 0.9em; display: none;">
-                            <!-- 확정 상태 표시 -->
+                            확정 상태 표시
                         </div>
                     </div>
 
-                    <!-- 이번 달 데이터 초기화 버튼 -->
+                    이번 달 데이터 초기화 버튼
                     <div style="margin-top: 10px;">
                         <button onclick="clearCurrentMonthData()" class="modern-btn" style="width: 100%; padding: 12px; background: #e53935; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1em; box-shadow: 0 4px 10px rgba(229, 57, 53, 0.3); transition: all 0.3s;">
                             🗑️ 이번 달 데이터 초기화
@@ -224,6 +224,7 @@
                         <div style="margin-top: 5px;"><strong>💾 전체 데이터 백업:</strong> 모든 직원 정보 + 급여 이력을 JSON 파일로 저장 (컴퓨터 문제 대비)</div>
                     </div>
                 </div>
+                ========== 데이터 관리 섹션 끝 ========== -->
 
                 <h2 class="section-title">📝 기본 정보</h2>
 
@@ -396,8 +397,35 @@
                     <div class="tip">※ 체크 시 입력한 금액이 실수령액에서 차감됩니다</div>
                 </div>
 
-                <button class="btn-calculate" onclick="calculate()">💵 급여 계산하기</button>
+                <!-- ========== 급여 계산 버튼 ========== -->
+                <button class="btn-calculate" style="background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); font-size: 1.3em; padding: 18px; box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);" onclick="calculate()">
+                    📊 TÍNH LƯƠNG
+                </button>
+                
+                <!-- ========== 확정 상태 표시 박스 ========== -->
+                <div id="confirmStatusBox" style="margin-top: 15px; padding: 20px; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 3px solid #4caf50; border-radius: 12px; text-align: center; display: none;">
+                    <div style="font-size: 2.5em; margin-bottom: 5px;">✅</div>
+                    <div style="font-size: 1.3em; font-weight: bold; color: #2e7d32; margin-bottom: 5px;">ĐÃ XÁC NHẬN</div>
+                    <div id="confirmDate" style="font-size: 0.95em; color: #558b2f;">11/2025 • 6/12/2025</div>
+                </div>
+                
+                <!-- ========== 확정 / 삭제 버튼 ========== -->
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn-calculate" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-size: 1.1em; padding: 14px;" onclick="confirmCurrentEmployee()">
+                        ✅ Xác nhận
+                    </button>
+                    <button class="btn-calculate" style="flex: 1; background: linear-gradient(135deg, #e53935 0%, #c62828 100%); font-size: 1.1em; padding: 14px;" onclick="deleteCurrentEmployee()">
+                        🗑️ Xóa
+                    </button>
+                </div>
+                
+                <div style="text-align: center; margin-top: 8px; font-size: 0.85em; color: #666;">
+                    <div>☑️ Xác nhận để hiển thị trên trang chủ | 🗑️ Xóa dữ liệu tháng này</div>
+                </div>
+                
+                <!-- ========== 모바일 급여명세서 버튼 숨김 처리 ==========
                 <button class="btn-calculate" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); margin-top: 10px;" onclick="openMobilePayslip()">📱 모바일 급여명세서</button>
+                ========== 모바일 급여명세서 버튼 끝 ========== -->
             </div>
 
             <!-- 결과 섹션 -->
@@ -427,7 +455,7 @@
                         <span class="result-value" id="nightPay">0 đ</span>
                     </div>
                     <div class="result-item" id="nightOTPayRow" style="display: none;">
-                        <span class="result-label">야간+OT 수당 (200%)</span>
+                        <span class="result-label" id="nightOTPayLabel">야간+OT 수당 (200%)</span>
                         <span class="result-value" id="nightOTPay" style="color: #c2185b;">0 đ</span>
                     </div>
                     <div class="result-item">
@@ -669,7 +697,23 @@
                 <div class="highlight-box">
                     <div style="font-size: 1.2em;">💰 실수령액</div>
                     <div class="big-number" id="netSalary">0 đ</div>
-                    <div style="font-size: 0.9em; opacity: 0.9;">총 급여 - 공제액 - 개인소득세</div>
+                    <div style="font-size: 0.9em; opacity: 0.9;">Tổng lương - Khấu trừ - Thuế TNCN</div>
+                </div>
+
+                <!-- 💾 출력 버튼 -->
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #667eea; margin-bottom: 15px; text-align: center;">💾 Xuất phiếu lương</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="exportCurrentEmployeeExcel()" class="btn-calculate" style="flex: 1; background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); font-size: 1.1em; padding: 14px;">
+                            📊 Excel
+                        </button>
+                        <button onclick="openMobilePayslip()" class="btn-calculate" style="flex: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); font-size: 1.1em; padding: 14px;">
+                            📱 Mobile
+                        </button>
+                    </div>
+                    <div style="text-align: center; margin-top: 8px; font-size: 0.85em; color: #666;">
+                        📊 Excel có thể in PDF | 📱 Xem trước & tải file gửi Zalo
+                    </div>
                 </div>
             </div>
         </div>
@@ -814,6 +858,33 @@
         let employees = {}; // {id: {name, basicSalary, dependents, dailyMeal, ...}}
         let currentEmployeeId = null;
 
+        // ==================== 자동저장 시스템 ====================
+        let autoSaveTimer = null;
+        const AUTO_SAVE_DELAY = 2000; // 2초 딜레이
+
+        // 자동저장 예약 (디바운스)
+        function scheduleAutoSave() {
+            if (!currentEmployeeId) return;
+
+            if (autoSaveTimer) {
+                clearTimeout(autoSaveTimer);
+            }
+
+            autoSaveTimer = setTimeout(() => {
+                autoSaveCurrentEmployee();
+            }, AUTO_SAVE_DELAY);
+
+            console.log('💾 자동저장 예약됨 (2초 후)');
+        }
+
+        // 자동저장 실행
+        function autoSaveCurrentEmployee() {
+            if (!currentEmployeeId) return;
+
+            saveCurrentEmployee();
+            console.log('✅ 자동저장 완료:', new Date().toLocaleTimeString());
+        }
+
         // 동적 수당 상세 정보 (전역)
         let currentAllowanceDetails = {};
 
@@ -825,6 +896,9 @@
             initYearMonth();
             loadEmployeesFromStorage();
 
+            // 데이터 무결성 검증 (고아 데이터 정리)
+            cleanupOrphanData();
+
             // URL에서 직원 로드 (generateCalendar 포함)
             loadEmployeeFromURL();
 
@@ -835,16 +909,197 @@
             }
         }
 
+        // 고아 데이터 정리 (삭제된 직원의 데이터 제거)
+        function cleanupOrphanData() {
+            const validEmployeeIds = new Set(Object.keys(employees));
+            let cleanedCount = 0;
+
+            // 급여 이력에서 존재하지 않는 직원 데이터 제거
+            const historyList = JSON.parse(localStorage.getItem('payrollHistoryList') || '[]');
+
+            historyList.forEach(item => {
+                const historyKey = `payrollHistory_${item.year}_${item.month}`;
+                const confirmKey = `payrollConfirmed_${item.year}_${item.month}`;
+
+                let historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+                let needsSave = false;
+
+                // data 배열에서 존재하지 않는 직원 제거
+                if (historyData.data && Array.isArray(historyData.data)) {
+                    const originalLength = historyData.data.length;
+                    historyData.data = historyData.data.filter(d => {
+                        const empId = d.employeeId || d.id;
+                        return validEmployeeIds.has(empId);
+                    });
+                    if (historyData.data.length < originalLength) {
+                        needsSave = true;
+                        cleanedCount += originalLength - historyData.data.length;
+                    }
+                }
+
+                // confirmedEmployees에서 존재하지 않는 직원 제거
+                if (historyData.confirmedEmployees && Array.isArray(historyData.confirmedEmployees)) {
+                    historyData.confirmedEmployees = historyData.confirmedEmployees.filter(id => validEmployeeIds.has(id));
+                    needsSave = true;
+                }
+
+                if (needsSave) {
+                    if (historyData.data && historyData.data.length > 0) {
+                        localStorage.setItem(historyKey, JSON.stringify(historyData));
+                    } else {
+                        localStorage.removeItem(historyKey);
+                    }
+                }
+
+                // 확정 목록도 정리
+                let confirmedList = JSON.parse(localStorage.getItem(confirmKey) || '[]');
+                const filteredList = confirmedList.filter(id => validEmployeeIds.has(id));
+                if (filteredList.length !== confirmedList.length) {
+                    if (filteredList.length > 0) {
+                        localStorage.setItem(confirmKey, JSON.stringify(filteredList));
+                    } else {
+                        localStorage.removeItem(confirmKey);
+                    }
+                }
+            });
+
+            if (cleanedCount > 0) {
+                console.log(`🧹 고아 데이터 정리: ${cleanedCount}건 삭제됨`);
+            }
+        }
+
         // URL 파라미터 체크 (년월만 먼저 읽기)
         function checkURLParams() {
             const urlParams = new URLSearchParams(window.location.search);
             const year = urlParams.get('year');
             const month = urlParams.get('month');
+            const autoCalc = urlParams.get('autoCalc');
 
             // 년월 정보가 있으면 설정
             if (year && month) {
                 selectedYear = parseInt(year);
                 selectedMonth = parseInt(month);
+            }
+
+            // 자동 계산 모드 확인
+            if (autoCalc === 'all') {
+                // 페이지 로드 후 자동 계산 실행
+                setTimeout(() => {
+                    autoCalculateAllEmployees();
+                }, 500);
+            }
+        }
+
+        // 전체 직원 자동 계산 및 확정
+        function autoCalculateAllEmployees() {
+            const employeeIds = Object.keys(employees);
+            if (employeeIds.length === 0) {
+                alert('❌ 등록된 직원이 없습니다.');
+                return;
+            }
+
+            let successCount = 0;
+            const monthKey = `${selectedYear}_${selectedMonth}`;
+            const confirmKey = `payrollConfirmed_${monthKey}`;
+            const historyKey = `payrollHistory_${monthKey}`;
+
+            // 기존 이력 데이터 확인
+            let historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+            const firstSavedDate = historyData.firstSavedDate || new Date().toISOString();
+
+            // 초기화
+            if (!historyData.data) {
+                historyData = {
+                    year: selectedYear,
+                    month: selectedMonth,
+                    savedDate: new Date().toISOString(),
+                    firstSavedDate: firstSavedDate,
+                    data: [],
+                    confirmedEmployees: []
+                };
+            }
+
+            let confirmedList = [];
+            let payrollDataList = [];
+
+            // 각 직원별로 계산 및 확정
+            employeeIds.forEach(empId => {
+                const emp = employees[empId];
+                if (!emp) return;
+
+                // 직원 로드 및 계산
+                loadEmployee(empId);
+
+                // 급여 데이터 계산 (기존 calculateEmployeePayroll 함수 사용)
+                const currentPayroll = calculateEmployeePayroll(empId, selectedYear, selectedMonth);
+
+                if (currentPayroll) {
+                    // 확정 목록에 추가
+                    if (!confirmedList.includes(empId)) {
+                        confirmedList.push(empId);
+                    }
+
+                    // 급여 데이터 추가
+                    // 직원 코드 포함된 이름 생성
+                    let displayName = emp.name;
+                    if (emp.employeeCode && !emp.name.includes(`[${emp.employeeCode}]`)) {
+                        displayName = `[${emp.employeeCode}] ${emp.name}`;
+                    }
+
+                    payrollDataList.push({
+                        employeeId: empId,
+                        id: empId,
+                        employeeCode: emp.employeeCode || '',
+                        name: displayName,
+                        ...currentPayroll
+                    });
+
+                    successCount++;
+                }
+            });
+
+            // 히스토리 데이터 업데이트
+            historyData.data = payrollDataList;
+            historyData.confirmedEmployees = confirmedList;
+            historyData.savedDate = new Date().toISOString();
+            historyData.firstSavedDate = firstSavedDate;
+
+            // 저장
+            localStorage.setItem(historyKey, JSON.stringify(historyData));
+            localStorage.setItem(confirmKey, JSON.stringify(confirmedList));
+
+            // 이력 목록 업데이트
+            let historyList = JSON.parse(localStorage.getItem('payrollHistoryList') || '[]');
+            const existingIndex = historyList.findIndex(h => h.year === selectedYear && h.month === selectedMonth);
+
+            const listItem = {
+                year: selectedYear,
+                month: selectedMonth,
+                savedDate: new Date().toISOString()
+            };
+
+            if (existingIndex >= 0) {
+                historyList[existingIndex] = listItem;
+            } else {
+                historyList.push(listItem);
+            }
+
+            localStorage.setItem('payrollHistoryList', JSON.stringify(historyList));
+
+            // URL에서 autoCalc 파라미터 제거
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
+
+            // 확정 상태 업데이트
+            updateConfirmStatus();
+
+            console.log(`✅ 전체 직원 급여 확정 완료: ${successCount}명`);
+
+            alert(`✅ 전체 직원 급여 확정 완료!\n\n• 확정된 직원: ${successCount}명\n• 대상 월: ${selectedYear}년 ${selectedMonth}월\n\n급여대장에서 확인하세요.`);
+
+            // 메인으로 이동할지 확인
+            if (confirm('메인 페이지로 이동하시겠습니까?')) {
+                window.location.href = 'index.html';
             }
         }
 
@@ -1142,7 +1397,8 @@
                     const nightOTInfo = document.createElement('div');
                     nightOTInfo.className = 'night-ot-info';
                     nightOTInfo.id = `nightot-${dateKey}`;
-                    nightOTInfo.title = '야간+OT (200%) | 좌클릭: +0.5시간 | 우클릭: -0.5시간';
+                    const currentNightOTRate = (window.companySettings && window.companySettings.nightOTRate) || 2.0;
+                    nightOTInfo.title = `야간+OT (${Math.round(currentNightOTRate * 100)}%) | 좌클릭: +0.5시간 | 우클릭: -0.5시간`;
 
                     const nightOTHours = nightOTData[dateKey] || nightOTData[dateKeyOld];
                     if (nightOTHours) {
@@ -1227,6 +1483,7 @@
 
             updateStats();
             calculate();
+            scheduleAutoSave(); // 자동저장
         }
 
         // 야근시간 증가/감소
@@ -1272,6 +1529,7 @@
 
             updateStats();
             calculate();
+            scheduleAutoSave(); // 자동저장
         }
 
         // 일요일 특근시간 증가/감소
@@ -1323,6 +1581,7 @@
 
             updateStats();
             calculate();
+            scheduleAutoSave(); // 자동저장
         }
 
         // 날짜별 주간조/야간조 전환
@@ -1330,18 +1589,24 @@
             console.log(`🔄 toggleDayShift 호출됨: day=${day}`);
             const dateKey = makeDateKey(selectedYear, selectedMonth, day);
             const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
-            console.log(`   dateKey=${dateKey}, nightShiftDays 포함=${nightShiftDays.has(dateKey)}`);
 
-            // 구버전 키 삭제
+            // 현재 야간조인지 확인 (구버전 또는 신버전 키 모두 체크)
+            const isCurrentlyNightShift = nightShiftDays.has(dateKey) || nightShiftDays.has(dateKeyOld);
+            console.log(`   dateKey=${dateKey}, 현재 야간조=${isCurrentlyNightShift}`);
+
+            // 구버전 키 삭제 (마이그레이션)
             if (nightShiftDays.has(dateKeyOld)) {
                 nightShiftDays.delete(dateKeyOld);
                 console.log(`   구버전 키 삭제: ${dateKeyOld}`);
             }
 
-            if (nightShiftDays.has(dateKey)) {
-                nightShiftDays.delete(dateKey);
+            // 토글: 야간조 → 주간조 / 주간조 → 야간조
+            if (isCurrentlyNightShift) {
+                // 야간조 → 주간조
+                nightShiftDays.delete(dateKey);  // 혹시 있으면 삭제
                 console.log(`☀️ ${selectedMonth}/${day}: 주간조로 변경`);
             } else {
+                // 주간조 → 야간조
                 nightShiftDays.add(dateKey);
                 console.log(`🌙 ${selectedMonth}/${day}: 야간조로 변경`);
             }
@@ -1372,11 +1637,7 @@
 
             updateStats();
             calculate();
-
-            // 직원 데이터 저장
-            if (currentEmployeeId) {
-                saveCurrentEmployee();
-            }
+            scheduleAutoSave(); // 자동저장
         }
 
         // 야간시간 증가/감소
@@ -1413,6 +1674,7 @@
 
             updateStats();
             calculate();
+            scheduleAutoSave(); // 자동저장
         }
 
         // 야간+OT 시간 증가/감소 (200%)
@@ -1446,6 +1708,7 @@
 
             updateStats();
             calculate();
+            scheduleAutoSave(); // 자동저장
         }
 
         // 야근시간 직접 입력
@@ -1502,6 +1765,7 @@
 
                     updateStats();
                     calculate();
+                    scheduleAutoSave(); // 자동저장
                 } else {
                     alert('⚠️ 올바른 숫자를 입력하세요!');
                 }
@@ -1721,6 +1985,7 @@
             }
 
             updateStats();
+            scheduleAutoSave(); // 자동저장
         }
 
         // 통계 업데이트
@@ -1785,6 +2050,16 @@
                 if (isSelectedMonth(dateKey)) annualLeaveCount++;
             });
 
+            let specialLeaveCount = 0;
+            specialLeaveDays.forEach(dateKey => {
+                if (isSelectedMonth(dateKey)) specialLeaveCount++;
+            });
+
+            let sickLeaveCount = 0;
+            sickLeaveDays.forEach(dateKey => {
+                if (isSelectedMonth(dateKey)) sickLeaveCount++;
+            });
+
             const totalAbsentCount = excusedAbsentCount + unexcusedAbsentCount;
 
             // 평일 = 월~토 (총일수 - 일요일)
@@ -1798,8 +2073,8 @@
                 }
             });
 
-            // 실 근무일 = 평일 - 공휴일 - 모든 결근 - 연차 (일요일 특근은 실근무일에 포함 안함)
-            const workDays = weekdays - holidayCount - totalAbsentCount - annualLeaveCount;
+            // 실 근무일 = 평일 - 공휴일 - 모든 결근 - 연차 - 경조사 - 병가 (일요일 특근은 실근무일에 포함 안함)
+            const workDays = weekdays - holidayCount - totalAbsentCount - annualLeaveCount - specialLeaveCount - sickLeaveCount;
 
             // isNightShiftDay() 는 전역 함수로 정의됨 (802줄 근처)
 
@@ -1841,10 +2116,16 @@
                     // 무단결근 제외
                     continue;
                 }
+                if (sickLeaveDays.has(dateKey) || sickLeaveDays.has(dateKeyOld)) {
+                    // 병가 제외 (사회보험에서 지급)
+                    continue;
+                }
 
-                // 정상 근무 또는 연차
-                const dayNormalHours = annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld)
+                // 정상 근무, 연차, 또는 경조사
+                const dayNormalHours = (annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld))
                     ? 8  // 연차 = 8시간 유급 인정!
+                    : (specialLeaveDays.has(dateKey) || specialLeaveDays.has(dateKeyOld))
+                    ? 8  // 경조사 = 8시간 유급 인정! (베트남 노동법 제115조)
                     : (normalHoursData[dateKey] || normalHoursData[dateKeyOld] || 8);
 
                 if (isNightDay) {
@@ -1871,7 +2152,9 @@
             const sundayLunchHours = (window.companySettings && window.companySettings.sundayLunchHours) || 4;
             const sundayDinnerHours = (window.companySettings && window.companySettings.sundayDinnerHours) || 12;
             const annualLeaveLunchMeal = (window.companySettings && window.companySettings.annualLeaveLunchMeal) === true;
-            const excusedAbsenceLunchMinHours = (window.companySettings && window.companySettings.excusedAbsenceLunchMinHours) || 0;
+            const excusedAbsenceLunchMeal = (window.companySettings && window.companySettings.excusedAbsenceLunchMeal) === true;
+            const sickLeaveLunchMeal = (window.companySettings && window.companySettings.sickLeaveLunchMeal) === true;
+            const specialLeaveLunchMeal = (window.companySettings && window.companySettings.specialLeaveLunchMeal) === true;
 
             // 식대 세부 계산
             let weekdayLunchCount = 0;  // 평일 점심 (주간조)
@@ -1880,6 +2163,8 @@
             let sundayDinnerMealCount = 0;  // 일요일 저녁
             let annualLeaveLunchCount = 0;  // 연차 점심
             let excusedAbsentLunchCount = 0;  // 사유결근 점심
+            let sickLeaveLunchCount = 0;  // 병가 점심
+            let specialLeaveLunchCount = 0;  // 경조사 점심
 
             // 야간조 근무일 수 계산 (점심 대신 저녁 지급용)
             let nightShiftWorkDays = 0;
@@ -1908,22 +2193,49 @@
                 annualLeaveLunchCount = annualLeaveCount;
             }
 
-            // 3. 사유결근 시 점심 (최소 시간 조건)
-            for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(selectedYear, selectedMonth - 1, day);
-                const dayOfWeek = date.getDay();
-                const dateKey = makeDateKey(selectedYear, selectedMonth, day);
-                const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
+            // 3. 사유결근 시 점심 (설정에 따라)
+            if (excusedAbsenceLunchMeal) {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(selectedYear, selectedMonth - 1, day);
+                    const dayOfWeek = date.getDay();
+                    const dateKey = makeDateKey(selectedYear, selectedMonth, day);
+                    const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
 
-                if (dayOfWeek !== 0 && (excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld))) {
-                    const normalHrsThisDay = normalHoursData[dateKey] || normalHoursData[dateKeyOld] || 0;
-                    if (normalHrsThisDay >= excusedAbsenceLunchMinHours) {
+                    if (dayOfWeek !== 0 && (excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld))) {
                         excusedAbsentLunchCount++;
                     }
                 }
             }
 
-            // 4. 평일 저녁 (야간조: 자동 지급 / 주간조: OT 조건)
+            // 4. 병가 시 점심 (설정에 따라)
+            if (sickLeaveLunchMeal) {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(selectedYear, selectedMonth - 1, day);
+                    const dayOfWeek = date.getDay();
+                    const dateKey = makeDateKey(selectedYear, selectedMonth, day);
+                    const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
+
+                    if (dayOfWeek !== 0 && (sickLeaveDays.has(dateKey) || sickLeaveDays.has(dateKeyOld))) {
+                        sickLeaveLunchCount++;
+                    }
+                }
+            }
+
+            // 5. 경조사 시 점심 (설정에 따라)
+            if (specialLeaveLunchMeal) {
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(selectedYear, selectedMonth - 1, day);
+                    const dayOfWeek = date.getDay();
+                    const dateKey = makeDateKey(selectedYear, selectedMonth, day);
+                    const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
+
+                    if (dayOfWeek !== 0 && (specialLeaveDays.has(dateKey) || specialLeaveDays.has(dateKeyOld))) {
+                        specialLeaveLunchCount++;
+                    }
+                }
+            }
+
+            // 6. 평일 저녁 (야간조: 자동 지급 / 주간조: OT 조건)
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(selectedYear, selectedMonth - 1, day);
                 const dayOfWeek = date.getDay();
@@ -1931,11 +2243,13 @@
                 const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
 
                 if (dayOfWeek !== 0) {  // 일요일 제외
-                    // 연차/공휴일/결근일은 저녁식대 제외
+                    // 연차/공휴일/결근/경조사/병가는 저녁식대 제외
                     const isExcluded = annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld) ||
                                        holidays.has(dateKey) || holidays.has(dateKeyOld) ||
                                        absents.has(dateKey) || absents.has(dateKeyOld) ||
-                                       excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld);
+                                       excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld) ||
+                                       specialLeaveDays.has(dateKey) || specialLeaveDays.has(dateKeyOld) ||
+                                       sickLeaveDays.has(dateKey) || sickLeaveDays.has(dateKeyOld);
                     if (!isExcluded) {
                         if (isNightShiftDay(day)) {
                             // 야간조: 저녁 식대 자동 지급 (OT 상관없이)
@@ -1951,7 +2265,7 @@
                 }
             }
 
-            // 5. 일요일 점심 및 저녁 (총 근무 조건)
+            // 7. 일요일 점심 및 저녁 (총 근무 조건)
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(selectedYear, selectedMonth - 1, day);
                 const dayOfWeek = date.getDay();
@@ -1959,17 +2273,19 @@
                 const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`;
 
                 if (dayOfWeek === 0) {  // 일요일만
-                    // 연차/공휴일/결근일은 식대 제외
+                    // 연차/공휴일/결근/경조사/병가는 식대 제외
                     const isExcluded = annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld) ||
                                        holidays.has(dateKey) || holidays.has(dateKeyOld) ||
                                        absents.has(dateKey) || absents.has(dateKeyOld) ||
-                                       excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld);
+                                       excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld) ||
+                                       specialLeaveDays.has(dateKey) || specialLeaveDays.has(dateKeyOld) ||
+                                       sickLeaveDays.has(dateKey) || sickLeaveDays.has(dateKeyOld);
                     if (!isExcluded) {
                         const totalHours = sundayData[dateKey] || sundayData[dateKeyOld] || 0;
                         if (totalHours >= sundayLunchHours) {
                             sundayLunchMealCount++;
                         }
-                        // 6. 일요일 저녁 (총 근무 조건)
+                        // 8. 일요일 저녁 (총 근무 조건)
                         if (totalHours >= sundayDinnerHours) {
                             sundayDinnerMealCount++;
                         }
@@ -1983,7 +2299,9 @@
                                   (sundayLunchMealCount * lunchMeal) +
                                   (sundayDinnerMealCount * dinnerMeal) +
                                   (annualLeaveLunchCount * lunchMeal) +
-                                  (excusedAbsentLunchCount * lunchMeal);
+                                  (excusedAbsentLunchCount * lunchMeal) +
+                                  (sickLeaveLunchCount * lunchMeal) +
+                                  (specialLeaveLunchCount * lunchMeal);
 
             // 동적 수당 시스템
             // 총 근무 가능일 = 평일 - 공휴일 (일요일 제외한 실제 일할 수 있는 날)
@@ -2315,7 +2633,9 @@
             const normalPay = hourlyRate * normalHours;
             const overtimePay = hourlyRate * overtimeHours * 1.5;
             const nightPay = hourlyRate * nightHours * 1.3;
-            const nightOTPay = hourlyRate * nightOTHours * 2.0;  // 야간+OT 200%
+            // 야간+OT 비율 (설정에서 가져오기, 기본값 2.0 = 200%)
+            const nightOTRate = (window.companySettings && window.companySettings.nightOTRate) || 2.0;
+            const nightOTPay = hourlyRate * nightOTHours * nightOTRate;
             const sundayPay = hourlyRate * sundayHours * 2.0;
 
             // 자동 수당 (통계에서 계산된 값 사용)
@@ -2473,6 +2793,12 @@
             document.getElementById('nightOTPay').textContent = formatNumber(nightOTPay) + ' đ';
             document.getElementById('nightOTPayRow').style.display =
                 (window.companySettings && window.companySettings.nightShiftEnabled) ? '' : 'none';
+            // 야간+OT 라벨 동적 업데이트
+            const nightOTPayLabel = document.getElementById('nightOTPayLabel');
+            if (nightOTPayLabel) {
+                const ratePercent = Math.round(nightOTRate * 100);
+                nightOTPayLabel.textContent = `야간+OT 수당 (${ratePercent}%)`;
+            }
             document.getElementById('sundayPay').textContent = formatNumber(sundayPay) + ' đ';
             document.getElementById('mealDisplay').textContent = formatNumber(mealAllowance) + ' đ';
 
@@ -2665,6 +2991,9 @@
             document.getElementById('totalSalary').textContent = formatNumber(totalSalary) + ' đ';
             document.getElementById('totalDeduction').textContent = formatNumber(totalDeduction) + ' đ';
             document.getElementById('netSalary').textContent = formatNumber(netSalary) + ' đ';
+            
+            // 확정 상태 표시 업데이트
+            updateConfirmStatus();
         }
 
         // 숫자 포맷팅 (회사 설정에 따라)
@@ -2890,7 +3219,18 @@
                 totalDeduction,
                 incomeTax,
                 advancePayment,
-                netSalary
+                netSalary,
+                // 달력 데이터 추가
+                holidays: Array.from(holidays),
+                absents: Array.from(absents),
+                excusedAbsents: Array.from(excusedAbsents),
+                annualLeaveDays: Array.from(annualLeaveDays),
+                specialLeaveDays: Array.from(specialLeaveDays),
+                sickLeaveDays: Array.from(sickLeaveDays),
+                overtimeData: overtimeData,
+                nightData: nightData,
+                nightOTData: nightOTData,
+                sundayData: sundayData
             };
         }
 
@@ -2968,12 +3308,23 @@
             const select = document.getElementById('employeeSelect');
             select.innerHTML = '<option value="">-- 직원 선택 --</option>';
 
-            for (const id in employees) {
+            // 직원 코드 기준으로 정렬
+            const sortedEmployeeIds = Object.keys(employees).sort((a, b) => {
+                const codeA = employees[a].employeeCode || '';
+                const codeB = employees[b].employeeCode || '';
+                return codeA.localeCompare(codeB, undefined, { numeric: true });
+            });
+
+            for (const id of sortedEmployeeIds) {
                 const emp = employees[id];
                 const option = document.createElement('option');
                 option.value = id;
-                // 코드가 있으면 [KQ-001] 형태로 표시
-                option.textContent = emp.employeeCode ? `[${emp.employeeCode}] ${emp.name}` : emp.name;
+                // 코드가 있으면 [KQ-001] 형태로 표시 (이미 포함되어 있지 않으면)
+                let displayText = emp.name;
+                if (emp.employeeCode && !emp.name.includes(`[${emp.employeeCode}]`)) {
+                    displayText = `[${emp.employeeCode}] ${emp.name}`;
+                }
+                option.textContent = displayText;
                 if (id === currentEmployeeId) option.selected = true;
                 select.appendChild(option);
             }
@@ -3000,7 +3351,11 @@
             }
 
             // 기본 정보 (코드가 있으면 함께 표시)
-            const nameDisplay = emp.employeeCode ? `[${emp.employeeCode}] ${emp.name}` : emp.name;
+            let nameDisplay = emp.name;
+            // 이름에 이미 코드가 포함되어 있지 않으면 추가
+            if (emp.employeeCode && !emp.name.includes(`[${emp.employeeCode}]`)) {
+                nameDisplay = `[${emp.employeeCode}] ${emp.name}`;
+            }
             document.getElementById('employeeName').value = nameDisplay;
             document.getElementById('basicSalary').value = formatNumber(emp.basicSalary || 0);
             document.getElementById('dependents').value = emp.dependents || 0;
@@ -3110,9 +3465,16 @@
             });
 
             const emp = employees[currentEmployeeId];
+
+            // 이름에서 코드 제거 (저장 시 순수 이름만 저장)
+            let nameToSave = document.getElementById('employeeName').value;
+            if (emp.employeeCode && nameToSave.includes(`[${emp.employeeCode}]`)) {
+                nameToSave = nameToSave.replace(`[${emp.employeeCode}] `, '').replace(`[${emp.employeeCode}]`, '').trim();
+            }
+
             employees[currentEmployeeId] = {
                 ...emp, // 기존 데이터 유지 (hireDate, annualLeavePerYear, annualLeaveUsed 등)
-                name: document.getElementById('employeeName').value,
+                name: nameToSave,
                 basicSalary: parseMoneyInput(document.getElementById('basicSalary').value),
                 dependents: parseInt(document.getElementById('dependents').value) || 0,
                 dailyMeal: parseMoneyInput(document.getElementById('dailyMeal').value) || 25000,
@@ -3380,10 +3742,17 @@
                 const payroll = calculateEmployeePayroll(empId, year, month);
 
                 if (payroll) {
+                    // 직원 코드 포함된 이름 생성
+                    let displayName = emp.name;
+                    if (emp.employeeCode && !emp.name.includes(`[${emp.employeeCode}]`)) {
+                        displayName = `[${emp.employeeCode}] ${emp.name}`;
+                    }
+
                     results.push({
                         employeeId: empId,  // dashboard.js에서 사용
                         id: empId,          // 호환성 유지
-                        name: emp.name,
+                        employeeCode: emp.employeeCode || '',
+                        name: displayName,
                         ...payroll
                     });
                 }
@@ -3477,6 +3846,8 @@
             const excusedAbsentCount = excusedAbsents.size;
             const unexcusedAbsentCount = absents.size;
             const annualLeaveCount = annualLeaveDays.size;
+            const specialLeaveCount = specialLeaveDays.size;
+            const sickLeaveCount = sickLeaveDays.size;
             const totalAbsentCount = excusedAbsentCount + unexcusedAbsentCount;
 
             // 일요일 특근일 수 계산 (8시간 이상 일하면 식대 지급 - 실근무일에는 포함 안됨)
@@ -3485,7 +3856,7 @@
                 if (sundayData[key] >= 8) sundayWorkDays++;
             });
 
-            const workDays = weekdays - holidayCount - totalAbsentCount - annualLeaveCount;
+            const workDays = weekdays - holidayCount - totalAbsentCount - annualLeaveCount - specialLeaveCount - sickLeaveCount;
 
             // 정규 근무시간 계산
             let normalHours = 0;
@@ -3499,9 +3870,12 @@
                 if ((holidays.has(dateKey) || holidays.has(dateKeyOld)) && dayOfWeek !== 0) continue;
                 if (excusedAbsents.has(dateKey) || excusedAbsents.has(dateKeyOld)) continue;
                 if (absents.has(dateKey) || absents.has(dateKeyOld)) continue;
+                if (sickLeaveDays.has(dateKey) || sickLeaveDays.has(dateKeyOld)) continue;
 
                 if (annualLeaveDays.has(dateKey) || annualLeaveDays.has(dateKeyOld)) {
-                    normalHours += 8;
+                    normalHours += 8;  // 연차 = 8시간 유급
+                } else if (specialLeaveDays.has(dateKey) || specialLeaveDays.has(dateKeyOld)) {
+                    normalHours += 8;  // 경조사 = 8시간 유급 (베트남 노동법 제115조)
                 } else {
                     normalHours += (normalHoursData[dateKey] || normalHoursData[dateKeyOld] || 8);
                 }
@@ -3662,9 +4036,16 @@
             // 실수령액 (선금 차감)
             const netSalary = totalSalary - totalDeduction - incomeTax - advancePayment;
 
+            // 직원 코드 포함된 이름 생성
+            let displayName = emp.name;
+            if (emp.employeeCode && !emp.name.includes(`[${emp.employeeCode}]`)) {
+                displayName = `[${emp.employeeCode}] ${emp.name}`;
+            }
+
             return {
                 employeeId: employeeId,
-                name: emp.name,
+                employeeCode: emp.employeeCode || '',
+                name: displayName,
                 workDays: workDays,
                 normalHours: normalHours,
                 overtimeHours: totalOvertime + totalSunday,  // 잔업 + 일요특근 합계
@@ -3875,11 +4256,11 @@
                 // 기존 데이터에서 현재 직원 제거 (중복 방지)
                 historyData.data = historyData.data.filter(d => d.employeeId !== currentEmployeeId);
 
-                // 새 데이터 추가
+                // 새 데이터 추가 (currentPayroll에 이미 코드 포함된 name이 있음)
                 historyData.data.push({
                     employeeId: currentEmployeeId,
                     id: currentEmployeeId,
-                    name: emp.name,
+                    employeeCode: emp.employeeCode || '',
                     ...currentPayroll
                 });
             }
@@ -3920,25 +4301,87 @@
 
         // 확정 상태 표시 업데이트
         function updateConfirmStatus() {
+            const confirmStatusBox = document.getElementById('confirmStatusBox');
+            const confirmDate = document.getElementById('confirmDate');
+            
             if (!currentEmployeeId || !selectedYear || !selectedMonth) {
-                document.getElementById('confirmStatus').style.display = 'none';
+                if (confirmStatusBox) confirmStatusBox.style.display = 'none';
                 return;
             }
 
             const monthKey = `${selectedYear}_${selectedMonth}`;
             const confirmKey = `payrollConfirmed_${monthKey}`;
             const confirmedList = JSON.parse(localStorage.getItem(confirmKey) || '[]');
-            const statusDiv = document.getElementById('confirmStatus');
-
+            
             if (confirmedList.includes(currentEmployeeId)) {
-                statusDiv.style.display = 'block';
-                statusDiv.innerHTML = '✅ 확정됨';
-                statusDiv.style.background = 'rgba(76, 175, 80, 0.3)';
+                // 확정됨 - 녹색 박스 표시
+                confirmStatusBox.style.display = 'block';
+                confirmStatusBox.style.background = 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)';
+                confirmStatusBox.style.borderColor = '#4caf50';
+                confirmStatusBox.innerHTML = `
+                    <div style="font-size: 2.5em; margin-bottom: 5px;">✅</div>
+                    <div style="font-size: 1.3em; font-weight: bold; color: #2e7d32; margin-bottom: 5px;">ĐÃ XÁC NHẬN</div>
+                    <div style="font-size: 0.95em; color: #558b2f;">${selectedMonth}/${selectedYear} • ${new Date().toLocaleDateString('vi-VN')}</div>
+                `;
             } else {
-                statusDiv.style.display = 'block';
-                statusDiv.innerHTML = '⚠️ 미확정';
-                statusDiv.style.background = 'rgba(255, 152, 0, 0.3)';
+                // 미확정 - 주황색 박스 표시
+                confirmStatusBox.style.display = 'block';
+                confirmStatusBox.style.background = 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)';
+                confirmStatusBox.style.borderColor = '#ff9800';
+                confirmStatusBox.innerHTML = `
+                    <div style="font-size: 2.5em; margin-bottom: 5px;">⚠️</div>
+                    <div style="font-size: 1.3em; font-weight: bold; color: #e65100; margin-bottom: 5px;">CHƯA XÁC NHẬN</div>
+                    <div style="font-size: 0.95em; color: #ef6c00;">Nhấn nút "Xác nhận" để lưu dữ liệu</div>
+                `;
             }
+        }
+
+        // 현재 직원 이번 달 데이터 삭제
+        function deleteCurrentEmployee() {
+            if (!currentEmployeeId) {
+                alert('⚠️ 먼저 직원을 선택하세요!');
+                return;
+            }
+
+            if (!selectedYear || !selectedMonth) {
+                alert('⚠️ 년월을 선택하세요!');
+                return;
+            }
+
+            const emp = employees[currentEmployeeId];
+            const monthStr = `${selectedYear}년 ${selectedMonth}월`;
+
+            if (!confirm(`⚠️ ${emp.name} 직원의 ${monthStr} 데이터를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!`)) {
+                return;
+            }
+
+            // 1. 현재 화면 데이터 초기화
+            clearCurrentMonthData();
+
+            // 2. 확정 목록에서 제거
+            const monthKey = `${selectedYear}_${selectedMonth}`;
+            const confirmKey = `payrollConfirmed_${monthKey}`;
+            let confirmedList = JSON.parse(localStorage.getItem(confirmKey) || '[]');
+            confirmedList = confirmedList.filter(id => id !== currentEmployeeId);
+            localStorage.setItem(confirmKey, JSON.stringify(confirmedList));
+
+            // 3. 급여 이력에서 제거
+            const historyKey = `payrollHistory_${monthKey}`;
+            let historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+            if (historyData.data) {
+                historyData.data = historyData.data.filter(d => d.employeeId !== currentEmployeeId);
+                historyData.confirmedEmployees = confirmedList;
+                localStorage.setItem(historyKey, JSON.stringify(historyData));
+            }
+
+            // 4. 개별 직원 데이터 저장소에서도 삭제
+            const employeeDataKey = `payrollData_${currentEmployeeId}_${selectedYear}_${selectedMonth}`;
+            localStorage.removeItem(employeeDataKey);
+
+            // 5. 확정 상태 표시 업데이트
+            updateConfirmStatus();
+
+            alert(`✅ ${emp.name} 직원의 ${monthStr} 데이터가 삭제되었습니다!`);
         }
 
         // 현재 선택된 년월의 급여를 메인 페이지에 등록 (전체 저장용)

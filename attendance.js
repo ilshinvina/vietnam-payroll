@@ -10,6 +10,10 @@ let employees = {};
 // 변경사항 추적
 let hasUnsavedChanges = false;
 
+// 자동저장 타이머
+let autoSaveTimer = null;
+const AUTO_SAVE_DELAY = 2000; // 2초 딜레이
+
 // 근무 유형
 const WORK_TYPES = [
     { key: 'normal', name: 'Giờ Chính', nameKr: '정상', className: 'type-normal' },
@@ -108,11 +112,11 @@ function updateQuickEmployeeSelect() {
     // 기존 옵션 유지하고 직원 옵션 추가
     select.innerHTML = '<option value="all">전체 직원</option>';
 
-    // 코드순 정렬
+    // 코드순 정렬 (숫자 포함 자연 정렬)
     const sortedEmployees = Object.entries(employees).sort((a, b) => {
         const codeA = a[1].employeeCode || '';
         const codeB = b[1].employeeCode || '';
-        return codeA.localeCompare(codeB);
+        return codeA.localeCompare(codeB, undefined, { numeric: true });
     });
 
     sortedEmployees.forEach(([id, emp]) => {
@@ -183,11 +187,11 @@ function renderTableHeader(thead, daysInMonth) {
 }
 
 function renderTableBody(tbody, employeeArray, daysInMonth) {
-    // 코드순 정렬
+    // 코드순 정렬 (숫자 포함 자연 정렬)
     employeeArray.sort((a, b) => {
         const codeA = a[1].employeeCode || '';
         const codeB = b[1].employeeCode || '';
-        return codeA.localeCompare(codeB);
+        return codeA.localeCompare(codeB, undefined, { numeric: true });
     });
 
     let html = '';
@@ -228,7 +232,9 @@ function renderTableBody(tbody, employeeArray, daysInMonth) {
                 const isSunday = dow === 0;
 
                 // 연차/휴가 상태 확인 (첫 번째 행에만 색상 표시)
-                const leaveType = emp.leaveData?.[dateKey] || '';
+                const dateKeyNorm = normalizeDateKey(dateKey);
+                const dateKeyDenorm = denormalizeDateKey(dateKey);
+                const leaveType = emp.leaveData?.[dateKey] || emp.leaveData?.[dateKeyNorm] || emp.leaveData?.[dateKeyDenorm] || '';
                 const leaveStyle = (typeIdx === 0 && leaveType) ? getLeaveStyle(leaveType) : '';
 
                 total += value;
@@ -289,7 +295,8 @@ function calculateLeaveUsedThisMonth(employeeId, emp) {
 
     for (let day = 1; day <= daysInMonth; day++) {
         const dateKey = `${currentYear}-${currentMonth}-${day}`;
-        if (emp.leaveData[dateKey] === 'annual') {
+        const dateKeyNorm = normalizeDateKey(dateKey);
+        if (emp.leaveData[dateKey] === 'annual' || emp.leaveData[dateKeyNorm] === 'annual') {
             count++;
         }
     }
@@ -310,7 +317,8 @@ function calculateLeaveUsedThisYear(employeeId, emp) {
         const daysInMonth = new Date(currentYear, month, 0).getDate();
         for (let day = 1; day <= daysInMonth; day++) {
             const dateKey = `${currentYear}-${month}-${day}`;
-            const leaveType = emp.leaveData[dateKey];
+            const dateKeyNorm = normalizeDateKey(dateKey);
+            const leaveType = emp.leaveData[dateKey] || emp.leaveData[dateKeyNorm];
             // 연차 + 병가만 카운트 (경조사는 제외)
             if (leaveType === 'annual' || leaveType === 'sick') {
                 count++;
@@ -334,15 +342,37 @@ function getLeaveStyle(leaveType) {
 }
 
 // ==================== 데이터 관리 ====================
+// 날짜 키 정규화 (YYYY-M-D → YYYY-MM-DD)
+function normalizeDateKey(dateKey) {
+    const parts = dateKey.split('-');
+    if (parts.length !== 3) return dateKey;
+    return `${parts[0]}-${String(parseInt(parts[1])).padStart(2, '0')}-${String(parseInt(parts[2])).padStart(2, '0')}`;
+}
+
+// 날짜 키 비정규화 (YYYY-MM-DD → YYYY-M-D)
+function denormalizeDateKey(dateKey) {
+    const parts = dateKey.split('-');
+    if (parts.length !== 3) return dateKey;
+    return `${parseInt(parts[0])}-${parseInt(parts[1])}-${parseInt(parts[2])}`;
+}
+
 function getWorkValue(employeeId, dateKey, typeKey) {
     const emp = employees[employeeId];
     if (!emp) return 0;
 
+    // 두 가지 포맷 모두 확인 (구버전: 2024-12-5, 신버전: 2024-12-05)
+    const dateKeyNorm = normalizeDateKey(dateKey);
+    const dateKeyDenorm = denormalizeDateKey(dateKey);
+
     switch (typeKey) {
-        case 'normal': return emp.normalHoursData?.[dateKey] || 0;
-        case 'overtime': return emp.overtimeData?.[dateKey] || 0;
-        case 'night': return emp.nightData?.[dateKey] || 0;
-        case 'holiday': return emp.sundayData?.[dateKey] || 0;
+        case 'normal':
+            return emp.normalHoursData?.[dateKey] || emp.normalHoursData?.[dateKeyNorm] || emp.normalHoursData?.[dateKeyDenorm] || 0;
+        case 'overtime':
+            return emp.overtimeData?.[dateKey] || emp.overtimeData?.[dateKeyNorm] || emp.overtimeData?.[dateKeyDenorm] || 0;
+        case 'night':
+            return emp.nightData?.[dateKey] || emp.nightData?.[dateKeyNorm] || emp.nightData?.[dateKeyDenorm] || 0;
+        case 'holiday':
+            return emp.sundayData?.[dateKey] || emp.sundayData?.[dateKeyNorm] || emp.sundayData?.[dateKeyDenorm] || 0;
         default: return 0;
     }
 }
@@ -378,9 +408,9 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
             break;
     }
 
-    // 변경사항 표시
+    // 변경사항 표시 및 자동저장 예약
     hasUnsavedChanges = true;
-    updateSaveIndicator();
+    scheduleAutoSave();
 }
 
 function handleInputChange(input) {
@@ -540,8 +570,6 @@ function showLeaveMenu(event, td) {
     menu.id = 'leaveMenu';
     menu.style.cssText = `
         position: fixed;
-        left: ${event.clientX}px;
-        top: ${event.clientY}px;
         background: white;
         border: 1px solid #ddd;
         border-radius: 8px;
@@ -549,6 +577,7 @@ function showLeaveMenu(event, td) {
         z-index: 1000;
         min-width: 150px;
         overflow: hidden;
+        visibility: hidden;
     `;
 
     const options = [
@@ -579,6 +608,38 @@ function showLeaveMenu(event, td) {
     });
 
     document.body.appendChild(menu);
+
+    // 메뉴 위치 조정 (화면 밖으로 나가지 않도록)
+    const menuRect = menu.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let left = event.clientX;
+    let top = event.clientY;
+
+    // 오른쪽으로 넘치면 왼쪽으로 표시
+    if (left + menuRect.width > viewportWidth - 10) {
+        left = viewportWidth - menuRect.width - 10;
+    }
+
+    // 아래로 넘치면 위로 표시하거나 조정
+    if (top + menuRect.height > viewportHeight - 10) {
+        // 클릭 위치 위에 메뉴를 표시
+        top = event.clientY - menuRect.height;
+        // 그래도 위로 넘치면 화면 상단에 맞춤
+        if (top < 10) {
+            top = 10;
+        }
+    }
+
+    // 왼쪽 경계 확인
+    if (left < 10) {
+        left = 10;
+    }
+
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    menu.style.visibility = 'visible';
 
     // 메뉴 외부 클릭시 닫기
     setTimeout(() => {
@@ -702,12 +763,9 @@ function saveLeaveData(employeeId, dateKey, leaveType) {
         delete emp.leaveData[dateKey];
     }
 
-    // 메모리에만 저장 (급여계산기로 보내기 버튼 클릭 시 localStorage에 저장됨)
-    // localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
-
-    // 변경사항 표시
+    // 변경사항 표시 및 자동저장 예약
     hasUnsavedChanges = true;
-    updateSaveIndicator();
+    scheduleAutoSave();
 
     // 연차 사용/잔여 표시 업데이트
     updateLeaveDisplay(employeeId, emp);
@@ -862,51 +920,138 @@ function applyQuickFill() {
 
 // 급여계산기에서 데이터 들고오기 (새로고침)
 function pullFromSalaryCalc() {
-    if (!confirm('⚠️ 급여계산기 데이터를 불러옵니다.\n\n현재 작업 중인 내용이 있다면 먼저 "급여계산기로 보내기"를 하세요.\n\n계속하시겠습니까?')) {
+    if (!confirm('📥 저장된 데이터를 불러옵니다.\n\n현재 화면의 변경사항은 사라집니다.\n계속하시겠습니까?')) {
         return;
     }
 
     const savedEmployees = localStorage.getItem('vietnamPayrollEmployees');
-    if (savedEmployees) {
-        employees = JSON.parse(savedEmployees);
-        console.log('급여계산기에서 데이터 로드:', Object.keys(employees).length, '명');
+    if (!savedEmployees) {
+        alert('❌ 저장된 데이터가 없습니다!');
+        return;
     }
+
+    employees = JSON.parse(savedEmployees);
+
+    // 선택된 월에 해당하는 데이터가 있는지 확인
+    let dataFound = 0;
+    let emptyData = 0;
+    const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    const monthPrefixAlt = `${currentYear}-${currentMonth}`;
+
+    Object.keys(employees).forEach(empId => {
+        const emp = employees[empId];
+        let hasData = false;
+
+        // overtimeData 확인
+        if (emp.overtimeData) {
+            Object.keys(emp.overtimeData).forEach(key => {
+                if (key.startsWith(monthPrefix) || key.startsWith(monthPrefixAlt)) {
+                    hasData = true;
+                }
+            });
+        }
+        // normalHoursData 확인
+        if (emp.normalHoursData) {
+            Object.keys(emp.normalHoursData).forEach(key => {
+                if (key.startsWith(monthPrefix) || key.startsWith(monthPrefixAlt)) {
+                    hasData = true;
+                }
+            });
+        }
+
+        if (hasData) dataFound++;
+        else emptyData++;
+    });
+
+    console.log(`=== ${currentYear}년 ${currentMonth}월 데이터 현황 ===`);
+    console.log(`데이터 있는 직원: ${dataFound}명`);
+    console.log(`데이터 없는 직원: ${emptyData}명`);
+    console.log(`총 직원: ${Object.keys(employees).length}명`);
+    console.log('==========================================');
 
     updateQuickEmployeeSelect();
     renderTable();
 
-    // 불러온 후 변경사항 없음으로 초기화
     hasUnsavedChanges = false;
     updateSaveIndicator();
 
-    alert('✅ 급여계산기 데이터를 불러왔습니다!');
+    alert(`✅ 데이터를 불러왔습니다!\n\n📅 ${currentYear}년 ${currentMonth}월\n👥 총 직원: ${Object.keys(employees).length}명\n📊 데이터 있음: ${dataFound}명\n⚠️ 데이터 없음: ${emptyData}명`);
 }
 
 // 급여계산기로 데이터 보내기 (저장)
-function pushToSalaryCalc() {
+function pushToSalaryCalc(silent = false) {
     localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
 
     // 변경사항 저장 완료
     hasUnsavedChanges = false;
     updateSaveIndicator();
 
-    alert('✅ 급여계산기로 데이터를 보냈습니다!\n\n급여계산기에서 바로 확인할 수 있습니다.');
-    console.log('급여계산기로 데이터 전송 완료');
+    if (!silent) {
+        // 급여계산기로 이동 + 자동 계산
+        if (confirm('✅ 데이터가 저장되었습니다!\n\n급여계산기로 이동해서 전체 직원 급여를 자동 계산하시겠습니까?')) {
+            // 자동 계산 모드로 이동 (현재 년/월 정보 포함)
+            window.location.href = `salary-input.html?autoCalc=all&year=${currentYear}&month=${currentMonth}`;
+        }
+    }
+    console.log('급여계산기로 데이터 전송 완료' + (silent ? ' (자동저장)' : ''));
+}
+
+// ==================== 자동저장 시스템 ====================
+
+// 자동저장 예약 (디바운스)
+function scheduleAutoSave() {
+    // 기존 타이머 취소
+    if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+    }
+
+    // 2초 후 자동저장
+    autoSaveTimer = setTimeout(() => {
+        autoSave();
+    }, AUTO_SAVE_DELAY);
+
+    // 저장 대기 중 표시
+    updateSaveIndicator('pending');
+}
+
+// 자동저장 실행
+function autoSave() {
+    if (!hasUnsavedChanges) return;
+
+    localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
+    hasUnsavedChanges = false;
+    updateSaveIndicator('saved');
+
+    console.log('✅ 자동저장 완료:', new Date().toLocaleTimeString());
 }
 
 // 저장 상태 표시 업데이트
-function updateSaveIndicator() {
+function updateSaveIndicator(status = null) {
     const pushBtn = document.querySelector('button[onclick="pushToSalaryCalc()"]');
-    if (pushBtn) {
-        if (hasUnsavedChanges) {
-            pushBtn.textContent = '📤 급여계산기로 보내기 ●';
-            pushBtn.style.background = '#ff9800';
-            pushBtn.style.animation = 'pulse 1s infinite';
-        } else {
-            pushBtn.textContent = '📤 급여계산기로 보내기';
-            pushBtn.style.background = '#4caf50';
-            pushBtn.style.animation = '';
-        }
+    if (!pushBtn) return;
+
+    if (status === 'pending') {
+        // 저장 대기 중
+        pushBtn.textContent = '💾 저장 중...';
+        pushBtn.style.background = '#ff9800';
+        pushBtn.style.animation = '';
+    } else if (status === 'saved' || !hasUnsavedChanges) {
+        // 저장 완료
+        pushBtn.textContent = '✅ 자동저장됨';
+        pushBtn.style.background = '#4caf50';
+        pushBtn.style.animation = '';
+
+        // 3초 후 기본 텍스트로 복원
+        setTimeout(() => {
+            if (!hasUnsavedChanges) {
+                pushBtn.textContent = '📤 급여계산기로 보내기';
+            }
+        }, 3000);
+    } else {
+        // 미저장 상태
+        pushBtn.textContent = '📤 급여계산기로 보내기 ●';
+        pushBtn.style.background = '#ff9800';
+        pushBtn.style.animation = 'pulse 1s infinite';
     }
 }
 
@@ -915,8 +1060,136 @@ function saveAllData() {
     pushToSalaryCalc();
 }
 
+// ==================== 데이터 초기화 ====================
+function resetAttendanceData() {
+    // 초기화 옵션 선택
+    const options = [
+        '1. 현재 직원의 이번 달만 초기화',
+        '2. 현재 직원의 전체 데이터 초기화',
+        '3. 모든 직원의 이번 달만 초기화',
+        '4. 모든 직원의 전체 데이터 초기화'
+    ];
+
+    const choice = prompt(
+        '⚠️ 초기화 옵션을 선택하세요:\n\n' +
+        options.join('\n') +
+        '\n\n숫자를 입력하세요 (1-4):'
+    );
+
+    if (!choice || !['1', '2', '3', '4'].includes(choice.trim())) {
+        if (choice !== null) {
+            alert('취소되었습니다.');
+        }
+        return;
+    }
+
+    const confirmMsg = {
+        '1': `현재 직원의 ${currentYear}년 ${currentMonth}월 데이터를`,
+        '2': '현재 직원의 전체 데이터를',
+        '3': `모든 직원의 ${currentYear}년 ${currentMonth}월 데이터를`,
+        '4': '모든 직원의 전체 데이터를'
+    };
+
+    if (!confirm(`⚠️ 정말로 ${confirmMsg[choice.trim()]} 초기화하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!`)) {
+        return;
+    }
+
+    const option = choice.trim();
+    const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    const monthPrefixOld = `${currentYear}-${currentMonth}`;
+
+    // 데이터 초기화 함수
+    function clearEmployeeMonth(emp) {
+        // 해당 월의 데이터만 삭제
+        ['overtimeData', 'nightData', 'sundayData', 'normalHoursData', 'nightOTData'].forEach(dataKey => {
+            if (emp[dataKey]) {
+                Object.keys(emp[dataKey]).forEach(key => {
+                    if (key.startsWith(monthPrefix) || key.startsWith(monthPrefixOld)) {
+                        delete emp[dataKey][key];
+                    }
+                });
+            }
+        });
+
+        // 휴가/결근 데이터 (배열)
+        ['holidays', 'excusedAbsents', 'absents', 'annualLeaveDays'].forEach(arrKey => {
+            if (emp[arrKey] && Array.isArray(emp[arrKey])) {
+                emp[arrKey] = emp[arrKey].filter(key =>
+                    !key.startsWith(monthPrefix) && !key.startsWith(monthPrefixOld)
+                );
+            }
+        });
+
+        // leaveData (객체)
+        if (emp.leaveData) {
+            Object.keys(emp.leaveData).forEach(key => {
+                if (key.startsWith(monthPrefix) || key.startsWith(monthPrefixOld)) {
+                    delete emp.leaveData[key];
+                }
+            });
+        }
+
+        // nightShiftDays (Set을 배열로 저장)
+        if (emp.nightShiftDays && Array.isArray(emp.nightShiftDays)) {
+            emp.nightShiftDays = emp.nightShiftDays.filter(key =>
+                !key.startsWith(monthPrefix) && !key.startsWith(monthPrefixOld)
+            );
+        }
+    }
+
+    function clearEmployeeAll(emp) {
+        // 전체 데이터 삭제
+        emp.overtimeData = {};
+        emp.nightData = {};
+        emp.sundayData = {};
+        emp.normalHoursData = {};
+        emp.nightOTData = {};
+        emp.holidays = [];
+        emp.excusedAbsents = [];
+        emp.absents = [];
+        emp.annualLeaveDays = [];
+        emp.leaveData = {};
+        emp.nightShiftDays = [];
+    }
+
+    // 선택된 옵션에 따라 초기화
+    const selectedEmpId = document.querySelector('.employee-tab.active')?.dataset?.empId;
+
+    if (option === '1' && selectedEmpId && employees[selectedEmpId]) {
+        clearEmployeeMonth(employees[selectedEmpId]);
+    } else if (option === '2' && selectedEmpId && employees[selectedEmpId]) {
+        clearEmployeeAll(employees[selectedEmpId]);
+    } else if (option === '3') {
+        Object.values(employees).forEach(emp => clearEmployeeMonth(emp));
+    } else if (option === '4') {
+        Object.values(employees).forEach(emp => clearEmployeeAll(emp));
+    }
+
+    // 테이블 새로고침
+    renderTable();
+
+    // 초기화 후 저장하지 않음 - 사용자가 "들고오기"로 복원 가능하게
+    // 자동저장 타이머 취소 (초기화 후 자동저장 방지)
+    if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+    }
+    hasUnsavedChanges = true;
+    updateSaveIndicator();
+
+    alert('✅ 데이터가 초기화되었습니다!\n\n⚠️ 아직 저장되지 않았습니다.\n• 저장: "급여계산기로 보내기" 클릭\n• 복원: "급여계산기에서 들고오기" 클릭');
+    console.log(`데이터 초기화 완료: 옵션 ${option} (미저장 상태)`);
+}
+
 // ==================== 엑셀 내보내기 ====================
 function exportToExcel() {
+    // 내보내기 전 자동저장
+    if (hasUnsavedChanges) {
+        localStorage.setItem('vietnamPayrollEmployees', JSON.stringify(employees));
+        hasUnsavedChanges = false;
+        console.log('📤 엑셀 내보내기 전 자동저장 완료');
+    }
+
     const wb = XLSX.utils.book_new();
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 

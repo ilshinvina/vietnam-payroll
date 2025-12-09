@@ -112,6 +112,14 @@
             color: #fff;
         }
 
+        .btn-danger {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
         /* 저장 필요 표시 애니메이션 */
         @keyframes pulse {
             0% { opacity: 1; }
@@ -202,10 +210,10 @@
 
         /* 날짜 열 */
         .excel-table .col-day {
-            width: 28px;
-            min-width: 28px;
-            max-width: 28px;
-            padding: 2px 1px;
+            width: 42px;
+            min-width: 42px;
+            max-width: 42px;
+            padding: 4px 2px;
         }
 
         .excel-table .col-day.sunday {
@@ -213,8 +221,8 @@
         }
 
         .excel-table th.col-day {
-            font-size: 0.75rem;
-            padding: 3px 1px;
+            font-size: 0.9rem;
+            padding: 5px 2px;
         }
 
         /* 일요일 헤더 - 빨간 글씨 */
@@ -225,10 +233,11 @@
 
         /* 합계 열 */
         .excel-table .col-total {
-            width: 40px;
-            min-width: 40px;
+            width: 50px;
+            min-width: 50px;
             background: #fff3cd;
             font-weight: bold;
+            font-size: 0.95rem;
         }
 
         /* 합계 헤더 - 어두운 배경 유지 */
@@ -239,10 +248,11 @@
 
         /* 연차 사용 컬럼 */
         .excel-table .col-leave-used {
-            width: 40px;
-            min-width: 40px;
+            width: 50px;
+            min-width: 50px;
             background: #e8f5e9;
             font-weight: bold;
+            font-size: 0.95rem;
             color: #2e7d32;
             text-align: center;
             vertical-align: middle;
@@ -255,10 +265,11 @@
 
         /* 연차 잔여 컬럼 */
         .excel-table .col-leave-remain {
-            width: 40px;
-            min-width: 40px;
+            width: 50px;
+            min-width: 50px;
             background: #fff3e0;
             font-weight: bold;
+            font-size: 0.95rem;
             color: #e65100;
             text-align: center;
             vertical-align: middle;
@@ -272,12 +283,12 @@
         /* 입력 필드 */
         .excel-table input {
             width: 100%;
-            max-width: 26px;
+            max-width: 38px;
             border: none;
             background: transparent;
             text-align: center;
-            font-size: 0.75rem;
-            padding: 1px;
+            font-size: 0.9rem;
+            padding: 2px;
         }
 
         .excel-table input:focus {
@@ -456,11 +467,116 @@
             color: #999;
         }
 
-        /* 반응형 */
-        @media (max-width: 768px) {
+        /* 반응형 - 대형 모니터 (1920px 이상) */
+        @media (min-width: 1920px) {
+            .excel-table .col-day {
+                width: 52px;
+                min-width: 52px;
+                max-width: 52px;
+            }
+            .excel-table th.col-day {
+                font-size: 1rem;
+            }
+            .excel-table input {
+                max-width: 48px;
+                font-size: 1rem;
+            }
+            .excel-table .col-total,
+            .excel-table .col-leave-used,
+            .excel-table .col-leave-remain {
+                width: 60px;
+                min-width: 60px;
+                font-size: 1rem;
+            }
+        }
+
+        /* 반응형 - 중형 모니터 (1440px ~ 1919px) */
+        @media (min-width: 1440px) and (max-width: 1919px) {
+            .excel-table .col-day {
+                width: 46px;
+                min-width: 46px;
+                max-width: 46px;
+            }
+            .excel-table th.col-day {
+                font-size: 0.95rem;
+            }
+            .excel-table input {
+                max-width: 42px;
+                font-size: 0.95rem;
+            }
+            .excel-table .col-total,
+            .excel-table .col-leave-used,
+            .excel-table .col-leave-remain {
+                width: 55px;
+                min-width: 55px;
+            }
+        }
+
+        /* 반응형 - 노트북 (1024px ~ 1439px) */
+        @media (min-width: 1024px) and (max-width: 1439px) {
+            .excel-table .col-day {
+                width: 38px;
+                min-width: 38px;
+                max-width: 38px;
+            }
+            .excel-table th.col-day {
+                font-size: 0.85rem;
+            }
+            .excel-table input {
+                max-width: 34px;
+                font-size: 0.85rem;
+            }
+            .excel-table .col-total,
+            .excel-table .col-leave-used,
+            .excel-table .col-leave-remain {
+                width: 45px;
+                min-width: 45px;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* 반응형 - 작은 노트북/태블릿 (768px ~ 1023px) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .excel-table .col-day {
+                width: 32px;
+                min-width: 32px;
+                max-width: 32px;
+            }
+            .excel-table th.col-day {
+                font-size: 0.75rem;
+                padding: 3px 1px;
+            }
+            .excel-table input {
+                max-width: 28px;
+                font-size: 0.75rem;
+            }
+            .excel-table .col-total,
+            .excel-table .col-leave-used,
+            .excel-table .col-leave-remain {
+                width: 40px;
+                min-width: 40px;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* 반응형 - 모바일 */
+        @media (max-width: 767px) {
             .toolbar {
                 flex-direction: column;
                 align-items: stretch;
+            }
+            .excel-table .col-day {
+                width: 28px;
+                min-width: 28px;
+                max-width: 28px;
+            }
+            .excel-table th.col-day {
+                font-size: 0.7rem;
+                padding: 2px 1px;
+            }
+            .excel-table input {
+                max-width: 24px;
+                font-size: 0.7rem;
             }
         }
     </style>
@@ -494,6 +610,8 @@
         <span style="margin: 0 10px; color: #2c3e50; font-weight: bold; font-size: 1.2em;">│</span>
         <button class="btn btn-primary" onclick="exportToExcel()">📊 엑셀 내보내기</button>
         <button class="btn btn-secondary" onclick="importFromExcel()">📂 엑셀 불러오기</button>
+        <span style="margin: 0 10px; color: #2c3e50; font-weight: bold; font-size: 1.2em;">│</span>
+        <button class="btn btn-danger" onclick="resetAttendanceData()">🗑️ 초기화</button>
     </div>
 
     <!-- 범례 -->

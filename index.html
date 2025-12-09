@@ -109,6 +109,16 @@
             transform: translateY(-2px);
         }
 
+        .btn-icon.btn-danger {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+
+        .btn-icon.btn-danger:hover {
+            background: #e74c3c;
+            color: white;
+        }
+
         .stats-container {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -421,6 +431,7 @@
     <div class="container">
         <div class="header">
             <div class="header-actions">
+                <button class="btn-icon btn-danger" onclick="clearPayrollCache()" title="이력 데이터 초기화">🗑️ 이력 초기화</button>
                 <a href="company-setup.html" class="btn-icon" title="회사 설정">⚙️ 회사 설정</a>
             </div>
 

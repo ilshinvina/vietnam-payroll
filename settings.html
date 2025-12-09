@@ -668,25 +668,43 @@
                     </div>
                 </div>
 
-                <!-- 연차/사유결근 시 점심 식대 지급 조건 -->
-                <h3 style="color: #764ba2; margin: 25px 0 15px 0; font-size: 1.1em;">🏖️ 연차/사유결근 시 점심 식대 지급 조건</h3>
+                <!-- 휴가 시 점심 식대 지급 조건 -->
+                <h3 style="color: #764ba2; margin: 25px 0 15px 0; font-size: 1.1em;">🏖️ 휴가/결근 시 점심 식대 지급 조건</h3>
                 <div class="settings-grid">
                     <div class="setting-item">
                         <label style="display: flex; align-items: center; cursor: pointer;">
                             <input type="checkbox" id="settingAnnualLeaveLunchMeal" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
-                            <span>연차 사용 시 점심 식대 지급</span>
+                            <span>🏖️ 연차 시 점심 식대 지급</span>
                         </label>
-                        <small style="color: #999; margin-top: 5px; display: block;">체크 시 연차를 사용한 날에도 점심 식대 지급 (회사 규정에 따라 다름)</small>
+                        <small style="color: #999; margin-top: 5px; display: block;">체크 시 연차를 사용한 날에도 점심 식대 지급</small>
                     </div>
                     <div class="setting-item">
-                        <label>사유결근(조기퇴근) 시 점심 식대 지급 조건</label>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span>정규시간</span>
-                            <input type="number" id="settingExcusedAbsenceLunchMinHours" value="4" min="0" step="0.5" style="width: 80px; text-align: center;">
-                            <span>시간 이상</span>
-                        </div>
-                        <small style="color: #999; margin-top: 5px; display: block;">예: 4시간 → 사유결근 시 정규시간 4시간 이상 근무하면 점심 식대 지급 (0으로 설정 시 항상 지급)</small>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="settingSickLeaveLunchMeal" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                            <span>🏥 병가 시 점심 식대 지급</span>
+                        </label>
+                        <small style="color: #999; margin-top: 5px; display: block;">체크 시 병가를 사용한 날에도 점심 식대 지급</small>
                     </div>
+                    <div class="setting-item">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="settingExcusedAbsenceLunchMeal" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                            <span>📝 사유결근 시 점심 식대 지급</span>
+                        </label>
+                        <small style="color: #999; margin-top: 5px; display: block;">체크 시 사유결근한 날에도 점심 식대 지급</small>
+                    </div>
+                    <div class="setting-item">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="settingSpecialLeaveLunchMeal" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                            <span>🖤 경조사 시 점심 식대 지급</span>
+                        </label>
+                        <small style="color: #999; margin-top: 5px; display: block;">체크 시 경조사(결혼/장례) 휴가 사용한 날에도 점심 식대 지급</small>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; padding: 10px; background: #fff3e0; border-radius: 8px; border-left: 4px solid #ff9800;">
+                    <small style="color: #e65100;">
+                        ⚠️ <strong>무단결근</strong>은 식대 미지급 (설정 불가)<br>
+                        • 무단결근: 사전 통보 없이 결근한 경우 식대 지급 불가
+                    </small>
                 </div>
 
                 <!-- 근무 형태 설정 -->
@@ -732,11 +750,31 @@
                         </div>
                     </div>
 
+                    <!-- 야간OT 비율 설정 -->
+                    <div style="margin-top: 15px;">
+                        <div class="setting-item">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #c2185b;">
+                                🔥 야간+OT 비율 설정
+                            </label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <select id="settingNightOTRate" style="padding: 10px 15px; border: 2px solid #c2185b; border-radius: 5px; font-size: 1em; background: white;">
+                                    <option value="1.5">150% (1.5배)</option>
+                                    <option value="1.8">180% (1.8배)</option>
+                                    <option value="2.0" selected>200% (2.0배) - 기본값</option>
+                                    <option value="2.5">250% (2.5배)</option>
+                                    <option value="3.0">300% (3.0배)</option>
+                                </select>
+                                <span style="color: #666;">야간조의 야근 시간에 적용</span>
+                            </div>
+                            <small style="color: #999; margin-top: 5px; display: block;">베트남 노동법 기준: 야간(22:00~06:00) + 야근 = 최소 200%</small>
+                        </div>
+                    </div>
+
                     <div style="margin-top: 15px; padding: 10px; background: #fff3e0; border-radius: 5px; border-left: 4px solid #ff9800;">
                         <strong style="color: #e65100;">📌 야간조 계산 방식:</strong>
                         <ul style="margin: 5px 0 0 20px; color: #666; font-size: 0.9em;">
                             <li>정규 8시간 = 위 설정대로 분배 (100% + 130%)</li>
-                            <li>야근 시간 = 전부 <strong style="color: #c2185b;">야간OT 200%</strong> 적용</li>
+                            <li>야근 시간 = 전부 <strong style="color: #c2185b;">야간OT <span id="nightOTRateDisplay">200</span>%</strong> 적용</li>
                         </ul>
                     </div>
                 </div>
@@ -1077,9 +1115,98 @@
                         </div>
                     </div>
 
-                    <!-- 7. 실수령액 계산 -->
+                    <!-- 7. 휴가 규정 (베트남 노동법) -->
+                    <div class="payroll-card">
+                        <h3 style="color: #4caf50;">🏖️ 7. 휴가 규정 (베트남 노동법)</h3>
+                        <div style="margin-left: 20px; color: #666;">
+
+                            <!-- 연차 (Annual Leave) -->
+                            <div style="margin-bottom: 20px;">
+                                <h4 style="color: #4caf50; margin-bottom: 10px;">📅 연차 휴가 (Nghỉ phép năm) - 제113조</h4>
+                                <div style="margin-left: 15px;">
+                                    <p style="margin-bottom: 8px;">▪ <strong>기본 연차</strong>: 12일/년 (12 tháng làm việc)</p>
+                                    <p style="margin-bottom: 8px;">▪ <strong>가산 연차</strong>: 근속 5년마다 +1일</p>
+                                    <p style="margin-bottom: 8px;">▪ <strong>특수 환경</strong>: 14~16일 (유해/위험 업종)</p>
+                                    <p style="margin-bottom: 8px;">▪ <strong>미사용 연차</strong>: 이월 또는 수당 지급 가능</p>
+                                </div>
+                                <div class="info-box" style="border-color: #4caf50; margin-top: 10px;">
+                                    ✅ <strong>급여 계산</strong>: 연차 1일 = <strong>8시간 유급</strong> (100% 급여)
+                                </div>
+                            </div>
+
+                            <!-- 경조사 (Special Leave) -->
+                            <div style="margin-bottom: 20px;">
+                                <h4 style="color: #9c27b0; margin-bottom: 10px;">🖤 경조사 휴가 (Nghỉ việc riêng) - 제115조</h4>
+                                <div style="margin-left: 15px;">
+                                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+                                        <thead>
+                                            <tr style="background: #f3e5f5;">
+                                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">사유</th>
+                                                <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">일수</th>
+                                                <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">유/무급</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td style="padding: 8px; border: 1px solid #ddd;">본인 결혼</td>
+                                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold;">3일</td>
+                                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #4caf50; font-weight: bold;">유급</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px; border: 1px solid #ddd;">자녀 결혼</td>
+                                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold;">1일</td>
+                                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #4caf50; font-weight: bold;">유급</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px; border: 1px solid #ddd;">부모/배우자/자녀 사망</td>
+                                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold;">3일</td>
+                                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #4caf50; font-weight: bold;">유급</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px; border: 1px solid #ddd;">조부모/형제자매 사망</td>
+                                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-weight: bold;">1일</td>
+                                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #ff9800;">회사규정</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="info-box" style="border-color: #9c27b0; margin-top: 10px;">
+                                    ✅ <strong>급여 계산</strong>: 경조사 1일 = <strong>8시간 유급</strong> (100% 급여)<br>
+                                    <span style="color: #999;">※ 식대: 기본 미지급 (회사 설정에서 변경 가능)</span>
+                                </div>
+                            </div>
+
+                            <!-- 병가 (Sick Leave) -->
+                            <div style="margin-bottom: 20px;">
+                                <h4 style="color: #ff9800; margin-bottom: 10px;">🏥 병가 (Nghỉ ốm đau) - 사회보험법</h4>
+                                <div style="margin-left: 15px;">
+                                    <p style="margin-bottom: 8px;">▪ <strong>지급 주체</strong>: 사회보험 (BHXH)에서 지급</p>
+                                    <p style="margin-bottom: 8px;">▪ <strong>지급률</strong>: 급여의 <strong>75%</strong> (최대 30일/년)</p>
+                                    <p style="margin-bottom: 8px;">▪ <strong>필요 서류</strong>: 의사 진단서 (Giấy nghỉ ốm)</p>
+                                </div>
+                                <div class="info-box" style="border-color: #ff9800; margin-top: 10px;">
+                                    ⚠️ <strong>급여 계산</strong>: 병가 = <strong>회사 급여에서 제외</strong><br>
+                                    <span style="color: #999;">※ 사회보험에서 별도 지급 (75%) / 식대: 기본 미지급 (회사 설정에서 변경 가능)</span>
+                                </div>
+                            </div>
+
+                            <!-- 결근 -->
+                            <div>
+                                <h4 style="color: #607d8b; margin-bottom: 10px;">📝 결근 (Vắng mặt)</h4>
+                                <div style="margin-left: 15px;">
+                                    <p style="margin-bottom: 8px;">▪ <strong>사유결근</strong>: 사전 승인된 개인 사유 (무급)</p>
+                                    <p style="margin-bottom: 8px;">▪ <strong>무단결근</strong>: 미승인 결근 (무급 + 징계 가능)</p>
+                                </div>
+                                <div class="info-box" style="border-color: #607d8b; margin-top: 10px;">
+                                    ❌ <strong>급여 계산</strong>: 모든 결근 = <strong>무급</strong> (0시간)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 8. 실수령액 계산 -->
                     <div class="final-calculation">
-                        <h3 style="margin-bottom: 20px; font-size: 1.8em;">💵 7. 실수령액 계산</h3>
+                        <h3 style="margin-bottom: 20px; font-size: 1.8em;">💵 8. 실수령액 계산</h3>
                         <div style="margin-left: 20px; font-size: 1.2em; line-height: 2;">
                             <p style="margin-bottom: 15px; font-size: 1.3em;"><strong>실수령액</strong> = <strong>총 급여</strong></p>
                             <p style="margin-left: 50px; margin-bottom: 10px; font-size: 1.1em;"><span style="color: white; font-weight: bold; font-size: 1.5em;">-</span> 근로자 부담 보험료 (<span id="info-final-emp-total" style="font-weight: bold; font-size: 1.2em;">10.5</span>%)</p>

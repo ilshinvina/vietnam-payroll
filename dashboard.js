@@ -8,8 +8,70 @@ let monthlyPayrollData = {}; // {year_month: payrollData}
 // 초기화
 function initDashboard() {
     loadEmployeesData();
+    cleanupOrphanData(); // 고아 데이터 정리
     displayEmployeeStats();
     displayMonthlyPayroll();
+}
+
+// 고아 데이터 정리 (삭제된 직원의 데이터 제거)
+function cleanupOrphanData() {
+    const validEmployeeIds = new Set(Object.keys(employees));
+    let cleanedCount = 0;
+
+    const historyList = JSON.parse(localStorage.getItem('payrollHistoryList') || '[]');
+
+    historyList.forEach(item => {
+        const historyKey = `payrollHistory_${item.year}_${item.month}`;
+        const confirmKey = `payrollConfirmed_${item.year}_${item.month}`;
+
+        let historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+        let needsSave = false;
+
+        // data 배열에서 존재하지 않는 직원 제거
+        if (historyData.data && Array.isArray(historyData.data)) {
+            const originalLength = historyData.data.length;
+            historyData.data = historyData.data.filter(d => {
+                const empId = d.employeeId || d.id;
+                return validEmployeeIds.has(empId);
+            });
+            if (historyData.data.length < originalLength) {
+                needsSave = true;
+                cleanedCount += originalLength - historyData.data.length;
+            }
+        }
+
+        // confirmedEmployees에서 존재하지 않는 직원 제거
+        if (historyData.confirmedEmployees && Array.isArray(historyData.confirmedEmployees)) {
+            const filteredConfirmed = historyData.confirmedEmployees.filter(id => validEmployeeIds.has(id));
+            if (filteredConfirmed.length !== historyData.confirmedEmployees.length) {
+                historyData.confirmedEmployees = filteredConfirmed;
+                needsSave = true;
+            }
+        }
+
+        if (needsSave) {
+            if (historyData.data && historyData.data.length > 0) {
+                localStorage.setItem(historyKey, JSON.stringify(historyData));
+            } else {
+                localStorage.removeItem(historyKey);
+            }
+        }
+
+        // 확정 목록도 정리
+        let confirmedList = JSON.parse(localStorage.getItem(confirmKey) || '[]');
+        const filteredList = confirmedList.filter(id => validEmployeeIds.has(id));
+        if (filteredList.length !== confirmedList.length) {
+            if (filteredList.length > 0) {
+                localStorage.setItem(confirmKey, JSON.stringify(filteredList));
+            } else {
+                localStorage.removeItem(confirmKey);
+            }
+        }
+    });
+
+    if (cleanedCount > 0) {
+        console.log(`🧹 고아 데이터 정리: ${cleanedCount}건 삭제됨`);
+    }
 }
 
 // 직원 데이터 불러오기
@@ -549,9 +611,16 @@ function refreshModalPayrollTable() {
             }
         } else {
             // 미확정 직원: 기본 정보만
+            // 직원 코드 포함된 이름 생성
+            let displayName = emp.name;
+            if (emp.employeeCode && !emp.name.includes(`[${emp.employeeCode}]`)) {
+                displayName = `[${emp.employeeCode}] ${emp.name}`;
+            }
+
             allEmployeeData.push({
                 employeeId: empId,
-                name: emp.name,
+                employeeCode: emp.employeeCode || '',
+                name: displayName,
                 basicSalary: emp.basicSalary || 0,
                 isConfirmed: false,
                 workDays: '-',
@@ -795,6 +864,107 @@ function printPayrollTable() {
     setTimeout(() => {
         printWindow.print();
     }, 300);
+}
+
+// ==================== 이력 초기화 기능 ====================
+
+// 급여 이력 초기화
+function clearPayrollCache() {
+    // 현재 저장된 이력 키 목록 확인
+    const historyList = JSON.parse(localStorage.getItem('payrollHistoryList') || '[]');
+    const historyCount = historyList.length;
+
+    // 현재 직원 수 확인
+    const employees = JSON.parse(localStorage.getItem('vietnamPayrollEmployees') || '{}');
+    const employeeCount = Object.keys(employees).length;
+
+    // 출퇴근 데이터 확인
+    const attendanceKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('attendance_') || key.startsWith('nightShiftDays_') || key.startsWith('leaveDays_'))) {
+            attendanceKeys.push(key);
+        }
+    }
+
+    const message = `📊 현재 데이터 현황:
+━━━━━━━━━━━━━━━━━━━━━━
+• 등록 직원: ${employeeCount}명
+• 급여 이력: ${historyCount}개월
+• 출퇴근 데이터: ${attendanceKeys.length}개
+
+━━━━━━━━━━━━━━━━━━━━━━
+어떤 데이터를 초기화할까요?
+
+1️⃣ 급여 이력만 삭제 (직원 정보 유지)
+2️⃣ 출퇴근 데이터만 삭제
+3️⃣ 급여 이력 + 출퇴근 데이터 삭제
+4️⃣ 전체 초기화 (직원 + 이력 + 출퇴근)
+
+숫자를 입력하세요 (취소: ESC)`;
+
+    const choice = prompt(message);
+
+    if (!choice) return; // 취소
+
+    const option = parseInt(choice);
+
+    if (isNaN(option) || option < 1 || option > 4) {
+        alert('❌ 올바른 숫자를 입력해주세요 (1-4)');
+        return;
+    }
+
+    let confirmMessage = '';
+    switch (option) {
+        case 1:
+            confirmMessage = `급여 이력 ${historyCount}개월분을 삭제합니다.\n직원 정보(${employeeCount}명)는 유지됩니다.`;
+            break;
+        case 2:
+            confirmMessage = `출퇴근 데이터 ${attendanceKeys.length}개를 삭제합니다.`;
+            break;
+        case 3:
+            confirmMessage = `급여 이력 ${historyCount}개월분과 출퇴근 데이터를 삭제합니다.\n직원 정보(${employeeCount}명)는 유지됩니다.`;
+            break;
+        case 4:
+            confirmMessage = `⚠️ 모든 데이터를 삭제합니다!\n• 직원 ${employeeCount}명\n• 급여 이력 ${historyCount}개월\n• 출퇴근 데이터 ${attendanceKeys.length}개\n\n이 작업은 되돌릴 수 없습니다!`;
+            break;
+    }
+
+    if (!confirm(`🗑️ 정말 삭제하시겠습니까?\n\n${confirmMessage}`)) {
+        return;
+    }
+
+    // 삭제 실행
+    let deletedCount = 0;
+
+    if (option === 1 || option === 3 || option === 4) {
+        // 급여 이력 삭제
+        historyList.forEach(history => {
+            const key = `payrollHistory_${history.year}_${history.month}`;
+            localStorage.removeItem(key);
+            deletedCount++;
+        });
+        localStorage.removeItem('payrollHistoryList');
+    }
+
+    if (option === 2 || option === 3 || option === 4) {
+        // 출퇴근 데이터 삭제
+        attendanceKeys.forEach(key => {
+            localStorage.removeItem(key);
+            deletedCount++;
+        });
+    }
+
+    if (option === 4) {
+        // 직원 데이터 삭제
+        localStorage.removeItem('vietnamPayrollEmployees');
+        deletedCount++;
+    }
+
+    alert(`✅ 초기화 완료!\n\n삭제된 항목: ${deletedCount}개\n\n페이지를 새로고침합니다.`);
+
+    // 페이지 새로고침
+    location.reload();
 }
 
 // 페이지 로드시 초기화

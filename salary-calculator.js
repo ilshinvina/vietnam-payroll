@@ -1,5 +1,48 @@
 // ==================== 급여 계산 모듈 ====================
-// 베트남 급여 계산 로직
+// 베트남 급여 계산 로직 (Vietnamese Payroll Calculation)
+//
+// ============ 베트남 노동법 휴가/결근 규정 요약 ============
+//
+// 1) 연차 (Annual Leave - Nghỉ phép năm - Điều 113)
+//    - 기본: 12일/년 (근속 12개월 이후)
+//    - 추가: 5년마다 +1일
+//    - 급여: 1일 = 8시간 유급 (100%)
+//    - workDays: 제외 (EXCLUDED)
+//    - normalHours: +8시간 (INCLUDED as paid)
+//    - 식대: 설정에 따름 (annualLeaveLunchMeal)
+//
+// 2) 경조사 (Event Leave - Nghỉ việc riêng - Điều 115)
+//    - 본인 결혼: 3일, 자녀 결혼: 1일
+//    - 부모/배우자/자녀 사망: 3일
+//    - 조부모/형제 사망: 1일
+//    - 급여: 1일 = 8시간 유급 (100%)
+//    - workDays: 포함 (INCLUDED - 정상 근무일로 취급)
+//    - normalHours: +8시간 (INCLUDED as paid)
+//    - 연차 차감: 없음 (NO deduction from annual leave)
+//    - 식대: 기본 미지급, 설정 가능 (specialLeaveLunchMeal)
+//
+// 3) 병가 (Sick Leave - Nghỉ ốm đau - 사회보험법)
+//    - 급여: 사회보험(BHXH)에서 75% 지급
+//    - 회사 급여: 0 (NOT paid by company)
+//    - workDays: 제외 (EXCLUDED)
+//    - normalHours: 0 (NOT included)
+//    - 연차 차감: 없음 (NOT deducted from annual leave)
+//    - 식대: 기본 미지급, 설정 가능 (sickLeaveLunchMeal)
+//
+// 4) 사유결근 (Excused Absence - Vắng mặt có phép)
+//    - 급여: 무급 (UNPAID)
+//    - workDays: 제외 (EXCLUDED)
+//    - normalHours: 0
+//    - 식대: 설정에 따름 (excusedAbsenceLunchMeal)
+//
+// 5) 무단결근 (Unexcused Absence - Vắng mặt không phép)
+//    - 급여: 무급 (UNPAID) + 징계 대상
+//    - workDays: 제외 (EXCLUDED)
+//    - normalHours: 0
+//    - 식대: 절대 지급 안 함 (NEVER paid)
+//    - 수당 영향: onAbsence 규칙에 따름
+//
+// ==========================================================
 
 // 전역 변수: 현재 계산된 총 수당 (식대 제외)
 let currentTotalAllowances = 0;
@@ -72,6 +115,8 @@ function updateStats() {
     const excusedAbsentCount = excusedAbsents.size;
     const unexcusedAbsentCount = absents.size;
     const annualLeaveCount = annualLeaveDays.size;
+    const specialLeaveCount = (typeof specialLeaveDays !== 'undefined') ? specialLeaveDays.size : 0;
+    const sickLeaveCount = (typeof sickLeaveDays !== 'undefined') ? sickLeaveDays.size : 0;
     const totalAbsentCount = excusedAbsentCount + unexcusedAbsentCount;
 
     // 평일 = 총일수 - 일요일 - 공휴일 (베트남 노동법 준수)
@@ -97,11 +142,22 @@ function updateStats() {
         }
     });
 
-    // 실 근무일 = 평일 - 모든 결근 - 연차 + 일요일 특근
+    // ============ 실 근무일 계산 (Working Days) ============
+    // 베트남 노동법에 따른 계산:
+    // - 연차 (Annual Leave): 제외 (EXCLUDED) - 유급이지만 실제 출근 아님
+    // - 경조사 (Event Leave): 포함 (INCLUDED) - 정상 근무일로 취급 (Điều 115)
+    // - 병가 (Sick Leave): 제외 (EXCLUDED) - BHXH에서 별도 지급
+    // - 사유결근/무단결근: 제외 (EXCLUDED) - 무급
     // (주의: weekdays에 이미 공휴일이 차감되어 있으므로 여기서 holidayCount를 또 빼면 이중 차감!)
-    const workDays = weekdays - totalAbsentCount - annualLeaveCount + sundayWorkDays;
+    const workDays = weekdays - totalAbsentCount - annualLeaveCount - sickLeaveCount + sundayWorkDays;
+    // 참고: specialLeaveCount는 차감하지 않음 (경조사는 근무일로 취급)
 
-    // 실제 정규 근무시간 계산 (각 날짜의 실제 시간 합산)
+    // ============ 정규 근무시간 계산 (Normal Working Hours) ============
+    // 베트남 노동법에 따른 시간 계산:
+    // - 연차 (Annual Leave): +8시간 유급 (100% salary) - Điều 113
+    // - 경조사 (Event Leave): +8시간 유급 (100% salary) - Điều 115
+    // - 병가 (Sick Leave): 0시간 (BHXH에서 75% 지급, 회사는 0)
+    // - 사유결근/무단결근: 0시간 (무급)
     let normalHours = 0;
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(selectedYear, selectedMonth - 1, day);
@@ -112,37 +168,42 @@ function updateStats() {
         const dateKeyNew = `${selectedYear}-${monthStr}-${dayStr}`;  // 2025-04-30
         const dateKeyOld = `${selectedYear}-${selectedMonth}-${day}`; // 2025-4-30
 
-        // 제외할 날:
-        // - 일요일
-        // - 공휴일 (일요일 아닌)
-        // - 사유결근 (무급)
-        // - 무단결근
+        // === 0시간 처리 (Skip - No Pay from Company) ===
         if (dayOfWeek === 0) {
-            // 일요일은 제외
-            continue;
+            continue;  // 일요일: 별도 sundayData로 처리
         }
         if ((holidays.has(dateKeyNew) || holidays.has(dateKeyOld)) && dayOfWeek !== 0) {
-            // 공휴일 (일요일 아닌) 제외
-            continue;
+            continue;  // 공휴일: 유급휴일 (별도 처리)
         }
         if (excusedAbsents.has(dateKeyNew) || excusedAbsents.has(dateKeyOld)) {
-            // 사유결근 제외 (무급 휴가)
-            continue;
+            continue;  // 사유결근: 무급 (0 hours)
         }
         if (absents.has(dateKeyNew) || absents.has(dateKeyOld)) {
-            // 무단결근 제외
-            continue;
+            continue;  // 무단결근: 무급 (0 hours)
+        }
+        if (typeof sickLeaveDays !== 'undefined' && (sickLeaveDays.has(dateKeyNew) || sickLeaveDays.has(dateKeyOld))) {
+            continue;  // 병가: 회사 급여 0 (BHXH에서 75% 지급)
         }
 
-        // 정상 근무 또는 연차
+        // === 8시간 유급 처리 (Paid Leave at 100%) ===
         if (annualLeaveDays.has(dateKeyNew) || annualLeaveDays.has(dateKeyOld)) {
-            normalHours += 8;  // 연차 = 8시간 유급 인정!
+            normalHours += 8;  // 연차: 8시간 유급 (Điều 113)
+        } else if (typeof specialLeaveDays !== 'undefined' && (specialLeaveDays.has(dateKeyNew) || specialLeaveDays.has(dateKeyOld))) {
+            normalHours += 8;  // 경조사: 8시간 유급 (Điều 115)
         } else {
-            normalHours += (normalHoursData[dateKeyNew] || normalHoursData[dateKeyOld] || 8);  // 정상 근무
+            // === 정상 근무 ===
+            normalHours += (normalHoursData[dateKeyNew] || normalHoursData[dateKeyOld] || 8);
         }
     }
 
-    // 식대 계산 (설정값 사용)
+    // ============ 식대 계산 (Meal Allowance Calculation) ============
+    // 베트남 노동법에 따른 식대 지급 기준:
+    // - 정상 출근: 지급
+    // - 연차 (Annual Leave): 설정에 따름 (기본 미지급)
+    // - 경조사 (Event Leave): 설정에 따름 (기본 미지급 - 실제 근무 안 함)
+    // - 병가 (Sick Leave): 설정에 따름 (기본 미지급)
+    // - 사유결근 (Excused Absence): 설정에 따름 (기본 미지급)
+    // - 무단결근 (Unexcused Absence): 절대 미지급
     const lunchMeal = companySettings.lunchMeal || 25000;
     const dinnerMeal = companySettings.dinnerMeal || 25000;
     const weekdayLunchAuto = companySettings.weekdayLunchAuto !== false;
@@ -150,34 +211,40 @@ function updateStats() {
     const sundayLunchHours = companySettings.sundayLunchHours || 4;
     const sundayDinnerHours = companySettings.sundayDinnerHours || 12;
     const annualLeaveLunchMeal = companySettings.annualLeaveLunchMeal === true;
-    const excusedAbsenceLunchMinHours = companySettings.excusedAbsenceLunchMinHours || 0;
+    const excusedAbsenceLunchMeal = companySettings.excusedAbsenceLunchMeal === true;
+    const sickLeaveLunchMeal = companySettings.sickLeaveLunchMeal === true;
+    const specialLeaveLunchMeal = companySettings.specialLeaveLunchMeal === true;
 
     let mealAllowance = 0;
 
     // 1. 평일 점심 식대 (자동 지급 설정 시)
     if (weekdayLunchAuto) {
-        // 기본: 정상 출근한 날
-        mealAllowance += workDays * lunchMeal;
+        // 식대 계산용 실제 출근일 = workDays - 경조사일
+        // (workDays에 경조사가 포함되어 있으므로, 식대는 별도 처리 필요)
+        // 경조사는 "정상 근무일로 취급"하지만, 실제 근무하지 않으므로 식대는 기본 미지급
+        const mealEligibleDays = workDays - specialLeaveCount;
+        mealAllowance += mealEligibleDays * lunchMeal;
 
-        // 연차 사용 시 점심 식대 지급 설정 체크
+        // 연차 사용 시 점심 식대 (설정에 따라 - 기본 미지급)
         if (annualLeaveLunchMeal) {
             mealAllowance += annualLeaveCount * lunchMeal;
         }
 
-        // 사유결근 시 점심 식대 지급 조건 체크 (정규시간 기준)
-        excusedAbsents.forEach(dateKey => {
-            // 두 가지 키 형식 모두 시도 (구버전 호환)
-            const parts = dateKey.split('-');
-            const year = parts[0];
-            const month = parts[1];
-            const day = parts[2];
-            const dateKeyNew = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        // 사유결근 시 점심 식대 (설정에 따라 - 기본 미지급)
+        if (excusedAbsenceLunchMeal) {
+            mealAllowance += excusedAbsents.size * lunchMeal;
+        }
 
-            const normalHours = normalHoursData[dateKey] || normalHoursData[dateKeyNew] || 0;
-            if (normalHours >= excusedAbsenceLunchMinHours) {
-                mealAllowance += lunchMeal;
-            }
-        });
+        // 병가 시 점심 식대 (설정에 따라 - 기본 미지급)
+        if (sickLeaveLunchMeal && typeof sickLeaveDays !== 'undefined') {
+            mealAllowance += sickLeaveDays.size * lunchMeal;
+        }
+
+        // 경조사 시 점심 식대 (설정에 따라 - 기본 미지급)
+        if (specialLeaveLunchMeal && typeof specialLeaveDays !== 'undefined') {
+            mealAllowance += specialLeaveDays.size * lunchMeal;
+        }
+        // 무단결근: 식대 지급 안 함 (workDays에서 이미 제외됨)
     }
 
     // 2. 평일 저녁 식대 (연장근무 시간 조건)
@@ -328,12 +395,16 @@ function updateStats() {
         const annualLeaveThisMonth = annualLeaveCount; // 이번달 사용
 
         // 연간 전체 사용량 계산 (leaveData 기반)
-        // annual(연차) + sick(병가) = 연차에서 차감
-        // special(경조사/특별휴가) = 별도 (연차 차감 안 함)
+        // ============ 연차 사용량 계산 (Annual Leave Deduction) ============
+        // 베트남 노동법에 따른 연차 차감:
+        // - annual(연차): 연차에서 차감 (Điều 113)
+        // - sick(병가): 연차에서 차감 안 함 (BHXH에서 지급)
+        // - special(경조사): 연차에서 차감 안 함 (Điều 115 - 별도 유급휴가)
         let totalAnnualLeaveUsed = 0;
         if (emp.leaveData) {
             Object.entries(emp.leaveData).forEach(([dateKey, leaveType]) => {
-                if ((leaveType === 'annual' || leaveType === 'sick') && dateKey.startsWith(selectedYear + '-')) {
+                // 연차만 차감 (병가/경조사는 별도 처리)
+                if (leaveType === 'annual' && dateKey.startsWith(selectedYear + '-')) {
                     totalAnnualLeaveUsed++;
                 }
             });
@@ -436,7 +507,9 @@ function calculate() {
     const normalPay = hourlyRate * normalHours;
     const overtimePay = hourlyRate * overtimeHours * 1.5;
     const nightPay = hourlyRate * nightHours * 1.3;
-    const nightOTPay = hourlyRate * nightOTHours * 2.0;  // 야간+OT 200%
+    // 야간+OT 비율 (설정에서 가져오기, 기본값 2.0 = 200%)
+    const nightOTRate = (window.companySettings && window.companySettings.nightOTRate) || 2.0;
+    const nightOTPay = hourlyRate * nightOTHours * nightOTRate;
     const sundayPay = hourlyRate * sundayHours * 2.0;
 
     // 자동 수당 (통계에서 계산된 값 사용)
@@ -666,9 +739,16 @@ function calculateAllEmployeesPayroll(year, month) {
         const payroll = calculateEmployeePayroll(empId, year, month);
 
         if (payroll) {
+            // 직원 코드 포함된 이름 생성
+            let displayName = emp.name;
+            if (emp.employeeCode && !emp.name.includes(`[${emp.employeeCode}]`)) {
+                displayName = `[${emp.employeeCode}] ${emp.name}`;
+            }
+
             results.push({
                 id: empId,
-                name: emp.name,
+                employeeCode: emp.employeeCode || '',
+                name: displayName,
                 ...payroll
             });
         }
@@ -707,13 +787,19 @@ function calculateEmployeePayroll(employeeId, year, month) {
     const excusedAbsents = new Set((emp.excusedAbsents || []).filter(d => isTargetMonth(d)));
     const absents = new Set((emp.absents || []).filter(d => isTargetMonth(d)));
     const annualLeaveDays = new Set((emp.annualLeaveDays || []).filter(d => isTargetMonth(d)));
+    const specialLeaveDays = new Set((emp.specialLeaveDays || []).filter(d => isTargetMonth(d)));
+    const sickLeaveDays = new Set((emp.sickLeaveDays || []).filter(d => isTargetMonth(d)));
 
     // 출퇴근 관리(leaveData)에서 연차/휴가 데이터 동기화
     if (emp.leaveData) {
         Object.entries(emp.leaveData).forEach(([dateKey, leaveType]) => {
             if (isTargetMonth(dateKey)) {
-                if (leaveType === 'annual' || leaveType === 'sick' || leaveType === 'special') {
+                if (leaveType === 'annual') {
                     annualLeaveDays.add(dateKey);
+                } else if (leaveType === 'special') {
+                    specialLeaveDays.add(dateKey);
+                } else if (leaveType === 'sick') {
+                    sickLeaveDays.add(dateKey);
                 } else if (leaveType === 'excused') {
                     excusedAbsents.add(dateKey);
                 } else if (leaveType === 'absent') {
@@ -777,6 +863,8 @@ function calculateEmployeePayroll(employeeId, year, month) {
     const excusedAbsentCount = excusedAbsents.size;
     const unexcusedAbsentCount = absents.size;
     const annualLeaveCount = annualLeaveDays.size;
+    const specialLeaveCount = specialLeaveDays.size;
+    const sickLeaveCount = sickLeaveDays.size;
     const totalAbsentCount = excusedAbsentCount + unexcusedAbsentCount;
 
     // 일요일 특근일 수 계산
@@ -785,25 +873,42 @@ function calculateEmployeePayroll(employeeId, year, month) {
         if (sundayData[key] >= 8) sundayWorkDays++;
     });
 
-    // 실 근무일 = 평일 - 모든 결근 - 연차 + 일요일 특근
+    // ============ 실 근무일 계산 (Working Days) ============
+    // 베트남 노동법에 따른 계산:
+    // - 연차 (Annual Leave): 제외 (EXCLUDED) - 유급이지만 실제 출근 아님
+    // - 경조사 (Event Leave): 포함 (INCLUDED) - 정상 근무일로 취급 (Điều 115)
+    // - 병가 (Sick Leave): 제외 (EXCLUDED) - BHXH에서 별도 지급
+    // - 사유결근/무단결근: 제외 (EXCLUDED) - 무급
     // (주의: weekdays에 이미 공휴일이 차감되어 있으므로 여기서 holidayCount를 또 빼면 이중 차감!)
-    const workDays = weekdays - totalAbsentCount - annualLeaveCount + sundayWorkDays;
+    const workDays = weekdays - totalAbsentCount - annualLeaveCount - sickLeaveCount + sundayWorkDays;
+    // 참고: specialLeaveCount는 차감하지 않음 (경조사는 근무일로 취급)
 
-    // 정규 근무시간 계산
+    // ============ 정규 근무시간 계산 (Normal Working Hours) ============
+    // 베트남 노동법에 따른 시간 계산:
+    // - 연차 (Annual Leave): +8시간 유급 (100% salary) - Điều 113
+    // - 경조사 (Event Leave): +8시간 유급 (100% salary) - Điều 115
+    // - 병가 (Sick Leave): 0시간 (BHXH에서 75% 지급, 회사는 0)
+    // - 사유결근/무단결근: 0시간 (무급)
     let normalHours = 0;
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month - 1, day);
         const dayOfWeek = date.getDay();
         const dateKey = `${year}-${month}-${day}`;
 
-        if (dayOfWeek === 0) continue;
-        if (holidays.has(dateKey) && dayOfWeek !== 0) continue;
-        if (excusedAbsents.has(dateKey)) continue;
-        if (absents.has(dateKey)) continue;
+        // === 0시간 처리 (Skip - No Pay from Company) ===
+        if (dayOfWeek === 0) continue;              // 일요일: 별도 sundayData로 처리
+        if (holidays.has(dateKey) && dayOfWeek !== 0) continue;  // 공휴일
+        if (excusedAbsents.has(dateKey)) continue;  // 사유결근: 무급 (0 hours)
+        if (absents.has(dateKey)) continue;         // 무단결근: 무급 (0 hours)
+        if (sickLeaveDays.has(dateKey)) continue;   // 병가: 회사 급여 0 (BHXH에서 75% 지급)
 
+        // === 8시간 유급 처리 (Paid Leave at 100%) ===
         if (annualLeaveDays.has(dateKey)) {
-            normalHours += 8;
+            normalHours += 8;  // 연차: 8시간 유급 (Điều 113)
+        } else if (specialLeaveDays.has(dateKey)) {
+            normalHours += 8;  // 경조사: 8시간 유급 (Điều 115)
         } else {
+            // === 정상 근무 ===
             normalHours += (normalHoursData[dateKey] || 8);
         }
     }
@@ -834,39 +939,52 @@ function calculateEmployeePayroll(employeeId, year, month) {
     const nightPay = Math.round(hourlyRate * totalNight * 1.3);
     const sundayPay = Math.round(hourlyRate * totalSunday * 2.0);
 
-    // 식대 계산 (설정값 사용)
+    // ============ 식대 계산 (Meal Allowance Calculation) ============
+    // 베트남 노동법에 따른 식대 지급 기준:
+    // - 정상 출근: 지급
+    // - 연차 (Annual Leave): 설정에 따름 (기본 미지급)
+    // - 경조사 (Event Leave): 설정에 따름 (기본 미지급 - 실제 근무 안 함)
+    // - 병가 (Sick Leave): 설정에 따름 (기본 미지급)
+    // - 사유결근 (Excused Absence): 설정에 따름 (기본 미지급)
+    // - 무단결근 (Unexcused Absence): 절대 미지급
     const lunchMeal = companySettings.lunchMeal || 25000;
     const dinnerMeal = companySettings.dinnerMeal || 25000;
     const weekdayDinnerHours = companySettings.weekdayDinnerHours || 3;
     const sundayLunchHours = companySettings.sundayLunchHours || 4;
     const sundayDinnerHours = companySettings.sundayDinnerHours || 12;
     const annualLeaveLunchMeal = companySettings.annualLeaveLunchMeal === true;
-    const excusedAbsenceLunchMinHours = companySettings.excusedAbsenceLunchMinHours || 0;
+    const excusedAbsenceLunchMeal = companySettings.excusedAbsenceLunchMeal === true;
+    const sickLeaveLunchMeal = companySettings.sickLeaveLunchMeal === true;
+    const specialLeaveLunchMeal = companySettings.specialLeaveLunchMeal === true;
 
     let mealAllowance = 0;
 
-    // 평일 점심 식대
-    mealAllowance += workDays * lunchMeal;
+    // 식대 계산용 실제 출근일 = workDays - 경조사일
+    // (workDays에 경조사가 포함되어 있으므로, 식대는 별도 처리 필요)
+    // 경조사는 "정상 근무일로 취급"하지만, 실제 근무하지 않으므로 식대는 기본 미지급
+    const mealEligibleDays = workDays - specialLeaveCount;
+    mealAllowance += mealEligibleDays * lunchMeal;
 
-    // 연차 사용 시 점심 식대 지급 설정 체크
+    // 연차 사용 시 점심 식대 (설정에 따라 - 기본 미지급)
     if (annualLeaveLunchMeal) {
         mealAllowance += annualLeaveCount * lunchMeal;
     }
 
-    // 사유결근 시 점심 식대 지급 조건 체크 (정규시간 기준)
-    excusedAbsents.forEach(dateKey => {
-        // 두 가지 키 형식 모두 시도 (구버전 호환)
-        const parts = dateKey.split('-');
-        const year = parts[0];
-        const month = parts[1];
-        const day = parts[2];
-        const dateKeyNew = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    // 사유결근 시 점심 식대 (설정에 따라 - 기본 미지급)
+    if (excusedAbsenceLunchMeal) {
+        mealAllowance += excusedAbsents.size * lunchMeal;
+    }
 
-        const normalHours = normalHoursData[dateKey] || normalHoursData[dateKeyNew] || 0;
-        if (normalHours >= excusedAbsenceLunchMinHours) {
-            mealAllowance += lunchMeal;
-        }
-    });
+    // 병가 시 점심 식대 (설정에 따라 - 기본 미지급)
+    if (sickLeaveLunchMeal && typeof sickLeaveDays !== 'undefined') {
+        mealAllowance += sickLeaveDays.size * lunchMeal;
+    }
+
+    // 경조사 시 점심 식대 (설정에 따라 - 기본 미지급)
+    if (specialLeaveLunchMeal && typeof specialLeaveDays !== 'undefined') {
+        mealAllowance += specialLeaveDays.size * lunchMeal;
+    }
+    // 무단결근: 식대 지급 안 함 (workDays에서 이미 제외됨)
 
     // 평일 저녁 식대 (연장근무 시간 조건)
     let overtimeMealDays = 0;
