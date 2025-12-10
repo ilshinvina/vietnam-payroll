@@ -1,26 +1,14 @@
-# 백업 파일
-*.json.bak
-backup_*.json
-백업_*/
+# Node.js
+node_modules/
+package-lock.json
 
-# 엑셀 파일 (대용량)
-*.xlsx
+# Electron build
+dist/
 
-# 임시 파일
-nul
-*.tmp
-*.temp
-
-# 스크린샷
-SCREEN SHOT/
-
-# 테스트 파일
-tests/
-
-# IDE 설정
-.vscode/
-.idea/
-
-# OS 파일
+# OS
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/

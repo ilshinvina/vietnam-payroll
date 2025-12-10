@@ -1625,3 +1625,145 @@ window.addEventListener('DOMContentLoaded', function() {
 
     console.log('=== settings.js 초기화 완료 ===');
 });
+
+// ==================== 데이터 백업/복원 ====================
+
+// 모든 데이터 내보내기 (JSON 파일 다운로드)
+function exportAllData() {
+    try {
+        // LocalStorage의 모든 급여 관련 데이터 수집
+        const allData = {};
+
+        // 모든 LocalStorage 키를 순회하며 급여 관련 데이터 추출
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+
+            // 급여 관련 키만 포함
+            if (key && (
+                key.startsWith('vietnamPayroll') ||
+                key.startsWith('payroll') ||
+                key === 'companyProfile' ||
+                key === 'holidays' ||
+                key === 'selectedYear' ||
+                key === 'selectedMonth'
+            )) {
+                try {
+                    allData[key] = JSON.parse(localStorage.getItem(key));
+                } catch {
+                    allData[key] = localStorage.getItem(key);
+                }
+            }
+        }
+
+        // 내보낼 데이터가 없으면 경고
+        if (Object.keys(allData).length === 0) {
+            alert('⚠️ 내보낼 데이터가 없습니다.');
+            return;
+        }
+
+        // JSON 파일 생성
+        const dataStr = JSON.stringify(allData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        // 파일명: payroll-backup-YYYYMMDD-HHMMSS.json
+        const now = new Date();
+        const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const filename = `payroll-backup-${dateStr}.json`;
+
+        // 다운로드
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert(`✅ 데이터 내보내기 완료!\n\n파일명: ${filename}\n데이터 항목: ${Object.keys(allData).length}개`);
+
+        console.log('📤 내보낸 데이터:', allData);
+    } catch (error) {
+        console.error('❌ 내보내기 실패:', error);
+        alert('❌ 데이터 내보내기 중 오류 발생:\n' + error.message);
+    }
+}
+
+// 모든 데이터 가져오기 (JSON 파일 업로드)
+function importAllData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 확인 메시지
+    if (!confirm('⚠️ 주의: 현재 데이터가 모두 교체됩니다.\n\n계속하시겠습니까?')) {
+        event.target.value = ''; // 파일 선택 초기화
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+
+            // 유효성 검사: 급여 데이터인지 확인
+            const hasPayrollData = Object.keys(importedData).some(key =>
+                key.startsWith('vietnamPayroll') || key.startsWith('payroll')
+            );
+
+            if (!hasPayrollData) {
+                alert('❌ 올바른 급여 데이터 파일이 아닙니다.');
+                event.target.value = '';
+                return;
+            }
+
+            // LocalStorage에 데이터 복원
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const [key, value] of Object.entries(importedData)) {
+                try {
+                    if (typeof value === 'object') {
+                        localStorage.setItem(key, JSON.stringify(value));
+                    } else {
+                        localStorage.setItem(key, value);
+                    }
+                    successCount++;
+                } catch (error) {
+                    console.error(`❌ ${key} 복원 실패:`, error);
+                    errorCount++;
+                }
+            }
+
+            console.log('📥 가져온 데이터:', importedData);
+
+            // 결과 메시지
+            if (errorCount === 0) {
+                alert(`✅ 데이터 가져오기 완료!\n\n복원된 항목: ${successCount}개\n\n페이지를 새로고침합니다.`);
+            } else {
+                alert(`⚠️ 데이터 가져오기 부분 완료\n\n성공: ${successCount}개\n실패: ${errorCount}개\n\n페이지를 새로고침합니다.`);
+            }
+
+            // 페이지 새로고침하여 변경사항 반영
+            location.reload();
+
+        } catch (error) {
+            console.error('❌ 가져오기 실패:', error);
+            alert('❌ 데이터 가져오기 중 오류 발생:\n' + error.message);
+        }
+
+        // 파일 선택 초기화
+        event.target.value = '';
+    };
+
+    reader.onerror = function() {
+        alert('❌ 파일 읽기 실패');
+        event.target.value = '';
+    };
+
+    reader.readAsText(file);
+}
+
+// 전역 함수로 등록
+window.exportAllData = exportAllData;
+window.importAllData = importAllData;

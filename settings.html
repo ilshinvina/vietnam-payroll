@@ -590,6 +590,29 @@
                     </ul>
                 </div>
 
+                <!-- 데이터 백업/복원 -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 30px 0;">
+                    <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.2em;">💾 데이터 백업/복원</h3>
+                    <p style="color: #666; margin-bottom: 15px; line-height: 1.6;">
+                        모든 데이터(직원 정보, 근무 기록, 설정)를 JSON 파일로 저장하거나 불러올 수 있습니다.<br>
+                        <strong>Chrome과 Electron 앱 간 데이터 공유가 가능합니다.</strong>
+                    </p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="exportAllData()" style="flex: 1; min-width: 200px; padding: 12px 30px; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.1em; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);">
+                            📤 데이터 내보내기
+                        </button>
+                        <button onclick="document.getElementById('importDataFile').click()" style="flex: 1; min-width: 200px; padding: 12px 30px; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.1em; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);">
+                            📥 데이터 가져오기
+                        </button>
+                        <input type="file" id="importDataFile" accept=".json" style="display: none;" onchange="importAllData(event)">
+                    </div>
+                    <ul style="margin: 10px 0 0 20px; color: #666; line-height: 1.8; font-size: 0.9em;">
+                        <li><strong>내보내기:</strong> 모든 데이터를 JSON 파일로 저장 (백업용)</li>
+                        <li><strong>가져오기:</strong> JSON 파일에서 데이터 복원 (기존 데이터 덮어쓰기)</li>
+                        <li><strong>주의:</strong> 가져오기 시 현재 데이터가 모두 교체됩니다</li>
+                    </ul>
+                </div>
+
                 <div class="employee-list" id="employeeList">
                     <!-- JavaScript로 채워짐 -->
                 </div>
