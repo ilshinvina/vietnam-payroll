@@ -459,18 +459,13 @@ function updateReadonlyFields() {
             const dateKeyNorm = normalizeDateKey(dateKey);
             const dateKeyDenorm = denormalizeDateKey(dateKey);
 
-            // 휴가 상태 확인
-            const leaveType = emp.leaveData?.[dateKey] || emp.leaveData?.[dateKeyNorm] || emp.leaveData?.[dateKeyDenorm];
+            // 휴가 상태 확인 (헬퍼 함수 사용)
+            const leaveType = getLeaveType(emp, dateKey);
 
             // 연차 또는 특별휴가인 경우 → 8시간 고정 (readonly)
             if (leaveType === 'annual' || leaveType === 'special') {
                 const normalInput = document.querySelector(`input[data-employee="${empId}"][data-date="${dateKey}"][data-type="normal"]`);
-                if (normalInput) {
-                    normalInput.value = 8;
-                    normalInput.readOnly = true;
-                    normalInput.style.background = '#e0e0e0';
-                    normalInput.style.cursor = 'not-allowed';
-                }
+                setNormalInputReadonly(normalInput, 8);
             }
             // 병가인 경우 → 연차 잔여 확인
             else if (leaveType === 'sick') {
@@ -481,18 +476,12 @@ function updateReadonlyFields() {
                 const normalInput = document.querySelector(`input[data-employee="${empId}"][data-date="${dateKey}"][data-type="normal"]`);
 
                 // 연차 잔여가 있으면 → 8시간 고정 (readonly)
-                if (leaveRemaining > 0 && normalInput) {
-                    normalInput.value = 8;
-                    normalInput.readOnly = true;
-                    normalInput.style.background = '#e0e0e0';
-                    normalInput.style.cursor = 'not-allowed';
+                if (leaveRemaining > 0) {
+                    setNormalInputReadonly(normalInput, 8);
                 }
                 // 연차가 없으면 → 0시간 (입력 가능)
-                else if (normalInput) {
-                    normalInput.value = '';
-                    normalInput.readOnly = false;
-                    normalInput.style.background = '';
-                    normalInput.style.cursor = '';
+                else {
+                    setNormalInputEditable(normalInput);
                 }
             }
         }
@@ -571,39 +560,113 @@ function denormalizeDateKey(dateKey) {
     return `${parseInt(parts[0])}-${parseInt(parts[1])}-${parseInt(parts[2])}`;
 }
 
+// ==================== 헬퍼 함수 (중복 제거) ====================
+// 데이터 접근: 3가지 키 형식 모두 확인
+function getDataValue(dataObj, dateKey) {
+    if (!dataObj) return 0;
+    const dateKeyNorm = normalizeDateKey(dateKey);
+    const dateKeyDenorm = denormalizeDateKey(dateKey);
+    return dataObj[dateKey] || dataObj[dateKeyNorm] || dataObj[dateKeyDenorm] || 0;
+}
+
+// 데이터 설정: 정규화된 키로 저장
+function setDataValue(dataObj, dateKey, value) {
+    if (!dataObj) return;
+    const dateKeyNorm = normalizeDateKey(dateKey);
+    dataObj[dateKeyNorm] = value;
+}
+
+// 데이터 삭제: 3가지 키 형식 모두 삭제
+function deleteDataValue(dataObj, dateKey) {
+    if (!dataObj) return;
+    const dateKeyNorm = normalizeDateKey(dateKey);
+    const dateKeyDenorm = denormalizeDateKey(dateKey);
+    delete dataObj[dateKey];
+    delete dataObj[dateKeyNorm];
+    delete dataObj[dateKeyDenorm];
+}
+
+// 휴가 데이터 조회: 3가지 키 형식 모두 확인
+function getLeaveType(emp, dateKey) {
+    if (!emp || !emp.leaveData) return null;
+    const dateKeyNorm = normalizeDateKey(dateKey);
+    const dateKeyDenorm = denormalizeDateKey(dateKey);
+    return emp.leaveData[dateKey] || emp.leaveData[dateKeyNorm] || emp.leaveData[dateKeyDenorm] || null;
+}
+
+// 일요일 확인 헬퍼 함수
+function isSunday(dateKey) {
+    const parts = dateKey.split('-');
+    if (parts.length !== 3) return false;
+    const year = parseInt(parts[0]);
+    const month = parseInt(parts[1]);
+    const day = parseInt(parts[2]);
+    const date = new Date(year, month - 1, day);
+    return date.getDay() === 0;
+}
+
+// 모든 근무시간 데이터 삭제 (헬퍼 함수)
+function clearAllWorkData(emp, dateKey) {
+    if (!emp) return;
+    deleteDataValue(emp.normalHoursData, dateKey);
+    deleteDataValue(emp.overtimeData, dateKey);
+    deleteDataValue(emp.nightData, dateKey);
+    deleteDataValue(emp.sundayData, dateKey);
+}
+
+// 모든 입력 필드 비우기 및 합계 업데이트 (헬퍼 함수)
+function clearAllInputFields(employeeId, dateKey) {
+    const overtimeInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="overtime"]`);
+    const nightInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="night"]`);
+    const holidayInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="holiday"]`);
+
+    if (overtimeInput) overtimeInput.value = '';
+    if (nightInput) nightInput.value = '';
+    if (holidayInput) holidayInput.value = '';
+
+    // 합계 업데이트
+    updateTotal(employeeId, 'overtime');
+    updateTotal(employeeId, 'night');
+    updateTotal(employeeId, 'holiday');
+}
+
+// Normal 입력 필드 8시간 고정 설정 (헬퍼 함수)
+function setNormalInputReadonly(normalInput, value = 8) {
+    if (!normalInput) return;
+    normalInput.value = value;
+    normalInput.readOnly = true;
+    normalInput.style.background = '#e0e0e0';
+    normalInput.style.cursor = 'not-allowed';
+}
+
+// Normal 입력 필드 편집 가능 설정 (헬퍼 함수)
+function setNormalInputEditable(normalInput) {
+    if (!normalInput) return;
+    normalInput.value = '';
+    normalInput.readOnly = false;
+    normalInput.style.background = '';
+    normalInput.style.cursor = '';
+}
+
 function getWorkValue(employeeId, dateKey, typeKey) {
     const emp = employees[employeeId];
     if (!emp) return 0;
 
-    // 두 가지 포맷 모두 확인 (구버전: 2024-12-5, 신버전: 2024-12-05)
-    const dateKeyNorm = normalizeDateKey(dateKey);
-    const dateKeyDenorm = denormalizeDateKey(dateKey);
-
-    // 날짜가 일요일인지 확인
-    const isSunday = (key) => {
-        const parts = key.split('-');
-        if (parts.length !== 3) return false;
-        const year = parseInt(parts[0]);
-        const month = parseInt(parts[1]);
-        const day = parseInt(parts[2]);
-        const date = new Date(year, month - 1, day);
-        return date.getDay() === 0;
-    };
-
     switch (typeKey) {
         case 'normal':
-            return emp.normalHoursData?.[dateKey] || emp.normalHoursData?.[dateKeyNorm] || emp.normalHoursData?.[dateKeyDenorm] || 0;
+            return getDataValue(emp.normalHoursData, dateKey);
         case 'overtime':
             // 일요일이면 sundayData에서 읽기 (일요일 잔업은 일요특근으로 처리)
             if (isSunday(dateKey)) {
-                return emp.sundayData?.[dateKey] || emp.sundayData?.[dateKeyNorm] || emp.sundayData?.[dateKeyDenorm] || 0;
+                return getDataValue(emp.sundayData, dateKey);
             }
-            return emp.overtimeData?.[dateKey] || emp.overtimeData?.[dateKeyNorm] || emp.overtimeData?.[dateKeyDenorm] || 0;
+            return getDataValue(emp.overtimeData, dateKey);
         case 'night':
-            return emp.nightData?.[dateKey] || emp.nightData?.[dateKeyNorm] || emp.nightData?.[dateKeyDenorm] || 0;
+            return getDataValue(emp.nightData, dateKey);
         case 'holiday':
-            return emp.sundayData?.[dateKey] || emp.sundayData?.[dateKeyNorm] || emp.sundayData?.[dateKeyDenorm] || 0;
-        default: return 0;
+            return getDataValue(emp.sundayData, dateKey);
+        default:
+            return 0;
     }
 }
 
@@ -620,23 +683,8 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
 
     const numValue = parseFloat(value) || 0;
 
-    // 날짜가 일요일인지 확인 (YYYY-MM-DD 또는 YYYY-M-D 형식)
-    const isSunday = (dateKey) => {
-        const parts = dateKey.split('-');
-        if (parts.length !== 3) return false;
-        const year = parseInt(parts[0]);
-        const month = parseInt(parts[1]);
-        const day = parseInt(parts[2]);
-        const date = new Date(year, month - 1, day);
-        return date.getDay() === 0; // 0 = 일요일
-    };
-
-    // 날짜 키 정규화 (형식 통일)
-    const dateKeyNorm = normalizeDateKey(dateKey);
-    const dateKeyDenorm = denormalizeDateKey(dateKey);
-
-    // 휴가/결근 상태 확인
-    const leaveType = emp.leaveData?.[dateKey] || emp.leaveData?.[dateKeyNorm] || emp.leaveData?.[dateKeyDenorm];
+    // 휴가/결근 상태 확인 (헬퍼 함수 사용)
+    const leaveType = getLeaveType(emp, dateKey);
 
     // ⚠️ 연차/특별휴가는 normal 칸 수정 불가 (8시간 고정)
     if ((leaveType === 'annual' || leaveType === 'special') && typeKey === 'normal') {
@@ -699,11 +747,11 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
     if (numValue > 0) {
         let totalHours = numValue;
 
-        // 현재 날짜의 다른 시간들 합산
-        if (typeKey !== 'normal') totalHours += (emp.normalHoursData?.[dateKey] || emp.normalHoursData?.[dateKeyNorm] || emp.normalHoursData?.[dateKeyDenorm] || 0);
-        if (typeKey !== 'overtime') totalHours += (emp.overtimeData?.[dateKey] || emp.overtimeData?.[dateKeyNorm] || emp.overtimeData?.[dateKeyDenorm] || 0);
-        if (typeKey !== 'night') totalHours += (emp.nightData?.[dateKey] || emp.nightData?.[dateKeyNorm] || emp.nightData?.[dateKeyDenorm] || 0);
-        if (typeKey !== 'holiday') totalHours += (emp.sundayData?.[dateKey] || emp.sundayData?.[dateKeyNorm] || emp.sundayData?.[dateKeyDenorm] || 0);
+        // 현재 날짜의 다른 시간들 합산 (헬퍼 함수 사용)
+        if (typeKey !== 'normal') totalHours += getDataValue(emp.normalHoursData, dateKey);
+        if (typeKey !== 'overtime') totalHours += getDataValue(emp.overtimeData, dateKey);
+        if (typeKey !== 'night') totalHours += getDataValue(emp.nightData, dateKey);
+        if (typeKey !== 'holiday') totalHours += getDataValue(emp.sundayData, dateKey);
 
         if (totalHours > 24) {
             alert(`⚠️ 하루 총 근무시간이 24시간을 초과할 수 없습니다!\n\n현재 입력: ${totalHours}시간`);
@@ -714,20 +762,18 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
     switch (typeKey) {
         case 'normal':
             if (numValue > 0) {
-                emp.normalHoursData[dateKey] = numValue;
+                setDataValue(emp.normalHoursData, dateKey, numValue);
                 // Giờ Chính과 Ca Đêm은 배타적 (동시 입력 불가)
-                if (emp.nightData[dateKey]) delete emp.nightData[dateKey];
-                if (emp.nightData[dateKeyNorm]) delete emp.nightData[dateKeyNorm];
-                if (emp.nightData[dateKeyDenorm]) delete emp.nightData[dateKeyDenorm];
+                deleteDataValue(emp.nightData, dateKey);
             } else {
-                delete emp.normalHoursData[dateKey];
+                deleteDataValue(emp.normalHoursData, dateKey);
 
                 // ⚠️ 일반 날짜에 0 입력 시 사유결근 자동 설정
                 // 조건: 휴가가 설정되지 않은 날 && 다른 근무시간도 모두 0
                 if (!leaveType) {
-                    const overtimeHours = emp.overtimeData?.[dateKey] || emp.overtimeData?.[dateKeyNorm] || emp.overtimeData?.[dateKeyDenorm] || 0;
-                    const nightHours = emp.nightData?.[dateKey] || emp.nightData?.[dateKeyNorm] || emp.nightData?.[dateKeyDenorm] || 0;
-                    const sundayHours = emp.sundayData?.[dateKey] || emp.sundayData?.[dateKeyNorm] || emp.sundayData?.[dateKeyDenorm] || 0;
+                    const overtimeHours = getDataValue(emp.overtimeData, dateKey);
+                    const nightHours = getDataValue(emp.nightData, dateKey);
+                    const sundayHours = getDataValue(emp.sundayData, dateKey);
 
                     // 모든 근무시간이 0이면 사유결근 확인
                     if (overtimeHours === 0 && nightHours === 0 && sundayHours === 0) {
@@ -739,7 +785,7 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
 
                             // leaveData에 저장
                             if (!emp.leaveData) emp.leaveData = {};
-                            emp.leaveData[dateKey] = 'excused';
+                            setDataValue(emp.leaveData, dateKey, 'excused');
 
                             // 급여계산기 연동: excusedAbsents 배열에 추가
                             if (!emp.excusedAbsents) emp.excusedAbsents = [];
@@ -747,19 +793,11 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
                                 emp.excusedAbsents.push(dateKey);
                             }
 
-                            // 모든 근무시간 데이터 삭제
-                            delete emp.normalHoursData[dateKey];
-                            delete emp.normalHoursData[dateKeyNorm];
-                            delete emp.normalHoursData[dateKeyDenorm];
-                            delete emp.overtimeData[dateKey];
-                            delete emp.overtimeData[dateKeyNorm];
-                            delete emp.overtimeData[dateKeyDenorm];
-                            delete emp.nightData[dateKey];
-                            delete emp.nightData[dateKeyNorm];
-                            delete emp.nightData[dateKeyDenorm];
-                            delete emp.sundayData[dateKey];
-                            delete emp.sundayData[dateKeyNorm];
-                            delete emp.sundayData[dateKeyDenorm];
+                            // 모든 근무시간 데이터 삭제 (헬퍼 함수 사용)
+                            deleteDataValue(emp.normalHoursData, dateKey);
+                            deleteDataValue(emp.overtimeData, dateKey);
+                            deleteDataValue(emp.nightData, dateKey);
+                            deleteDataValue(emp.sundayData, dateKey);
 
                             // UI 업데이트
                             const normalInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="normal"]`);
@@ -808,40 +846,37 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
             // 일요일에 잔업 입력 → 자동으로 sundayData에 저장
             if (isSunday(dateKey)) {
                 if (numValue > 0) {
-                    emp.sundayData[dateKey] = numValue;
+                    setDataValue(emp.sundayData, dateKey, numValue);
                     // overtimeData에서 삭제 (중복 방지)
-                    if (emp.overtimeData[dateKey]) delete emp.overtimeData[dateKey];
-                    if (emp.overtimeData[dateKeyNorm]) delete emp.overtimeData[dateKeyNorm];
-                    if (emp.overtimeData[dateKeyDenorm]) delete emp.overtimeData[dateKeyDenorm];
+                    deleteDataValue(emp.overtimeData, dateKey);
                 } else {
-                    delete emp.sundayData[dateKey];
+                    deleteDataValue(emp.sundayData, dateKey);
                 }
             } else {
                 // 평일/토요일 잔업 → overtimeData
-                if (numValue > 0) emp.overtimeData[dateKey] = numValue;
-                else delete emp.overtimeData[dateKey];
+                if (numValue > 0) {
+                    setDataValue(emp.overtimeData, dateKey, numValue);
+                } else {
+                    deleteDataValue(emp.overtimeData, dateKey);
+                }
             }
             break;
         case 'night':
             if (numValue > 0) {
-                emp.nightData[dateKey] = numValue;
+                setDataValue(emp.nightData, dateKey, numValue);
                 // Ca Đêm과 Giờ Chính은 배타적 (동시 입력 불가)
-                if (emp.normalHoursData[dateKey]) delete emp.normalHoursData[dateKey];
-                if (emp.normalHoursData[dateKeyNorm]) delete emp.normalHoursData[dateKeyNorm];
-                if (emp.normalHoursData[dateKeyDenorm]) delete emp.normalHoursData[dateKeyDenorm];
+                deleteDataValue(emp.normalHoursData, dateKey);
             } else {
-                delete emp.nightData[dateKey];
+                deleteDataValue(emp.nightData, dateKey);
             }
             break;
         case 'holiday':
             if (numValue > 0) {
-                emp.sundayData[dateKey] = numValue;
+                setDataValue(emp.sundayData, dateKey, numValue);
                 // ⚠️ 중요: Holiday 컬럼 입력 시 overtimeData에서도 삭제 (일요일 잔업과 배타적)
-                if (emp.overtimeData[dateKey]) delete emp.overtimeData[dateKey];
-                if (emp.overtimeData[dateKeyNorm]) delete emp.overtimeData[dateKeyNorm];
-                if (emp.overtimeData[dateKeyDenorm]) delete emp.overtimeData[dateKeyDenorm];
+                deleteDataValue(emp.overtimeData, dateKey);
             } else {
-                delete emp.sundayData[dateKey];
+                deleteDataValue(emp.sundayData, dateKey);
             }
             break;
     }
@@ -1183,44 +1218,15 @@ function setLeaveType(td, input, leaveType, color) {
 
         // 연차/특별휴가는 8시간 고정 (수정 불가)
         if (leaveType === 'annual' || leaveType === 'special') {
-            if (normalInput) {
-                normalInput.value = 8;
-                normalInput.readOnly = true;
-                normalInput.style.background = '#e0e0e0';
-                normalInput.style.cursor = 'not-allowed';
-            }
+            setNormalInputReadonly(normalInput, 8);
 
-            // 유급휴가 설정 시 잔업/야간/일요특근 자동 삭제
-            const dateKeyNorm = normalizeDateKey(dateKey);
-            const dateKeyDenorm = denormalizeDateKey(dateKey);
-            if (emp.overtimeData) {
-                delete emp.overtimeData[dateKey];
-                delete emp.overtimeData[dateKeyNorm];
-                delete emp.overtimeData[dateKeyDenorm];
-            }
-            if (emp.nightData) {
-                delete emp.nightData[dateKey];
-                delete emp.nightData[dateKeyNorm];
-                delete emp.nightData[dateKeyDenorm];
-            }
-            if (emp.sundayData) {
-                delete emp.sundayData[dateKey];
-                delete emp.sundayData[dateKeyNorm];
-                delete emp.sundayData[dateKeyDenorm];
-            }
+            // 유급휴가 설정 시 잔업/야간/일요특근 자동 삭제 (헬퍼 함수 사용)
+            deleteDataValue(emp.overtimeData, dateKey);
+            deleteDataValue(emp.nightData, dateKey);
+            deleteDataValue(emp.sundayData, dateKey);
 
-            // UI에서도 입력 필드 비우기
-            const overtimeInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="overtime"]`);
-            const nightInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="night"]`);
-            const holidayInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="holiday"]`);
-            if (overtimeInput) overtimeInput.value = '';
-            if (nightInput) nightInput.value = '';
-            if (holidayInput) holidayInput.value = '';
-
-            // 합계 업데이트
-            updateTotal(employeeId, 'overtime');
-            updateTotal(employeeId, 'night');
-            updateTotal(employeeId, 'holiday');
+            // UI에서도 입력 필드 비우기 (헬퍼 함수 사용)
+            clearAllInputFields(employeeId, dateKey);
         }
         // 병가는 연차 잔여에 따라 처리
         else if (leaveType === 'sick') {
@@ -1228,138 +1234,47 @@ function setLeaveType(td, input, leaveType, color) {
             const annualLeaveTotal = (emp.annualLeavePerYear || 12) + (emp.annualLeaveAdjustment || 0);
             const leaveRemaining = annualLeaveTotal - currentLeaveUsed;
 
-            const dateKeyNorm = normalizeDateKey(dateKey);
-            const dateKeyDenorm = denormalizeDateKey(dateKey);
-
             // 연차 잔여가 있으면 유급 (8시간, 연차처럼 처리)
             if (leaveRemaining > 0) {
-                if (normalInput) {
-                    normalInput.value = 8;
-                    normalInput.readOnly = true;
-                    normalInput.style.background = '#e0e0e0';
-                    normalInput.style.cursor = 'not-allowed';
-                }
+                setNormalInputReadonly(normalInput, 8);
 
-                // 잔업/야간/일요특근 자동 삭제
-                if (emp.overtimeData) {
-                    delete emp.overtimeData[dateKey];
-                    delete emp.overtimeData[dateKeyNorm];
-                    delete emp.overtimeData[dateKeyDenorm];
-                }
-                if (emp.nightData) {
-                    delete emp.nightData[dateKey];
-                    delete emp.nightData[dateKeyNorm];
-                    delete emp.nightData[dateKeyDenorm];
-                }
-                if (emp.sundayData) {
-                    delete emp.sundayData[dateKey];
-                    delete emp.sundayData[dateKeyNorm];
-                    delete emp.sundayData[dateKeyDenorm];
-                }
+                // 잔업/야간/일요특근 자동 삭제 (헬퍼 함수 사용)
+                deleteDataValue(emp.overtimeData, dateKey);
+                deleteDataValue(emp.nightData, dateKey);
+                deleteDataValue(emp.sundayData, dateKey);
 
-                // UI에서도 입력 필드 비우기
-                const overtimeInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="overtime"]`);
-                const nightInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="night"]`);
-                const holidayInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="holiday"]`);
-                if (overtimeInput) overtimeInput.value = '';
-                if (nightInput) nightInput.value = '';
-                if (holidayInput) holidayInput.value = '';
-
-                // 합계 업데이트
-                updateTotal(employeeId, 'overtime');
-                updateTotal(employeeId, 'night');
-                updateTotal(employeeId, 'holiday');
+                // UI에서도 입력 필드 비우기 (헬퍼 함수 사용)
+                clearAllInputFields(employeeId, dateKey);
 
                 alert(`✅ 병가 처리: 연차 차감 (잔여: ${leaveRemaining - 1}일)`);
             }
             // 연차가 없으면 무급 (0시간, 사유결근처럼 처리)
             else {
-                if (normalInput) {
-                    normalInput.value = '';
-                    normalInput.readOnly = false;
-                    normalInput.style.background = '';
-                    normalInput.style.cursor = '';
-                }
+                setNormalInputEditable(normalInput);
 
-                // 모든 근무시간 자동 삭제
-                if (emp.normalHoursData) {
-                    delete emp.normalHoursData[dateKey];
-                    delete emp.normalHoursData[dateKeyNorm];
-                    delete emp.normalHoursData[dateKeyDenorm];
-                }
-                if (emp.overtimeData) {
-                    delete emp.overtimeData[dateKey];
-                    delete emp.overtimeData[dateKeyNorm];
-                    delete emp.overtimeData[dateKeyDenorm];
-                }
-                if (emp.nightData) {
-                    delete emp.nightData[dateKey];
-                    delete emp.nightData[dateKeyNorm];
-                    delete emp.nightData[dateKeyDenorm];
-                }
-                if (emp.sundayData) {
-                    delete emp.sundayData[dateKey];
-                    delete emp.sundayData[dateKeyNorm];
-                    delete emp.sundayData[dateKeyDenorm];
-                }
+                // 모든 근무시간 자동 삭제 (헬퍼 함수 사용)
+                clearAllWorkData(emp, dateKey);
 
-                // UI에서도 모든 입력 필드 비우기
-                const overtimeInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="overtime"]`);
-                const nightInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="night"]`);
-                const holidayInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="holiday"]`);
-                if (overtimeInput) overtimeInput.value = '';
-                if (nightInput) nightInput.value = '';
-                if (holidayInput) holidayInput.value = '';
+                // UI에서도 모든 입력 필드 비우기 (헬퍼 함수 사용)
+                clearAllInputFields(employeeId, dateKey);
 
-                // 합계 업데이트
+                // normal 합계도 업데이트
                 updateTotal(employeeId, 'normal');
-                updateTotal(employeeId, 'overtime');
-                updateTotal(employeeId, 'night');
-                updateTotal(employeeId, 'holiday');
 
                 alert(`⚠️ 병가 처리: 연차 잔여 없음 - 무급 처리 (사유결근)`);
             }
         }
         else if (leaveType === 'excused' || leaveType === 'absent' || leaveType === 'holiday') {
-            if (normalInput) normalInput.value = '';  // 사유결근/무단결근/공휴일은 0시간
+            setNormalInputEditable(normalInput);  // 사유결근/무단결근/공휴일은 0시간
 
-            // 무급휴가/결근 설정 시 모든 근무시간 자동 삭제
-            const dateKeyNorm = normalizeDateKey(dateKey);
-            const dateKeyDenorm = denormalizeDateKey(dateKey);
-            if (emp.normalHoursData) {
-                delete emp.normalHoursData[dateKey];
-                delete emp.normalHoursData[dateKeyNorm];
-                delete emp.normalHoursData[dateKeyDenorm];
-            }
-            if (emp.overtimeData) {
-                delete emp.overtimeData[dateKey];
-                delete emp.overtimeData[dateKeyNorm];
-                delete emp.overtimeData[dateKeyDenorm];
-            }
-            if (emp.nightData) {
-                delete emp.nightData[dateKey];
-                delete emp.nightData[dateKeyNorm];
-                delete emp.nightData[dateKeyDenorm];
-            }
-            if (emp.sundayData) {
-                delete emp.sundayData[dateKey];
-                delete emp.sundayData[dateKeyNorm];
-                delete emp.sundayData[dateKeyDenorm];
-            }
+            // 무급휴가/결근 설정 시 모든 근무시간 자동 삭제 (헬퍼 함수 사용)
+            clearAllWorkData(emp, dateKey);
 
-            // UI에서도 모든 입력 필드 비우기
-            const overtimeInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="overtime"]`);
-            const nightInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="night"]`);
-            const holidayInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="holiday"]`);
-            if (overtimeInput) overtimeInput.value = '';
-            if (nightInput) nightInput.value = '';
-            if (holidayInput) holidayInput.value = '';
+            // UI에서도 모든 입력 필드 비우기 (헬퍼 함수 사용)
+            clearAllInputFields(employeeId, dateKey);
 
-            // 합계 업데이트
+            // normal 합계도 업데이트
             updateTotal(employeeId, 'normal');
-            updateTotal(employeeId, 'overtime');
-            updateTotal(employeeId, 'night');
-            updateTotal(employeeId, 'holiday');
         }
     } else {
         // 색상 제거 및 readonly 해제
@@ -1368,11 +1283,7 @@ function setLeaveType(td, input, leaveType, color) {
             normalTd.style.background = '';
             normalTd.style.color = '';
         }
-        if (normalInput) {
-            normalInput.readOnly = false;
-            normalInput.style.background = '';
-            normalInput.style.cursor = '';
-        }
+        setNormalInputEditable(normalInput);
     }
 
     // normal 입력값 변경 처리
