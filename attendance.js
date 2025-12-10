@@ -29,8 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 년도/월 선택기 초기화
     initDateSelectors();
 
-    // MONEY에서 직원 데이터 로드
-    loadEmployeeFromMoney();
+    // 출퇴근 관리 데이터 로드 (초기화)
+    loadAttendanceDataOnInit();
 
     // 키보드 이벤트
     document.addEventListener('keydown', function(e) {
@@ -85,34 +85,102 @@ function initDateSelectors() {
 }
 
 // ==================== 직원 관리 ====================
-function loadEmployeeFromMoney() {
-    console.log('출퇴근 관리 전용 데이터 로드...');
+// 초기 로드: 출퇴근 관리 전용 데이터 로드
+function loadAttendanceDataOnInit() {
+    console.log('📂 출퇴근 관리 데이터 로드 (초기화)');
 
     // 출퇴근 관리 전용 localStorage에서 데이터 로드
     const savedEmployees = localStorage.getItem('vietnamPayrollEmployees_attendance');
     if (savedEmployees) {
         employees = JSON.parse(savedEmployees);
-        console.log('직원 수:', Object.keys(employees).length);
+        console.log('✅ 직원 수:', Object.keys(employees).length, '명');
     } else {
-        // 전용 데이터가 없으면 메인에서 복사 (초기 설정)
-        console.log('출퇴근 관리 전용 데이터 없음 → 메인에서 복사');
+        // 전용 데이터가 없으면 메인에서 복사 (최초 실행)
+        console.log('⚠️ 출퇴근 관리 전용 데이터 없음 → 메인에서 복사');
         const mainEmployees = localStorage.getItem('vietnamPayrollEmployees');
         if (mainEmployees) {
             employees = JSON.parse(mainEmployees);
-            // 출퇴근 관리 전용으로 저장
             localStorage.setItem('vietnamPayrollEmployees_attendance', mainEmployees);
-            console.log('메인에서 복사 완료, 직원 수:', Object.keys(employees).length);
+            console.log('✅ 메인에서 복사 완료, 직원 수:', Object.keys(employees).length, '명');
         } else {
             employees = {};
-            console.log('메인에도 저장된 직원 없음');
+            console.log('ℹ️ 직원 없음');
         }
     }
 
-    // 빠른 입력 모달의 직원 셀렉트 업데이트
     updateQuickEmployeeSelect();
-
-    // 테이블 렌더링
     renderTable();
+}
+
+// 직원 동기화: 항상 메인(급여계산기)을 기준으로 동기화
+function loadEmployeeFromMoney() {
+    console.log('🔄 직원 동기화 시작 (메인 기준)...');
+
+    // 1. 메인 localStorage에서 최신 직원 목록 가져오기
+    const mainData = localStorage.getItem('vietnamPayrollEmployees');
+    if (!mainData) {
+        alert('❌ 급여계산기에 저장된 직원이 없습니다!');
+        console.log('급여계산기에 직원 데이터 없음');
+        return;
+    }
+
+    let mainEmployees = {};
+    try {
+        mainEmployees = JSON.parse(mainData);
+        console.log('📋 급여계산기 직원 수:', Object.keys(mainEmployees).length, '명');
+    } catch (e) {
+        console.error('메인 데이터 파싱 오류:', e);
+        alert('❌ 데이터 읽기 오류!');
+        return;
+    }
+
+    // 2. 출퇴근 관리 전용 localStorage에서 출퇴근 데이터 가져오기
+    const attendanceData = localStorage.getItem('vietnamPayrollEmployees_attendance');
+    let attendanceEmployees = {};
+    if (attendanceData) {
+        try {
+            attendanceEmployees = JSON.parse(attendanceData);
+            console.log('📅 출퇴근 관리 직원 수:', Object.keys(attendanceEmployees).length, '명');
+        } catch (e) {
+            console.error('출퇴근 데이터 파싱 오류:', e);
+        }
+    }
+
+    // 3. 병합: 메인의 직원 목록을 기준으로, 출퇴근 데이터 유지
+    employees = {};
+    Object.keys(mainEmployees).forEach(empId => {
+        // 메인 직원 정보를 기본으로 사용
+        employees[empId] = { ...mainEmployees[empId] };
+
+        // 출퇴근 데이터가 있으면 덮어쓰기
+        if (attendanceEmployees[empId]) {
+            const dataKeys = ['normalHoursData', 'overtimeData', 'nightData', 'sundayData', 'nightOTData', 'leaveData'];
+            dataKeys.forEach(key => {
+                if (attendanceEmployees[empId][key]) {
+                    employees[empId][key] = attendanceEmployees[empId][key];
+                }
+            });
+        } else {
+            // 신규 직원은 빈 출퇴근 데이터 초기화
+            console.log(`✨ 신규 직원: ${employees[empId].name} (${employees[empId].employeeCode || 'N/A'})`);
+            employees[empId].normalHoursData = employees[empId].normalHoursData || {};
+            employees[empId].overtimeData = employees[empId].overtimeData || {};
+            employees[empId].nightData = employees[empId].nightData || {};
+            employees[empId].sundayData = employees[empId].sundayData || {};
+            employees[empId].nightOTData = employees[empId].nightOTData || {};
+            employees[empId].leaveData = employees[empId].leaveData || {};
+        }
+    });
+
+    console.log(`✅ 동기화 완료! 총 직원 수: ${Object.keys(employees).length}명`);
+
+    // 동기화된 데이터를 출퇴근 전용 localStorage에 저장
+    localStorage.setItem('vietnamPayrollEmployees_attendance', JSON.stringify(employees));
+
+    updateQuickEmployeeSelect();
+    renderTable();
+
+    alert(`✅ 동기화 완료!\n\n총 직원 수: ${Object.keys(employees).length}명`);
 }
 
 function updateQuickEmployeeSelect() {
@@ -162,6 +230,12 @@ function renderTable() {
 
     // 바디 생성
     renderTableBody(tbody, employeeArray, daysInMonth);
+
+    // 경고 셀 표시 업데이트
+    updateWarningCells();
+
+    // 읽기 전용 필드 업데이트 (연차/특별휴가/병가)
+    updateReadonlyFields();
 }
 
 function renderTableHeader(thead, daysInMonth) {
@@ -219,7 +293,10 @@ function renderTableBody(tbody, employeeArray, daysInMonth) {
         const leaveRemaining = annualLeaveTotal - leaveUsedThisYear;
 
         WORK_TYPES.forEach((type, typeIdx) => {
-            html += `<tr class="${typeIdx === 0 ? 'employee-group' : ''}">`;
+            const rowClass = [];
+            if (typeIdx === 0) rowClass.push('employee-group');
+            if (typeIdx === 3) rowClass.push('employee-group-last');
+            html += `<tr class="${rowClass.join(' ')}">`;
 
             // STT, CODE, 이름 (첫 번째 행에만)
             if (typeIdx === 0) {
@@ -294,6 +371,133 @@ function renderTableBody(tbody, employeeArray, daysInMonth) {
     });
 
     tbody.innerHTML = html;
+}
+
+// 경고 셀 표시 업데이트 (페이지 로드 시)
+function updateWarningCells() {
+    console.log('🔍 updateWarningCells 실행 시작');
+    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+    Object.keys(employees).forEach(empId => {
+        const emp = employees[empId];
+        if (!emp) return;
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dateKeyNorm = normalizeDateKey(dateKey);
+            const dateKeyDenorm = denormalizeDateKey(dateKey);
+
+            // 휴가 상태 확인
+            const leaveType = emp.leaveData?.[dateKey] || emp.leaveData?.[dateKeyNorm] || emp.leaveData?.[dateKeyDenorm];
+            const isPaidLeave = leaveType && ['annual', 'special', 'sick'].includes(leaveType);
+            const isUnpaidLeave = leaveType && ['holiday', 'absent', 'excused'].includes(leaveType);
+
+            // 각 타입별로 검증
+            ['normal', 'overtime', 'night', 'holiday'].forEach(typeKey => {
+                const value = getWorkValue(empId, dateKey, typeKey);
+                const input = document.querySelector(`input[data-employee="${empId}"][data-date="${dateKey}"][data-type="${typeKey}"]`);
+                const td = input ? input.closest('td') : null;
+
+                if (!td || value <= 0) return;
+
+                let hasWarning = false;
+
+                // 일요일 확인
+                const parts = dateKey.split('-');
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]);
+                const day = parseInt(parts[2]);
+                const date = new Date(year, month - 1, day);
+                const isSunday = date.getDay() === 0;
+
+                // 경고 1: 평일/토요일에 Holiday 입력
+                if (typeKey === 'holiday' && !isSunday) {
+                    hasWarning = true;
+                }
+
+                // 경고 2: 무급휴가/결근일에 근무시간 입력
+                if (isUnpaidLeave) {
+                    hasWarning = true;
+                }
+
+                // 경고 3: 유급휴가일에 정규근무 이외의 시간 입력
+                if (isPaidLeave && typeKey !== 'normal') {
+                    hasWarning = true;
+                }
+
+                // 경고 4: 일요일에 평일 칸(정규근무, 잔업, 야간) 입력
+                if (isSunday && (typeKey === 'normal' || typeKey === 'overtime' || typeKey === 'night')) {
+                    hasWarning = true;
+                }
+
+                // 경고 스타일 적용
+                if (hasWarning && !td.dataset.leave) {
+                    console.log(`[페이지 로드] 경고 표시: ${dateKey} ${typeKey} (value=${value})`);
+                    td.style.setProperty('background', '#ffeb3b', 'important');
+                    td.style.setProperty('border', '2px solid #f44336', 'important');
+                    td.style.boxSizing = 'border-box';
+                    td.title = '⚠️ 경고: 휴가/결근일에 근무시간이 입력되었습니다!';
+                    td.dataset.warning = 'true';
+                }
+            });
+        }
+    });
+    console.log('✅ updateWarningCells 완료');
+}
+
+// 읽기 전용 필드 업데이트 (연차/특별휴가/병가)
+function updateReadonlyFields() {
+    console.log('🔍 updateReadonlyFields 실행 시작');
+    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+    Object.keys(employees).forEach(empId => {
+        const emp = employees[empId];
+        if (!emp) return;
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dateKeyNorm = normalizeDateKey(dateKey);
+            const dateKeyDenorm = denormalizeDateKey(dateKey);
+
+            // 휴가 상태 확인
+            const leaveType = emp.leaveData?.[dateKey] || emp.leaveData?.[dateKeyNorm] || emp.leaveData?.[dateKeyDenorm];
+
+            // 연차 또는 특별휴가인 경우 → 8시간 고정 (readonly)
+            if (leaveType === 'annual' || leaveType === 'special') {
+                const normalInput = document.querySelector(`input[data-employee="${empId}"][data-date="${dateKey}"][data-type="normal"]`);
+                if (normalInput) {
+                    normalInput.value = 8;
+                    normalInput.readOnly = true;
+                    normalInput.style.background = '#e0e0e0';
+                    normalInput.style.cursor = 'not-allowed';
+                }
+            }
+            // 병가인 경우 → 연차 잔여 확인
+            else if (leaveType === 'sick') {
+                const currentLeaveUsed = calculateLeaveUsedThisYear(empId, emp);
+                const annualLeaveTotal = (emp.annualLeavePerYear || 12) + (emp.annualLeaveAdjustment || 0);
+                const leaveRemaining = annualLeaveTotal - currentLeaveUsed;
+
+                const normalInput = document.querySelector(`input[data-employee="${empId}"][data-date="${dateKey}"][data-type="normal"]`);
+
+                // 연차 잔여가 있으면 → 8시간 고정 (readonly)
+                if (leaveRemaining > 0 && normalInput) {
+                    normalInput.value = 8;
+                    normalInput.readOnly = true;
+                    normalInput.style.background = '#e0e0e0';
+                    normalInput.style.cursor = 'not-allowed';
+                }
+                // 연차가 없으면 → 0시간 (입력 가능)
+                else if (normalInput) {
+                    normalInput.value = '';
+                    normalInput.readOnly = false;
+                    normalInput.style.background = '';
+                    normalInput.style.cursor = '';
+                }
+            }
+        }
+    });
+    console.log('✅ updateReadonlyFields 완료');
 }
 
 // 이번 달 연차 사용 계산
@@ -375,10 +579,25 @@ function getWorkValue(employeeId, dateKey, typeKey) {
     const dateKeyNorm = normalizeDateKey(dateKey);
     const dateKeyDenorm = denormalizeDateKey(dateKey);
 
+    // 날짜가 일요일인지 확인
+    const isSunday = (key) => {
+        const parts = key.split('-');
+        if (parts.length !== 3) return false;
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]);
+        const day = parseInt(parts[2]);
+        const date = new Date(year, month - 1, day);
+        return date.getDay() === 0;
+    };
+
     switch (typeKey) {
         case 'normal':
             return emp.normalHoursData?.[dateKey] || emp.normalHoursData?.[dateKeyNorm] || emp.normalHoursData?.[dateKeyDenorm] || 0;
         case 'overtime':
+            // 일요일이면 sundayData에서 읽기 (일요일 잔업은 일요특근으로 처리)
+            if (isSunday(dateKey)) {
+                return emp.sundayData?.[dateKey] || emp.sundayData?.[dateKeyNorm] || emp.sundayData?.[dateKeyDenorm] || 0;
+            }
             return emp.overtimeData?.[dateKey] || emp.overtimeData?.[dateKeyNorm] || emp.overtimeData?.[dateKeyDenorm] || 0;
         case 'night':
             return emp.nightData?.[dateKey] || emp.nightData?.[dateKeyNorm] || emp.nightData?.[dateKeyDenorm] || 0;
@@ -397,33 +616,216 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
     if (!emp.overtimeData) emp.overtimeData = {};
     if (!emp.nightData) emp.nightData = {};
     if (!emp.sundayData) emp.sundayData = {};
+    if (!emp.leaveData) emp.leaveData = {};
 
     const numValue = parseFloat(value) || 0;
+
+    // 날짜가 일요일인지 확인 (YYYY-MM-DD 또는 YYYY-M-D 형식)
+    const isSunday = (dateKey) => {
+        const parts = dateKey.split('-');
+        if (parts.length !== 3) return false;
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]);
+        const day = parseInt(parts[2]);
+        const date = new Date(year, month - 1, day);
+        return date.getDay() === 0; // 0 = 일요일
+    };
+
+    // 날짜 키 정규화 (형식 통일)
+    const dateKeyNorm = normalizeDateKey(dateKey);
+    const dateKeyDenorm = denormalizeDateKey(dateKey);
+
+    // 휴가/결근 상태 확인
+    const leaveType = emp.leaveData?.[dateKey] || emp.leaveData?.[dateKeyNorm] || emp.leaveData?.[dateKeyDenorm];
+
+    // ⚠️ 연차/특별휴가는 normal 칸 수정 불가 (8시간 고정)
+    if ((leaveType === 'annual' || leaveType === 'special') && typeKey === 'normal') {
+        console.warn(`🚫 차단: ${leaveType}는 8시간 고정입니다. 수정 불가.`);
+        // 값을 8로 강제 설정
+        const input = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="normal"]`);
+        if (input) input.value = 8;
+        return;
+    }
+
+    // ⚠️ 병가는 연차 잔여에 따라 처리
+    if (leaveType === 'sick' && typeKey === 'normal') {
+        const currentLeaveUsed = calculateLeaveUsedThisYear(employeeId, emp);
+        const annualLeaveTotal = (emp.annualLeavePerYear || 12) + (emp.annualLeaveAdjustment || 0);
+        const leaveRemaining = annualLeaveTotal - currentLeaveUsed;
+
+        // 연차 잔여가 있으면 8시간 고정 (수정 불가)
+        if (leaveRemaining > 0) {
+            console.warn(`🚫 차단: 병가(유급)는 8시간 고정입니다. 수정 불가.`);
+            const input = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="normal"]`);
+            if (input) input.value = 8;
+            return;
+        }
+    }
+
+    // 유급휴가 (연차, 특별휴가, 병가) - 8시간 유급
+    const isPaidLeave = leaveType && ['annual', 'special', 'sick'].includes(leaveType);
+
+    // 무급휴가/결근 (공휴일, 무단결근, 사유결근) - 0시간
+    const isUnpaidLeave = leaveType && ['holiday', 'absent', 'excused'].includes(leaveType);
+
+    // ⚠️ 경고 플래그 (차단하지 않고 노란색 경고만)
+    let hasWarning = false;
+
+    // 경고 1: 평일/토요일에 Holiday(일요특근) 입력
+    if (numValue > 0 && typeKey === 'holiday' && !isSunday(dateKey)) {
+        hasWarning = true;
+        console.warn(`⚠️ 경고: ${dateKey}는 평일/토요일인데 Holiday가 입력되었습니다.`);
+    }
+
+    // 경고 2: 무급휴가/결근일에 근무시간 입력
+    if (numValue > 0 && isUnpaidLeave) {
+        hasWarning = true;
+        console.warn(`⚠️ 경고: ${dateKey}는 무급휴가/결근일인데 근무시간이 입력되었습니다.`);
+    }
+
+    // 경고 3: 유급휴가일에 정규근무 이외의 시간 입력
+    if (numValue > 0 && isPaidLeave && typeKey !== 'normal') {
+        hasWarning = true;
+        console.warn(`⚠️ 경고: ${dateKey}는 유급휴가일인데 잔업/야간/특근이 입력되었습니다.`);
+    }
+
+    // 경고 4: 일요일에 평일 칸(정규근무, 잔업, 야간) 입력
+    if (numValue > 0 && isSunday(dateKey) && (typeKey === 'normal' || typeKey === 'overtime' || typeKey === 'night')) {
+        hasWarning = true;
+        console.warn(`⚠️ 경고: ${dateKey}는 일요일인데 평일 칸(${typeKey})에 입력되었습니다.`);
+    }
+
+    // ⚠️ 검증: 24시간 초과 방지
+    if (numValue > 0) {
+        let totalHours = numValue;
+
+        // 현재 날짜의 다른 시간들 합산
+        if (typeKey !== 'normal') totalHours += (emp.normalHoursData?.[dateKey] || emp.normalHoursData?.[dateKeyNorm] || emp.normalHoursData?.[dateKeyDenorm] || 0);
+        if (typeKey !== 'overtime') totalHours += (emp.overtimeData?.[dateKey] || emp.overtimeData?.[dateKeyNorm] || emp.overtimeData?.[dateKeyDenorm] || 0);
+        if (typeKey !== 'night') totalHours += (emp.nightData?.[dateKey] || emp.nightData?.[dateKeyNorm] || emp.nightData?.[dateKeyDenorm] || 0);
+        if (typeKey !== 'holiday') totalHours += (emp.sundayData?.[dateKey] || emp.sundayData?.[dateKeyNorm] || emp.sundayData?.[dateKeyDenorm] || 0);
+
+        if (totalHours > 24) {
+            alert(`⚠️ 하루 총 근무시간이 24시간을 초과할 수 없습니다!\n\n현재 입력: ${totalHours}시간`);
+            return;
+        }
+    }
 
     switch (typeKey) {
         case 'normal':
             if (numValue > 0) {
                 emp.normalHoursData[dateKey] = numValue;
                 // Giờ Chính과 Ca Đêm은 배타적 (동시 입력 불가)
-                const dateKeyNorm = normalizeDateKey(dateKey);
-                const dateKeyDenorm = denormalizeDateKey(dateKey);
                 if (emp.nightData[dateKey]) delete emp.nightData[dateKey];
                 if (emp.nightData[dateKeyNorm]) delete emp.nightData[dateKeyNorm];
                 if (emp.nightData[dateKeyDenorm]) delete emp.nightData[dateKeyDenorm];
             } else {
                 delete emp.normalHoursData[dateKey];
+
+                // ⚠️ 일반 날짜에 0 입력 시 사유결근 자동 설정
+                // 조건: 휴가가 설정되지 않은 날 && 다른 근무시간도 모두 0
+                if (!leaveType) {
+                    const overtimeHours = emp.overtimeData?.[dateKey] || emp.overtimeData?.[dateKeyNorm] || emp.overtimeData?.[dateKeyDenorm] || 0;
+                    const nightHours = emp.nightData?.[dateKey] || emp.nightData?.[dateKeyNorm] || emp.nightData?.[dateKeyDenorm] || 0;
+                    const sundayHours = emp.sundayData?.[dateKey] || emp.sundayData?.[dateKeyNorm] || emp.sundayData?.[dateKeyDenorm] || 0;
+
+                    // 모든 근무시간이 0이면 사유결근 확인
+                    if (overtimeHours === 0 && nightHours === 0 && sundayHours === 0) {
+                        const userConfirmed = confirm('⚠️ 근무시간이 0입니다.\n\n사유결근으로 처리하시겠습니까?');
+                        console.log(`사유결근 확인 결과: ${userConfirmed}`);
+
+                        if (userConfirmed) {
+                            console.log('✅ 사유결근 처리 시작');
+
+                            // leaveData에 저장
+                            if (!emp.leaveData) emp.leaveData = {};
+                            emp.leaveData[dateKey] = 'excused';
+
+                            // 급여계산기 연동: excusedAbsents 배열에 추가
+                            if (!emp.excusedAbsents) emp.excusedAbsents = [];
+                            if (!emp.excusedAbsents.includes(dateKey)) {
+                                emp.excusedAbsents.push(dateKey);
+                            }
+
+                            // 모든 근무시간 데이터 삭제
+                            delete emp.normalHoursData[dateKey];
+                            delete emp.normalHoursData[dateKeyNorm];
+                            delete emp.normalHoursData[dateKeyDenorm];
+                            delete emp.overtimeData[dateKey];
+                            delete emp.overtimeData[dateKeyNorm];
+                            delete emp.overtimeData[dateKeyDenorm];
+                            delete emp.nightData[dateKey];
+                            delete emp.nightData[dateKeyNorm];
+                            delete emp.nightData[dateKeyDenorm];
+                            delete emp.sundayData[dateKey];
+                            delete emp.sundayData[dateKeyNorm];
+                            delete emp.sundayData[dateKeyDenorm];
+
+                            // UI 업데이트
+                            const normalInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="normal"]`);
+                            const normalTd = normalInput ? normalInput.closest('td') : null;
+
+                            if (normalTd) {
+                                normalTd.dataset.leave = 'excused';
+                                normalTd.style.background = '#9e9e9e';
+                                normalTd.style.color = 'white';
+                            }
+
+                            // 모든 입력 필드 비우기
+                            const overtimeInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="overtime"]`);
+                            const nightInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="night"]`);
+                            const holidayInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="holiday"]`);
+                            if (normalInput) normalInput.value = '';
+                            if (overtimeInput) overtimeInput.value = '';
+                            if (nightInput) nightInput.value = '';
+                            if (holidayInput) holidayInput.value = '';
+
+                            // 합계 업데이트
+                            updateTotal(employeeId, 'normal');
+                            updateTotal(employeeId, 'overtime');
+                            updateTotal(employeeId, 'night');
+                            updateTotal(employeeId, 'holiday');
+
+                            // 연차 표시 업데이트
+                            updateLeaveDisplay(employeeId, emp);
+
+                            // 변경사항 표시
+                            hasUnsavedChanges = true;
+                            updateSaveIndicator();
+
+                            console.log('✅ 사유결근 처리 완료');
+
+                            // 함수 종료
+                            return;
+                        } else {
+                            console.log('❌ 사유결근 처리 취소됨');
+                        }
+                    }
+                }
             }
             break;
         case 'overtime':
-            if (numValue > 0) emp.overtimeData[dateKey] = numValue;
-            else delete emp.overtimeData[dateKey];
+            // 일요일에 잔업 입력 → 자동으로 sundayData에 저장
+            if (isSunday(dateKey)) {
+                if (numValue > 0) {
+                    emp.sundayData[dateKey] = numValue;
+                    // overtimeData에서 삭제 (중복 방지)
+                    if (emp.overtimeData[dateKey]) delete emp.overtimeData[dateKey];
+                    if (emp.overtimeData[dateKeyNorm]) delete emp.overtimeData[dateKeyNorm];
+                    if (emp.overtimeData[dateKeyDenorm]) delete emp.overtimeData[dateKeyDenorm];
+                } else {
+                    delete emp.sundayData[dateKey];
+                }
+            } else {
+                // 평일/토요일 잔업 → overtimeData
+                if (numValue > 0) emp.overtimeData[dateKey] = numValue;
+                else delete emp.overtimeData[dateKey];
+            }
             break;
         case 'night':
             if (numValue > 0) {
                 emp.nightData[dateKey] = numValue;
                 // Ca Đêm과 Giờ Chính은 배타적 (동시 입력 불가)
-                const dateKeyNorm = normalizeDateKey(dateKey);
-                const dateKeyDenorm = denormalizeDateKey(dateKey);
                 if (emp.normalHoursData[dateKey]) delete emp.normalHoursData[dateKey];
                 if (emp.normalHoursData[dateKeyNorm]) delete emp.normalHoursData[dateKeyNorm];
                 if (emp.normalHoursData[dateKeyDenorm]) delete emp.normalHoursData[dateKeyDenorm];
@@ -432,9 +834,42 @@ function setWorkValue(employeeId, dateKey, typeKey, value) {
             }
             break;
         case 'holiday':
-            if (numValue > 0) emp.sundayData[dateKey] = numValue;
-            else delete emp.sundayData[dateKey];
+            if (numValue > 0) {
+                emp.sundayData[dateKey] = numValue;
+                // ⚠️ 중요: Holiday 컬럼 입력 시 overtimeData에서도 삭제 (일요일 잔업과 배타적)
+                if (emp.overtimeData[dateKey]) delete emp.overtimeData[dateKey];
+                if (emp.overtimeData[dateKeyNorm]) delete emp.overtimeData[dateKeyNorm];
+                if (emp.overtimeData[dateKeyDenorm]) delete emp.overtimeData[dateKeyDenorm];
+            } else {
+                delete emp.sundayData[dateKey];
+            }
             break;
+    }
+
+    // ⚠️ 경고 스타일 적용/제거
+    const inputElement = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="${typeKey}"]`);
+    const tdElement = inputElement ? inputElement.closest('td') : null;
+
+    console.log(`경고 체크: ${dateKey}, ${typeKey}, 값=${numValue}, 경고=${hasWarning}, isPaid=${isPaidLeave}, isUnpaid=${isUnpaidLeave}`);
+
+    if (tdElement) {
+        if (hasWarning && numValue > 0) {
+            // 진한 노란색 경고 표시
+            console.log(`⚠️ 경고 표시 적용: ${dateKey} ${typeKey}`);
+            tdElement.style.setProperty('background', '#ffeb3b', 'important');
+            tdElement.style.setProperty('border', '2px solid #f44336', 'important');
+            tdElement.style.boxSizing = 'border-box';
+            tdElement.title = '⚠️ 경고: 휴가/결근일에 근무시간이 입력되었습니다!';
+            tdElement.dataset.warning = 'true';
+        } else if (!tdElement.dataset.leave) {
+            // 경고 해제 (값이 0이거나, 경고 조건이 아니거나, 휴가 표시가 아닌 경우)
+            console.log(`경고 해제: ${dateKey} ${typeKey} (값=${numValue})`);
+            tdElement.style.removeProperty('background');
+            tdElement.style.removeProperty('border');
+            tdElement.style.boxSizing = '';
+            tdElement.title = '';
+            delete tdElement.dataset.warning;
+        }
     }
 
     // 변경사항 표시 (자동저장 비활성화 - 보내기 버튼 필요)
@@ -746,18 +1181,197 @@ function setLeaveType(td, input, leaveType, color) {
             normalTd.style.color = 'white';
         }
 
-        // 연차/특별휴가/병가는 8시간으로 설정 (normal행에만)
-        if (leaveType === 'annual' || leaveType === 'special' || leaveType === 'sick') {
-            if (normalInput) normalInput.value = 8;
-        } else if (leaveType === 'excused' || leaveType === 'absent' || leaveType === 'holiday') {
+        // 연차/특별휴가는 8시간 고정 (수정 불가)
+        if (leaveType === 'annual' || leaveType === 'special') {
+            if (normalInput) {
+                normalInput.value = 8;
+                normalInput.readOnly = true;
+                normalInput.style.background = '#e0e0e0';
+                normalInput.style.cursor = 'not-allowed';
+            }
+
+            // 유급휴가 설정 시 잔업/야간/일요특근 자동 삭제
+            const dateKeyNorm = normalizeDateKey(dateKey);
+            const dateKeyDenorm = denormalizeDateKey(dateKey);
+            if (emp.overtimeData) {
+                delete emp.overtimeData[dateKey];
+                delete emp.overtimeData[dateKeyNorm];
+                delete emp.overtimeData[dateKeyDenorm];
+            }
+            if (emp.nightData) {
+                delete emp.nightData[dateKey];
+                delete emp.nightData[dateKeyNorm];
+                delete emp.nightData[dateKeyDenorm];
+            }
+            if (emp.sundayData) {
+                delete emp.sundayData[dateKey];
+                delete emp.sundayData[dateKeyNorm];
+                delete emp.sundayData[dateKeyDenorm];
+            }
+
+            // UI에서도 입력 필드 비우기
+            const overtimeInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="overtime"]`);
+            const nightInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="night"]`);
+            const holidayInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="holiday"]`);
+            if (overtimeInput) overtimeInput.value = '';
+            if (nightInput) nightInput.value = '';
+            if (holidayInput) holidayInput.value = '';
+
+            // 합계 업데이트
+            updateTotal(employeeId, 'overtime');
+            updateTotal(employeeId, 'night');
+            updateTotal(employeeId, 'holiday');
+        }
+        // 병가는 연차 잔여에 따라 처리
+        else if (leaveType === 'sick') {
+            const currentLeaveUsed = calculateLeaveUsedThisYear(employeeId, emp);
+            const annualLeaveTotal = (emp.annualLeavePerYear || 12) + (emp.annualLeaveAdjustment || 0);
+            const leaveRemaining = annualLeaveTotal - currentLeaveUsed;
+
+            const dateKeyNorm = normalizeDateKey(dateKey);
+            const dateKeyDenorm = denormalizeDateKey(dateKey);
+
+            // 연차 잔여가 있으면 유급 (8시간, 연차처럼 처리)
+            if (leaveRemaining > 0) {
+                if (normalInput) {
+                    normalInput.value = 8;
+                    normalInput.readOnly = true;
+                    normalInput.style.background = '#e0e0e0';
+                    normalInput.style.cursor = 'not-allowed';
+                }
+
+                // 잔업/야간/일요특근 자동 삭제
+                if (emp.overtimeData) {
+                    delete emp.overtimeData[dateKey];
+                    delete emp.overtimeData[dateKeyNorm];
+                    delete emp.overtimeData[dateKeyDenorm];
+                }
+                if (emp.nightData) {
+                    delete emp.nightData[dateKey];
+                    delete emp.nightData[dateKeyNorm];
+                    delete emp.nightData[dateKeyDenorm];
+                }
+                if (emp.sundayData) {
+                    delete emp.sundayData[dateKey];
+                    delete emp.sundayData[dateKeyNorm];
+                    delete emp.sundayData[dateKeyDenorm];
+                }
+
+                // UI에서도 입력 필드 비우기
+                const overtimeInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="overtime"]`);
+                const nightInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="night"]`);
+                const holidayInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="holiday"]`);
+                if (overtimeInput) overtimeInput.value = '';
+                if (nightInput) nightInput.value = '';
+                if (holidayInput) holidayInput.value = '';
+
+                // 합계 업데이트
+                updateTotal(employeeId, 'overtime');
+                updateTotal(employeeId, 'night');
+                updateTotal(employeeId, 'holiday');
+
+                alert(`✅ 병가 처리: 연차 차감 (잔여: ${leaveRemaining - 1}일)`);
+            }
+            // 연차가 없으면 무급 (0시간, 사유결근처럼 처리)
+            else {
+                if (normalInput) {
+                    normalInput.value = '';
+                    normalInput.readOnly = false;
+                    normalInput.style.background = '';
+                    normalInput.style.cursor = '';
+                }
+
+                // 모든 근무시간 자동 삭제
+                if (emp.normalHoursData) {
+                    delete emp.normalHoursData[dateKey];
+                    delete emp.normalHoursData[dateKeyNorm];
+                    delete emp.normalHoursData[dateKeyDenorm];
+                }
+                if (emp.overtimeData) {
+                    delete emp.overtimeData[dateKey];
+                    delete emp.overtimeData[dateKeyNorm];
+                    delete emp.overtimeData[dateKeyDenorm];
+                }
+                if (emp.nightData) {
+                    delete emp.nightData[dateKey];
+                    delete emp.nightData[dateKeyNorm];
+                    delete emp.nightData[dateKeyDenorm];
+                }
+                if (emp.sundayData) {
+                    delete emp.sundayData[dateKey];
+                    delete emp.sundayData[dateKeyNorm];
+                    delete emp.sundayData[dateKeyDenorm];
+                }
+
+                // UI에서도 모든 입력 필드 비우기
+                const overtimeInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="overtime"]`);
+                const nightInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="night"]`);
+                const holidayInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="holiday"]`);
+                if (overtimeInput) overtimeInput.value = '';
+                if (nightInput) nightInput.value = '';
+                if (holidayInput) holidayInput.value = '';
+
+                // 합계 업데이트
+                updateTotal(employeeId, 'normal');
+                updateTotal(employeeId, 'overtime');
+                updateTotal(employeeId, 'night');
+                updateTotal(employeeId, 'holiday');
+
+                alert(`⚠️ 병가 처리: 연차 잔여 없음 - 무급 처리 (사유결근)`);
+            }
+        }
+        else if (leaveType === 'excused' || leaveType === 'absent' || leaveType === 'holiday') {
             if (normalInput) normalInput.value = '';  // 사유결근/무단결근/공휴일은 0시간
+
+            // 무급휴가/결근 설정 시 모든 근무시간 자동 삭제
+            const dateKeyNorm = normalizeDateKey(dateKey);
+            const dateKeyDenorm = denormalizeDateKey(dateKey);
+            if (emp.normalHoursData) {
+                delete emp.normalHoursData[dateKey];
+                delete emp.normalHoursData[dateKeyNorm];
+                delete emp.normalHoursData[dateKeyDenorm];
+            }
+            if (emp.overtimeData) {
+                delete emp.overtimeData[dateKey];
+                delete emp.overtimeData[dateKeyNorm];
+                delete emp.overtimeData[dateKeyDenorm];
+            }
+            if (emp.nightData) {
+                delete emp.nightData[dateKey];
+                delete emp.nightData[dateKeyNorm];
+                delete emp.nightData[dateKeyDenorm];
+            }
+            if (emp.sundayData) {
+                delete emp.sundayData[dateKey];
+                delete emp.sundayData[dateKeyNorm];
+                delete emp.sundayData[dateKeyDenorm];
+            }
+
+            // UI에서도 모든 입력 필드 비우기
+            const overtimeInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="overtime"]`);
+            const nightInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="night"]`);
+            const holidayInput = document.querySelector(`input[data-employee="${employeeId}"][data-date="${dateKey}"][data-type="holiday"]`);
+            if (overtimeInput) overtimeInput.value = '';
+            if (nightInput) nightInput.value = '';
+            if (holidayInput) holidayInput.value = '';
+
+            // 합계 업데이트
+            updateTotal(employeeId, 'normal');
+            updateTotal(employeeId, 'overtime');
+            updateTotal(employeeId, 'night');
+            updateTotal(employeeId, 'holiday');
         }
     } else {
-        // 색상 제거
+        // 색상 제거 및 readonly 해제
         if (normalTd) {
             delete normalTd.dataset.leave;
             normalTd.style.background = '';
             normalTd.style.color = '';
+        }
+        if (normalInput) {
+            normalInput.readOnly = false;
+            normalInput.style.background = '';
+            normalInput.style.cursor = '';
         }
     }
 
@@ -766,6 +1380,10 @@ function setLeaveType(td, input, leaveType, color) {
 
     // 직원 데이터에 저장
     saveLeaveData(employeeId, dateKey, leaveType);
+
+    // 변경사항 표시
+    hasUnsavedChanges = true;
+    updateSaveIndicator();
 }
 
 // 연차 데이터 저장 (급여계산기 연동)
@@ -799,8 +1417,18 @@ function saveLeaveData(employeeId, dateKey, leaveType) {
         } else if (leaveType === 'annual') {
             emp.annualLeaveDays.push(dateKey);
         } else if (leaveType === 'sick') {
-            // 병가는 연차로 처리 (유급)
-            emp.annualLeaveDays.push(dateKey);
+            // 병가는 연차 잔여에 따라 처리
+            const currentLeaveUsed = calculateLeaveUsedThisYear(employeeId, emp);
+            const annualLeaveTotal = (emp.annualLeavePerYear || 12) + (emp.annualLeaveAdjustment || 0);
+            const leaveRemaining = annualLeaveTotal - currentLeaveUsed;
+
+            if (leaveRemaining > 0) {
+                // 연차 잔여가 있으면 → 연차로 처리 (유급)
+                emp.annualLeaveDays.push(dateKey);
+            } else {
+                // 연차 잔여가 없으면 → 사유결근으로 처리 (무급)
+                emp.excusedAbsents.push(dateKey);
+            }
         }
         // special(경조사/특별휴가)은 연차와 별개 - 별도 배열에 저장
         else if (leaveType === 'special') {
@@ -1229,6 +1857,29 @@ function pushToSalaryCalc(silent = false) {
             mainEmployees[empId] = { ...emp, name: emp.name };
         }
 
+        // ⚠️ 데이터 전송 전: 일요일 overtimeData → sundayData 자동 변환 (기존 데이터 마이그레이션)
+        if (emp.overtimeData && !emp.sundayData) emp.sundayData = {};
+        const sundayOvertimeKeys = [];
+        Object.keys(emp.overtimeData || {}).forEach(dateKey => {
+            // 현재 달의 데이터만 체크
+            if (dateKey.startsWith(monthPrefix)) {
+                const parts = dateKey.split('-');
+                if (parts.length === 3) {
+                    const year = parseInt(parts[0]);
+                    const month = parseInt(parts[1]);
+                    const day = parseInt(parts[2]);
+                    const date = new Date(year, month - 1, day);
+                    if (date.getDay() === 0) { // 일요일
+                        // sundayData로 이동
+                        emp.sundayData[dateKey] = emp.overtimeData[dateKey];
+                        sundayOvertimeKeys.push(dateKey);
+                    }
+                }
+            }
+        });
+        // 이동된 일요일 데이터 삭제
+        sundayOvertimeKeys.forEach(key => delete emp.overtimeData[key]);
+
         // 현재 달 데이터만 업데이트
         const dataKeys = ['normalHoursData', 'overtimeData', 'nightData', 'sundayData', 'nightOTData'];
         dataKeys.forEach(dataKey => {
@@ -1282,9 +1933,67 @@ function pushToSalaryCalc(silent = false) {
     updateSaveIndicator();
 
     if (!silent) {
-        alert(`✅ 데이터가 저장되었습니다!\n\n📅 ${currentYear}년 ${currentMonth}월 데이터만 전송\n급여계산기를 새로고침(F5)하면 변경사항이 반영됩니다.`);
+        // 조용히 백그라운드에서 급여 재계산 트리거
+        triggerSilentPayrollCalculation(currentYear, currentMonth);
+
+        alert(`✅ 데이터가 저장되었습니다!\n\n📅 ${currentYear}년 ${currentMonth}월 데이터 전송 완료\n\n💡 급여 계산이 백그라운드에서 자동으로 진행됩니다.`);
     }
     console.log(`📤 ${currentYear}년 ${currentMonth}월 데이터 급여계산기로 전송 완료` + (silent ? ' (자동저장)' : ''));
+}
+
+// 조용한 급여 계산 트리거 (hidden iframe 사용)
+function triggerSilentPayrollCalculation(year, month) {
+    console.log(`🔄 백그라운드 급여 계산 시작: ${year}년 ${month}월`);
+
+    // 메시지 리스너 등록 (iframe에서 완료 메시지 수신)
+    const messageHandler = function(event) {
+        // 보안: 같은 origin에서 온 메시지만 처리
+        if (event.origin !== window.location.origin) return;
+
+        if (event.data && event.data.type === 'silentCalcComplete') {
+            if (event.data.success) {
+                console.log(`✅ 백그라운드 급여 계산 완료: ${event.data.count}명 (${event.data.year}년 ${event.data.month}월)`);
+            } else {
+                console.log(`❌ 백그라운드 급여 계산 실패: ${event.data.message}`);
+            }
+
+            // iframe 제거
+            const iframe = document.getElementById('silentCalcIframe');
+            if (iframe) {
+                iframe.remove();
+            }
+
+            // 리스너 제거
+            window.removeEventListener('message', messageHandler);
+        }
+    };
+
+    window.addEventListener('message', messageHandler);
+
+    // hidden iframe 생성
+    const iframe = document.createElement('iframe');
+    iframe.id = 'silentCalcIframe';
+    iframe.style.display = 'none';
+    iframe.src = `salary-input.html?silentCalc=true&year=${year}&month=${month}`;
+
+    // iframe 로드 에러 처리
+    iframe.onerror = function() {
+        console.error('❌ 백그라운드 급여 계산 iframe 로드 실패');
+        iframe.remove();
+        window.removeEventListener('message', messageHandler);
+    };
+
+    // 타임아웃 설정 (10초 후 자동 정리)
+    setTimeout(() => {
+        const iframe = document.getElementById('silentCalcIframe');
+        if (iframe) {
+            console.warn('⚠️ 백그라운드 급여 계산 타임아웃 (10초)');
+            iframe.remove();
+        }
+        window.removeEventListener('message', messageHandler);
+    }, 10000);
+
+    document.body.appendChild(iframe);
 }
 
 // ==================== 자동저장 시스템 (비활성화) ====================

@@ -974,6 +974,7 @@
             const year = urlParams.get('year');
             const month = urlParams.get('month');
             const autoCalc = urlParams.get('autoCalc');
+            const silentCalc = urlParams.get('silentCalc');
 
             // 년월 정보가 있으면 설정
             if (year && month) {
@@ -982,11 +983,129 @@
             }
 
             // 자동 계산 모드 확인
-            if (autoCalc === 'all') {
+            if (autoCalc === 'all' || autoCalc === 'true') {
                 // 페이지 로드 후 자동 계산 실행
                 setTimeout(() => {
                     autoCalculateAllEmployees();
                 }, 500);
+            }
+
+            // 조용한 계산 모드 (출퇴근 관리에서 호출)
+            if (silentCalc === 'true') {
+                // 페이지 로드 후 조용하게 계산만 실행
+                setTimeout(() => {
+                    autoCalculateAllEmployeesSilent();
+                }, 500);
+            }
+        }
+
+        // 전체 직원 자동 계산 및 확정 (조용한 모드 - 출퇴근 관리용)
+        function autoCalculateAllEmployeesSilent() {
+            const employeeIds = Object.keys(employees);
+            if (employeeIds.length === 0) {
+                console.log('❌ 등록된 직원이 없습니다.');
+                if (window.parent !== window) {
+                    window.parent.postMessage({ type: 'silentCalcComplete', success: false, message: '등록된 직원이 없습니다.' }, '*');
+                }
+                return;
+            }
+
+            let successCount = 0;
+            const monthKey = `${selectedYear}_${selectedMonth}`;
+            const confirmKey = `payrollConfirmed_${monthKey}`;
+            const historyKey = `payrollHistory_${monthKey}`;
+
+            // 기존 이력 데이터 확인
+            let historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+            const firstSavedDate = historyData.firstSavedDate || new Date().toISOString();
+
+            // 초기화
+            if (!historyData.data) {
+                historyData = {
+                    year: selectedYear,
+                    month: selectedMonth,
+                    savedDate: new Date().toISOString(),
+                    firstSavedDate: firstSavedDate,
+                    data: [],
+                    confirmedEmployees: []
+                };
+            }
+
+            let confirmedList = [];
+            let payrollDataList = [];
+
+            // 각 직원별로 계산 및 확정
+            employeeIds.forEach(empId => {
+                const emp = employees[empId];
+                if (!emp) return;
+
+                // 급여 데이터 계산 (기존 calculateEmployeePayroll 함수 사용)
+                const currentPayroll = calculateEmployeePayroll(empId, selectedYear, selectedMonth);
+
+                if (currentPayroll) {
+                    // 확정 목록에 추가
+                    if (!confirmedList.includes(empId)) {
+                        confirmedList.push(empId);
+                    }
+
+                    // 급여 데이터 추가
+                    // 직원 코드 포함된 이름 생성
+                    let displayName = emp.name;
+                    if (emp.employeeCode && !emp.name.includes(`[${emp.employeeCode}]`)) {
+                        displayName = `[${emp.employeeCode}] ${emp.name}`;
+                    }
+
+                    payrollDataList.push({
+                        employeeId: empId,
+                        id: empId,
+                        employeeCode: emp.employeeCode || '',
+                        name: displayName,
+                        ...currentPayroll
+                    });
+
+                    successCount++;
+                }
+            });
+
+            // 히스토리 데이터 업데이트
+            historyData.data = payrollDataList;
+            historyData.confirmedEmployees = confirmedList;
+            historyData.savedDate = new Date().toISOString();
+            historyData.firstSavedDate = firstSavedDate;
+
+            // 저장
+            localStorage.setItem(historyKey, JSON.stringify(historyData));
+            localStorage.setItem(confirmKey, JSON.stringify(confirmedList));
+
+            // 이력 목록 업데이트
+            let historyList = JSON.parse(localStorage.getItem('payrollHistoryList') || '[]');
+            const existingIndex = historyList.findIndex(h => h.year === selectedYear && h.month === selectedMonth);
+
+            const listItem = {
+                year: selectedYear,
+                month: selectedMonth,
+                savedDate: new Date().toISOString()
+            };
+
+            if (existingIndex >= 0) {
+                historyList[existingIndex] = listItem;
+            } else {
+                historyList.push(listItem);
+            }
+
+            localStorage.setItem('payrollHistoryList', JSON.stringify(historyList));
+
+            console.log(`✅ 조용한 계산 완료: ${successCount}명`);
+
+            // 부모 창에 완료 메시지 전송 (iframe에서 호출된 경우)
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'silentCalcComplete',
+                    success: true,
+                    count: successCount,
+                    year: selectedYear,
+                    month: selectedMonth
+                }, '*');
             }
         }
 
@@ -1095,11 +1214,21 @@
 
             console.log(`✅ 전체 직원 급여 확정 완료: ${successCount}명`);
 
-            alert(`✅ 전체 직원 급여 확정 완료!\n\n• 확정된 직원: ${successCount}명\n• 대상 월: ${selectedYear}년 ${selectedMonth}월\n\n급여대장에서 확인하세요.`);
+            // URL 파라미터 확인 (출퇴근 관리에서 자동 계산한 경우)
+            const urlParams = new URLSearchParams(window.location.search);
+            const isAutoCalc = urlParams.get('autoCalc') === 'true';
 
-            // 메인으로 이동할지 확인
-            if (confirm('메인 페이지로 이동하시겠습니까?')) {
+            if (isAutoCalc) {
+                // 출퇴근 관리에서 자동 계산한 경우 → 바로 급여대장으로 이동
+                console.log('자동 계산 완료 → 급여대장으로 이동');
                 window.location.href = 'index.html';
+            } else {
+                // 수동 확정한 경우 → 알림 + 확인
+                alert(`✅ 전체 직원 급여 확정 완료!\n\n• 확정된 직원: ${successCount}명\n• 대상 월: ${selectedYear}년 ${selectedMonth}월\n\n급여대장에서 확인하세요.`);
+
+                if (confirm('메인 페이지로 이동하시겠습니까?')) {
+                    window.location.href = 'index.html';
+                }
             }
         }
 
@@ -4259,11 +4388,17 @@
                 employeeId: employeeId,
                 employeeCode: emp.employeeCode || '',
                 name: displayName,
+                basicSalary: basicSalary,  // 기본급
                 workDays: workDays,
                 normalHours: normalHours,
-                overtimeHours: totalOvertime + totalSunday,  // 잔업 + 일요특근 합계
-                overtimePay: overtimePay + nightPay + sundayPay,  // 잔업수당 합계 (야근+야간+일요특근)
+                overtimeHours: totalOvertime,  // 잔업시간 (일요특근 별도)
+                sundayHours: totalSunday,  // 일요특근시간
+                nightHours: totalNight,  // 야간근무시간
                 basicPay: normalPay,
+                overtimePay: overtimePay,  // 잔업수당만
+                nightPay: nightPay,  // 야간수당
+                sundayPay: sundayPay,  // 일요특근수당
+                mealAllowance: mealAllowance,  // 식대
                 allowances: totalAllowances,
                 specialAllowance: specialAllowance,
                 totalSalary: totalSalary,

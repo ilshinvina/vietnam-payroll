@@ -1,23 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python analyze_excel.py:*)",
-      "Bash(python check_insurance.py:*)",
-      "Bash(dir:*)",
-      "Bash(powershell -Command \"(Get-Content ''급여계산기v2.html'' | Measure-Object -Line).Lines\")",
-      "Bash(python:*)",
-      "Bash(powershell -Command \"(Get-Content ''index.html'' | Measure-Object -Line).Lines\")",
-      "Bash(powershell -Command \"(Get-Content ''salary-input.html'' | Measure-Object -Line).Lines\")",
-      "Bash(powershell -Command \"(Get-Content ''settings.html'' | Measure-Object -Line).Lines\")",
-      "Bash(powershell -Command:*)",
-      "Bash(findstr:*)",
-      "Bash(node -c \"D:\\xyz\\MONEY\\salary-input.html\")",
-      "Bash(nul)",
-      "Bash(copy \"D:\\xyz\\MONEY\\styles.css\" \"D:\\xyz\\MONEY TEST\\styles.css\")",
-      "Bash(copy \"D:\\xyz\\MONEY\\ui-calendar.js\" \"D:\\xyz\\MONEY TEST\\ui-calendar.js\")",
-      "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit -m \"$(cat <<''EOF''\nv1.4.0 - 출퇴근 관리 시스템 추가\n\n주요 기능:\n- 출퇴근 관리 페이지 (attendance.html/attendance.js)\n- 6가지 휴가 유형: 연차, 경조사, 병가, 사유결근, 무단결근, 공휴일\n- 연차 현황 표시 (Phép/Còn)\n- 급여계산기 양방향 연동\n- 롱프레스 메뉴로 휴가 유형 선택\n- 스티키 헤더 (스크롤 시 날짜 고정)\n\n개선사항:\n- 급여계산기 휴가 토글 7단계로 확장\n- 색상 표준화 (출퇴근 관리 ↔ 급여계산기)\n- 미저장 변경사항 경고\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nv1.4.0 - 자동저장 및 데이터 동기화 개선\n\n주요 기능:\n- 급여계산기 자동저장 (2초 지연)\n  * 모든 시간 입력 함수에 자동저장 추가\n  * 확정 버튼 미클릭 시 데이터 손실 방지\n  * 출퇴근 관리 데이터 동기화 개선\n\n- 날짜 형식 호환성 개선\n  * YYYY-M-D ↔ YYYY-MM-DD 자동 변환\n  * 구버전/신버전 데이터 동시 지원\n\n- 출퇴근 관리 UI 개선\n  * 날짜 컬럼 크기 조정 (42px)\n  * 반응형 디자인 (5단계 브레이크포인트)\n  * 급여계산기 자동 연동 및 계산\n\n- 직원코드 정렬\n  * 자연스러운 정렬 (KA-001, KA-002...)\n  * 모든 페이지에 일관성 있게 적용\n\n- 야간 OT 요율 설정\n  * 150%, 180%, 200%, 250%, 300% 선택 가능\n  * 설정 페이지에서 동적 변경\n\n- 데이터 무결성\n  * 고아 데이터 자동 정리\n  * 직원 삭제 시 관련 데이터 완전 제거\n  * 급여대장 직원코드 표시 개선\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Excel Template Test</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Excel Template Download Test</h1>
+    <button onclick="downloadTemplate()">Download Template</button>
+
+    <script>
+        function downloadTemplate() {
+            console.log('Starting download...');
+            
+            // 방법 1: 원래 방식
+            const ws_data1 = [
+                [null, null, null, null, null, null, null, null, null, null, null],
+                ['STAFF LIST', null, null, null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null, null, null, null],
+                ['Code', 'Name', 'Birth Date', 'Hire Date', 'Department', 'Position', 'Basic Salary', 'Dependents', 'Annual Leave', 'Adjustment', 'Insurance Exempt'],
+                ['KQ-001', 'Nguyễn Văn A', '1990-05-15', '2024-01-15', 'Production', 'Worker', 6980000, 2, 12, 0, 'No']
+            ];
+            
+            const ws1 = XLSX.utils.aoa_to_sheet(ws_data1);
+            const wb1 = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb1, ws1, 'Method1');
+            
+            // 방법 2: 빈 행을 빈 문자열로
+            const ws_data2 = [
+                ['', '', '', '', '', '', '', '', '', '', ''],
+                ['STAFF LIST', '', '', '', '', '', '', '', '', '', ''],
+                ['', '', '', '', '', '', '', '', '', '', ''],
+                ['Code', 'Name', 'Birth Date', 'Hire Date', 'Department', 'Position', 'Basic Salary', 'Dependents', 'Annual Leave', 'Adjustment', 'Insurance Exempt'],
+                ['KQ-001', 'Nguyễn Văn A', '1990-05-15', '2024-01-15', 'Production', 'Worker', 6980000, 2, 12, 0, 'No']
+            ];
+            
+            const ws2 = XLSX.utils.aoa_to_sheet(ws_data2);
+            XLSX.utils.book_append_sheet(wb1, ws2, 'Method2');
+            
+            // 방법 3: 빈 행 없이 시작
+            const ws_data3 = [
+                ['Code', 'Name', 'Birth Date', 'Hire Date', 'Department', 'Position', 'Basic Salary', 'Dependents', 'Annual Leave', 'Adjustment', 'Insurance Exempt'],
+                ['KQ-001', 'Nguyễn Văn A', '1990-05-15', '2024-01-15', 'Production', 'Worker', 6980000, 2, 12, 0, 'No'],
+                ['KQ-002', 'Trần Thị B', '1995-08-20', '2024-03-01', 'Office', 'Admin', 7200000, 1, 12, 0, 'No']
+            ];
+            
+            const ws3 = XLSX.utils.aoa_to_sheet(ws_data3);
+            XLSX.utils.book_append_sheet(wb1, ws3, 'Method3_NoBlank');
+            
+            console.log('Workbook created with 3 sheets');
+            
+            XLSX.writeFile(wb1, 'TEST_TEMPLATE.xlsx');
+            
+            alert('Downloaded! Check all 3 sheets to see which one works!');
+        }
+    </script>
+</body>
+</html>

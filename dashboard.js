@@ -642,6 +642,7 @@ function refreshModalPayrollTable() {
         // 합계 초기화
         document.getElementById('modalTotalBasicSalary').textContent = '-';
         document.getElementById('modalTotalAllowances').textContent = '-';
+        document.getElementById('modalTotalOvertimePay').textContent = '-';
         document.getElementById('modalTotalSpecialAllowance').textContent = '-';
         document.getElementById('modalTotalGrossSalary').textContent = '-';
         document.getElementById('modalTotalDeductions').textContent = '-';
@@ -688,6 +689,10 @@ function renderModalPayrollTable(payrollData, employees) {
             const insuranceExemptBadge = isInsuranceExempt ? '<span style="background: #2196f3; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; margin-left: 5px;">🏥 보험미가입</span>' : '';
 
             // 확정된 직원: 모든 정보 표시
+            // 잔업 + 야간 + 일요특근 합산
+            const totalOvertimePay = (data.overtimePay || 0) + (data.nightPay || 0) + (data.sundayPay || 0);
+            const totalOvertimeHours = (data.overtimeHours || 0) + (data.nightHours || 0) + (data.sundayHours || 0);
+
             html += `
                 <tr style="cursor: pointer; transition: background 0.2s; background: ${rowBg};"
                     onmouseover="this.style.background='#f8f9fa'"
@@ -698,10 +703,10 @@ function renderModalPayrollTable(payrollData, employees) {
                     <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">${data.name}${statusTag}${insuranceExemptBadge}</td>
                     <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">${data.workDays}일</td>
                     <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">${data.normalHours}h</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #ddd; color: #ff5722;">${data.overtimeHours || 0}h</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #ddd; color: #ff5722;">${totalOvertimeHours || 0}h</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd;">${formatNumber(data.basicPay)}đ</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd;">${formatNumber(data.allowances)}đ</td>
-                    <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #ff5722;">${formatNumber(data.overtimePay || 0)}đ</td>
+                    <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #ff5722;">${formatNumber(totalOvertimePay)}đ</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #9c27b0;">${formatNumber(data.specialAllowance || 0)}đ</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: #2196f3; font-weight: bold;">${formatNumber(data.totalSalary)}đ</td>
                     <td style="padding: 12px; text-align: right; border: 1px solid #ddd; color: ${isInsuranceExempt ? '#bbb' : '#f44336'};">${isInsuranceExempt ? '<span style="font-size: 0.9em;">미가입</span>' : formatNumber(data.deductions) + 'đ'}</td>
@@ -730,19 +735,22 @@ function renderModalPayrollTable(payrollData, employees) {
     tbody.innerHTML = html;
 
     // 합계 계산 (날짜/시간은 제외)
+    // 잔업수당 = 잔업 + 야간 + 일요특근 합산
     const totals = {
-        basicPay: payrollData.reduce((sum, d) => sum + d.basicPay, 0),
-        allowances: payrollData.reduce((sum, d) => sum + d.allowances, 0),
+        basicPay: payrollData.reduce((sum, d) => sum + (d.basicPay || 0), 0),
+        allowances: payrollData.reduce((sum, d) => sum + (d.allowances || 0), 0),
+        overtimePay: payrollData.reduce((sum, d) => sum + ((d.overtimePay || 0) + (d.nightPay || 0) + (d.sundayPay || 0)), 0),
         specialAllowance: payrollData.reduce((sum, d) => sum + (d.specialAllowance || 0), 0),
-        totalSalary: payrollData.reduce((sum, d) => sum + d.totalSalary, 0),
-        deductions: payrollData.reduce((sum, d) => sum + d.deductions, 0),
-        incomeTax: payrollData.reduce((sum, d) => sum + d.incomeTax, 0),
+        totalSalary: payrollData.reduce((sum, d) => sum + (d.totalSalary || 0), 0),
+        deductions: payrollData.reduce((sum, d) => sum + (d.deductions || 0), 0),
+        incomeTax: payrollData.reduce((sum, d) => sum + (d.incomeTax || 0), 0),
         advancePayment: payrollData.reduce((sum, d) => sum + (d.advancePayment || 0), 0),
-        netSalary: payrollData.reduce((sum, d) => sum + d.netSalary, 0)
+        netSalary: payrollData.reduce((sum, d) => sum + (d.netSalary || 0), 0)
     };
 
     document.getElementById('modalTotalBasicSalary').textContent = formatNumber(totals.basicPay) + 'đ';
     document.getElementById('modalTotalAllowances').textContent = formatNumber(totals.allowances) + 'đ';
+    document.getElementById('modalTotalOvertimePay').textContent = formatNumber(totals.overtimePay) + 'đ';
     document.getElementById('modalTotalSpecialAllowance').textContent = formatNumber(totals.specialAllowance) + 'đ';
     document.getElementById('modalTotalGrossSalary').textContent = formatNumber(totals.totalSalary) + 'đ';
     document.getElementById('modalTotalDeductions').textContent = formatNumber(totals.deductions) + 'đ';
